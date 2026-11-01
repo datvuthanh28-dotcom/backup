@@ -1,0 +1,109 @@
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import { StoreProvider } from "./context/StoreContext";
+import { CartProvider } from "./context/CartContext";
+
+// Layouts & Protected Route
+import StorefrontLayout from "./components/layout/StorefrontLayout";
+import StaffLayout from "./components/layout/StaffLayout";
+import AdminLayout from "./components/layout/AdminLayout";
+import ProtectedRoute from "./components/common/ProtectedRoute";
+
+// Storefront & Customer Pages
+import Home from "./pages/Home";
+import ProductListPage from "./pages/ProductListPage";
+import ProductDetail from "./pages/ProductDetail";
+import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
+import Login from "./pages/Login"; // Customer Login (/login)
+import CustomerOrders from "./pages/customer/CustomerOrders";
+import AccessDenied from "./pages/AccessDenied";
+
+// Separate Portals Login Pages
+import StaffLogin from "./pages/staff/StaffLogin"; // Staff Login (/staff/login)
+import AdminLogin from "./pages/admin/AdminLogin"; // Admin Login (/admin/login)
+
+// Staff Workspace Pages (Staff Portal)
+import StaffDashboard from "./pages/staff/StaffDashboard";
+import StaffOrders from "./pages/staff/StaffOrders";
+import StaffInventory from "./pages/staff/StaffInventory";
+
+// Admin Workspace Pages (Admin Portal)
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminEmployees from "./pages/admin/AdminEmployees";
+import AdminReports from "./pages/admin/AdminReports";
+import AdminOrders from "./pages/admin/AdminOrders";
+
+function App() {
+  return (
+    <AuthProvider>
+      <StoreProvider>
+        <CartProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* 1. CUSTOMER PORTAL & STOREFRONT */}
+              <Route element={<StorefrontLayout />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/men" element={<ProductListPage category="men" title="Men" />} />
+                <Route path="/women" element={<ProductListPage category="women" title="Women" />} />
+                <Route path="/accessories" element={<ProductListPage category="accessories" title="Accessories" />} />
+                <Route path="/product/:id" element={<ProductDetail />} />
+                <Route path="/cart" element={<Cart />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/access-denied" element={<AccessDenied />} />
+
+                {/* Customer Account & Order History */}
+                <Route path="/account" element={<Navigate to="/account/orders" replace />} />
+                <Route
+                  path="/account/orders"
+                  element={
+                    <ProtectedRoute allowedRoles={["customer"]} loginRedirect="/login">
+                      <CustomerOrders />
+                    </ProtectedRoute>
+                  }
+                />
+              </Route>
+
+              {/* 2. STAFF PORTAL (Dedicated Login & Workspace) */}
+              <Route path="/staff/login" element={<StaffLogin />} />
+              <Route
+                path="/staff"
+                element={
+                  <ProtectedRoute allowedRoles={["staff"]} loginRedirect="/staff/login">
+                    <StaffLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<StaffDashboard />} />
+                <Route path="orders" element={<StaffOrders />} />
+                <Route path="inventory" element={<StaffInventory />} />
+              </Route>
+
+              {/* 3. ADMIN PORTAL (Dedicated Login & Workspace) */}
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]} loginRedirect="/admin/login">
+                    <AdminLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<AdminDashboard />} />
+                <Route path="employees" element={<AdminEmployees />} />
+                <Route path="reports" element={<AdminReports />} />
+                <Route path="orders" element={<AdminOrders />} />
+              </Route>
+
+              {/* Catch-all fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </CartProvider>
+      </StoreProvider>
+    </AuthProvider>
+  );
+}
+
+export default App;
