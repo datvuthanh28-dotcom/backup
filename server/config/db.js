@@ -436,26 +436,37 @@ export const db = {
         .input("stock_deducted", sql.Bit, stockDeducted ? 1 : 0)
         .query("UPDATE Orders SET order_status = @order_status, stock_deducted = @stock_deducted, updated_at = GETDATE() WHERE id = @id");
 
-      // Update payment status
-      if (newStatus === "delivered") {
-        await transaction
+      // Order status and payment status are strictly independent.
+      // Moving to 'delivered' DOES NOT automatically mark payment as 'paid'.
+      // Handling cancellation:
+      if (newStatus === "cancelled") {
+        const pmtRes = await transaction
           .request()
           .input("order_id", sql.NVarChar, orderId)
-          .input("verified_by", sql.NVarChar, updatedBy)
-          .query(`
-            UPDATE Payments 
-            SET payment_status = 'paid', verified_at = GETDATE(), verified_by = @verified_by, updated_at = GETDATE() 
-            WHERE order_id = @order_id
-          `);
-      } else if (newStatus === "cancelled") {
-        await transaction
-          .request()
-          .input("order_id", sql.NVarChar, orderId)
-          .query(`
-            UPDATE Payments 
-            SET payment_status = 'refunded', updated_at = GETDATE() 
-            WHERE order_id = @order_id
-          `);
+          .query("SELECT payment_status FROM Payments WHERE order_id = @order_id");
+        const currentPmtStatus = pmtRes.recordset[0]?.payment_status;
+
+        if (currentPmtStatus === "paid") {
+          // If customer already paid, cancelling initiates the refund workflow: refund_pending
+          await transaction
+            .request()
+            .input("order_id", sql.NVarChar, orderId)
+            .query(`
+              UPDATE Payments 
+              SET payment_status = 'refund_pending', updated_at = GETDATE() 
+              WHERE order_id = @order_id
+            `);
+        } else if (currentPmtStatus === "unpaid" || currentPmtStatus === "pending_verification") {
+          // If order was unpaid, cancelling it marks payment as 'cancelled', NEVER 'refunded'!
+          await transaction
+            .request()
+            .input("order_id", sql.NVarChar, orderId)
+            .query(`
+              UPDATE Payments 
+              SET payment_status = 'cancelled', updated_at = GETDATE() 
+              WHERE order_id = @order_id
+            `);
+        }
       }
 
       await transaction
@@ -465,6 +476,154 @@ export const db = {
         .input("new_status", sql.NVarChar, newStatus)
         .input("note", sql.NVarChar, note || `Cập nhật sang ${newStatus}`)
         .input("updated_by", sql.NVarChar, updatedBy)
+        .query(`
+          INSERT INTO OrderStatusHistory (order_id, previous_status, new_status, note, updated_by, created_at)
+          VALUES (@order_id, @previous_status, @new_status, @note, @updated_by, GETDATE())
+        `);
+
+      await transaction.commit();
+      return this.getOrderById(orderId);
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
+    }
+  },
+
+  // Explicit payment confirmation (COD collected or Bank Transfer verified)
+  async confirmPayment({ orderId, transactionReference = null, note = "", confirmedBy = "system" }) {
+    const p = await getActivePool();
+    const transaction = new sql.Transaction(p);
+    await transaction.begin();
+
+    try {
+      const orderRes = await transaction
+        .request()
+        .input("id", sql.NVarChar, orderId)
+        .query("SELECT * FROM Orders WHERE id = @id");
+      const order = orderRes.recordset[0];
+      if (!order) {
+        throw new Error("Không tìm thấy đơn hàng");
+      }
+
+      const pmtRes = await transaction
+        .request()
+        .input("order_id", sql.NVarChar, orderId)
+        .query("SELECT * FROM Payments WHERE order_id = @order_id");
+      const payment = pmtRes.recordset[0];
+      if (!payment) {
+        throw new Error("Không tìm thấy thông tin thanh toán của đơn hàng");
+      }
+
+      if (payment.payment_status === "paid") {
+        throw new Error("Đơn hàng này đã được xác nhận thanh toán trước đó");
+      }
+      if (payment.payment_status === "refunded") {
+        throw new Error("Đơn hàng này đã được hoàn tiền, không thể xác nhận thanh toán");
+      }
+      if (payment.payment_status === "cancelled") {
+        throw new Error("Giao dịch thanh toán đã bị hủy");
+      }
+
+      await transaction
+        .request()
+        .input("order_id", sql.NVarChar, orderId)
+        .input("verified_by", sql.NVarChar, confirmedBy)
+        .input("transaction_reference", sql.NVarChar, transactionReference || payment.transaction_reference)
+        .query(`
+          UPDATE Payments 
+          SET payment_status = 'paid', 
+              verified_at = GETDATE(), 
+              verified_by = @verified_by, 
+              transaction_reference = @transaction_reference,
+              updated_at = GETDATE() 
+          WHERE order_id = @order_id
+        `);
+
+      const auditNote = note 
+        ? `Xác nhận thanh toán thành công: ${note}` 
+        : `Xác nhận thanh toán thành công (Mã GD: ${transactionReference || payment.transaction_reference || "N/A"})`;
+
+      await transaction
+        .request()
+        .input("order_id", sql.NVarChar, orderId)
+        .input("previous_status", sql.NVarChar, order.order_status)
+        .input("new_status", sql.NVarChar, order.order_status)
+        .input("note", sql.NVarChar, auditNote)
+        .input("updated_by", sql.NVarChar, confirmedBy)
+        .query(`
+          INSERT INTO OrderStatusHistory (order_id, previous_status, new_status, note, updated_by, created_at)
+          VALUES (@order_id, @previous_status, @new_status, @note, @updated_by, GETDATE())
+        `);
+
+      await transaction.commit();
+      return this.getOrderById(orderId);
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
+    }
+  },
+
+  // Explicit refund processing
+  async processRefund({ orderId, refundReference = null, note = "", refundedBy = "system" }) {
+    const p = await getActivePool();
+    const transaction = new sql.Transaction(p);
+    await transaction.begin();
+
+    try {
+      const orderRes = await transaction
+        .request()
+        .input("id", sql.NVarChar, orderId)
+        .query("SELECT * FROM Orders WHERE id = @id");
+      const order = orderRes.recordset[0];
+      if (!order) {
+        throw new Error("Không tìm thấy đơn hàng");
+      }
+
+      const pmtRes = await transaction
+        .request()
+        .input("order_id", sql.NVarChar, orderId)
+        .query("SELECT * FROM Payments WHERE order_id = @order_id");
+      const payment = pmtRes.recordset[0];
+      if (!payment) {
+        throw new Error("Không tìm thấy thông tin thanh toán của đơn hàng");
+      }
+
+      if (payment.payment_status === "refunded") {
+        throw new Error("Khoản thanh toán này đã được hoàn tất thủ tục hoàn tiền trước đó");
+      }
+      if (payment.payment_status === "unpaid" || payment.payment_status === "cancelled") {
+        throw new Error("Đơn hàng chưa thanh toán hoặc đã hủy giao dịch, không có tiền để hoàn trả");
+      }
+      if (payment.payment_status !== "paid" && payment.payment_status !== "refund_pending") {
+        throw new Error(`Trạng thái thanh toán không hợp lệ để hoàn tiền: ${payment.payment_status}`);
+      }
+
+      await transaction
+        .request()
+        .input("order_id", sql.NVarChar, orderId)
+        .input("refunded_by", sql.NVarChar, refundedBy)
+        .input("refund_reference", sql.NVarChar, refundReference || `REF-${Date.now()}`)
+        .input("refund_note", sql.NVarChar, note || "Hoàn tiền theo yêu cầu hủy đơn")
+        .query(`
+          UPDATE Payments 
+          SET payment_status = 'refunded', 
+              refunded_at = GETDATE(), 
+              refunded_by = @refunded_by, 
+              refund_reference = @refund_reference,
+              refund_note = @refund_note,
+              updated_at = GETDATE() 
+          WHERE order_id = @order_id
+        `);
+
+      const auditNote = `Hoàn tiền thành công (Mã hoàn tiền: ${refundReference || "N/A"}). Ghi chú: ${note || "N/A"}`;
+
+      await transaction
+        .request()
+        .input("order_id", sql.NVarChar, orderId)
+        .input("previous_status", sql.NVarChar, order.order_status)
+        .input("new_status", sql.NVarChar, order.order_status)
+        .input("note", sql.NVarChar, auditNote)
+        .input("updated_by", sql.NVarChar, refundedBy)
         .query(`
           INSERT INTO OrderStatusHistory (order_id, previous_status, new_status, note, updated_by, created_at)
           VALUES (@order_id, @previous_status, @new_status, @note, @updated_by, GETDATE())
@@ -502,8 +661,9 @@ export const db = {
     // ONLY orders with verified payment (payment.payment_status === 'paid') contribute to actual collected revenue
     let actualCollectedRevenue = 0;
     let pendingVerificationRevenue = 0;
-    let unpaidRevenue = 0;
+    let refundPendingRevenue = 0;
     let refundedRevenue = 0;
+    let unpaidRevenue = 0;
 
     const categorySales = { men: 0, women: 0, accessories: 0 };
     const productSalesMap = {};
@@ -536,6 +696,8 @@ export const db = {
         });
       } else if (status === "pending_verification") {
         pendingVerificationRevenue += order.total_amount;
+      } else if (status === "refund_pending") {
+        refundPendingRevenue += order.total_amount;
       } else if (status === "refunded") {
         refundedRevenue += order.total_amount;
       } else {
@@ -549,6 +711,7 @@ export const db = {
     return {
       actualCollectedRevenue,
       pendingVerificationRevenue,
+      refundPendingRevenue,
       unpaidRevenue,
       refundedRevenue,
       totalOrders: allOrders.length,

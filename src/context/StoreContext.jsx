@@ -179,6 +179,40 @@ export function StoreProvider({ children }) {
     }
   };
 
+  // Confirm Payment (COD collection or Bank Transfer verification)
+  const confirmOrderPayment = async (orderId, { transactionReference = "", note = "" } = {}) => {
+    try {
+      const res = await ordersAPI.confirmPayment(orderId, { transactionReference, note });
+      if (res.success) {
+        await refreshOrders();
+        if (currentUser?.role === "admin") {
+          await refreshRevenueReport();
+        }
+        return { success: true, order: res.order };
+      }
+      return { success: false, error: res.error || "Không thể xác nhận thanh toán." };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  // Process Refund for paid or refund_pending orders
+  const processOrderRefund = async (orderId, { refundReference = "", note = "" } = {}) => {
+    try {
+      const res = await ordersAPI.processRefund(orderId, { refundReference, note });
+      if (res.success) {
+        await refreshOrders();
+        if (currentUser?.role === "admin") {
+          await refreshRevenueReport();
+        }
+        return { success: true, order: res.order };
+      }
+      return { success: false, error: res.error || "Không thể xử lý hoàn tiền." };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  };
+
   // Filter orders by customer ID
   const getOrdersByCustomer = (customerId) => {
     return orders.filter((o) => o.customer_id === customerId);
@@ -206,22 +240,22 @@ export function StoreProvider({ children }) {
     }
 
     // Fallback derived directly from orders in state
-    const delivered = orders.filter((o) => o.order_status === "delivered" || o.status === "delivered");
-    const deliveredRevenue = delivered.reduce((sum, o) => sum + (o.total_amount || o.totalAmount || 0), 0);
+    const paidOrders = orders.filter((o) => o.payment?.payment_status === "paid");
+    const actualRevenue = paidOrders.reduce((sum, o) => sum + (o.total_amount || o.totalAmount || 0), 0);
 
     return {
       totalOrders: orders.length,
-      deliveredOrdersCount: delivered.length,
+      deliveredOrdersCount: orders.filter((o) => (o.order_status || o.status) === "delivered").length,
       inFlightOrdersCount: orders.filter((o) => ["pending", "confirmed", "processing", "shipping"].includes(o.order_status || o.status)).length,
       cancelledOrdersCount: orders.filter((o) => (o.order_status || o.status) === "cancelled").length,
-      totalDeliveredRevenue: deliveredRevenue,
+      totalDeliveredRevenue: actualRevenue,
       inFlightRevenue: orders
-        .filter((o) => ["pending", "confirmed", "processing", "shipping"].includes(o.order_status || o.status))
+        .filter((o) => o.payment?.payment_status === "pending_verification" || o.payment?.payment_status === "unpaid")
         .reduce((sum, o) => sum + (o.total_amount || o.totalAmount || 0), 0),
       cancelledAmount: orders
-        .filter((o) => (o.order_status || o.status) === "cancelled")
+        .filter((o) => o.payment?.payment_status === "refunded")
         .reduce((sum, o) => sum + (o.total_amount || o.totalAmount || 0), 0),
-      averageOrderValue: delivered.length > 0 ? Math.round(deliveredRevenue / delivered.length) : 0,
+      averageOrderValue: paidOrders.length > 0 ? Math.round(actualRevenue / paidOrders.length) : 0,
       categorySales: { men: 0, women: 0, accessories: 0 },
       topSellingProducts: [],
     };
@@ -237,6 +271,8 @@ export function StoreProvider({ children }) {
     createOrder,
     updateOrderStatus,
     cancelOrder,
+    confirmOrderPayment,
+    processOrderRefund,
     getOrdersByCustomer,
     getBusinessMetrics,
     refreshProducts,

@@ -32,6 +32,27 @@ export async function runMigration() {
   }
   console.log("[Migration] Microsoft SQL Server schema tables verified.");
 
+  // Execute incremental migrations in server/db/migrations/
+  const migrationsDir = path.join(__dirname, "migrations");
+  if (fs.existsSync(migrationsDir)) {
+    const files = fs.readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort();
+    for (const file of files) {
+      console.log(`[Migration] Applying incremental migration: ${file}...`);
+      const migrationSql = fs.readFileSync(path.join(migrationsDir, file), "utf8");
+      const mBatches = migrationSql.split(/^\s*GO\s*$/gim);
+      for (const b of mBatches) {
+        const trimmed = b.trim();
+        if (trimmed) {
+          try {
+            await pool.request().query(trimmed);
+          } catch (err) {
+            console.warn(`[Migration] ${file} note:`, err.message);
+          }
+        }
+      }
+    }
+  }
+
   // Run seed
   await runSeed();
 }

@@ -27,18 +27,22 @@ export default function AdminReports() {
   const getOrderStatus = (o) => o.order_status || o.status;
   const getOrderAmount = (o) => Number(o.total_amount || o.totalAmount || 0);
 
-  // Filter orders by status
+  // Filter orders by payment and delivery status
+  const paidOrders = orders.filter((o) => o.payment?.payment_status === "paid");
   const deliveredOrders = orders.filter((o) => getOrderStatus(o) === "delivered");
   const inFlightOrders = orders.filter((o) =>
     ["pending", "confirmed", "processing", "shipping"].includes(getOrderStatus(o))
   );
+  const refundPendingOrders = orders.filter((o) => o.payment?.payment_status === "refund_pending");
+  const refundedOrders = orders.filter((o) => o.payment?.payment_status === "refunded");
   const cancelledOrders = orders.filter((o) => getOrderStatus(o) === "cancelled");
 
   // Verified Actual Collected Revenue strictly from database payment record
   const actualCollected = revenueReport?.actualCollectedRevenue ?? metrics.totalDeliveredRevenue;
-  const inFlightAmount = revenueReport?.unpaidRevenue ?? metrics.inFlightRevenue;
-  const grossCommittedSales = actualCollected + inFlightAmount;
+  const inFlightAmount = (revenueReport?.pendingVerificationRevenue || 0) + (revenueReport?.unpaidRevenue || 0) || metrics.inFlightRevenue;
+  const refundPendingAmount = revenueReport?.refundPendingRevenue ?? (refundPendingOrders.reduce((s, o) => s + getOrderAmount(o), 0));
   const refundedAmount = revenueReport?.refundedRevenue ?? metrics.cancelledAmount;
+  const grossCommittedSales = actualCollected + inFlightAmount;
 
   // Top products from backend report or fallback
   const topProducts =
@@ -48,14 +52,15 @@ export default function AdminReports() {
 
   // CSV Export Function
   const exportCSV = () => {
-    const headers = ["Order ID", "Customer Name", "Customer Email", "Date", "Payment Method", "Payment Status", "Total (VND)"];
-    const rows = deliveredOrders.map((o) => [
+    const headers = ["Order ID", "Customer Name", "Customer Email", "Date", "Order Status", "Payment Method", "Payment Status", "Total (VND)"];
+    const rows = orders.map((o) => [
       `"${o.id}"`,
       `"${o.customer_name || o.customerName || "Khách vãng lai"}"`,
       `"${o.customer_email || o.customerEmail || ""}"`,
       `"${new Date(o.created_at || o.createdAt).toLocaleDateString("vi-VN")}"`,
+      `"${getOrderStatus(o)}"`,
       `"${o.payment?.payment_method || o.payment_method || o.paymentMethod || "COD"}"`,
-      `"${o.payment?.payment_status || "paid"}"`,
+      `"${o.payment?.payment_status || "unpaid"}"`,
       getOrderAmount(o),
     ]);
 
@@ -150,7 +155,7 @@ export default function AdminReports() {
             {formatPrice(actualCollected)}
           </div>
           <div style={{ fontSize: "12px", color: "#6B5A4B", marginTop: "5px" }}>
-            Từ {deliveredOrders.length} đơn hoàn tất giao & thanh toán
+            Từ {paidOrders.length} đơn có xác nhận thanh toán thực tế
           </div>
         </div>
 
@@ -164,7 +169,7 @@ export default function AdminReports() {
           }}
         >
           <div style={{ fontSize: "12px", fontWeight: "600", textTransform: "uppercase", color: "#8A5A36", marginBottom: "8px" }}>
-            Doanh Thu Đang Lưu Thông (In-Flight)
+            Doanh Thu Đang Lưu Thông / Chờ Thu
           </div>
           <div style={{ fontSize: "28px", fontWeight: "700", color: "#8A5A36" }}>
             {formatPrice(inFlightAmount)}
@@ -183,14 +188,14 @@ export default function AdminReports() {
             boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
           }}
         >
-          <div style={{ fontSize: "12px", fontWeight: "600", textTransform: "uppercase", color: "#2B211C", marginBottom: "8px" }}>
-            Tổng Giá Trị Đơn Hàng Cam Kết
+          <div style={{ fontSize: "12px", fontWeight: "600", textTransform: "uppercase", color: "#E67E22", marginBottom: "8px" }}>
+            Khoản Chờ Hoàn Tiền (Refund Pending)
           </div>
-          <div style={{ fontSize: "28px", fontWeight: "700", color: "#2B211C" }}>
-            {formatPrice(grossCommittedSales)}
+          <div style={{ fontSize: "28px", fontWeight: "700", color: "#E67E22" }}>
+            {formatPrice(refundPendingAmount)}
           </div>
           <div style={{ fontSize: "12px", color: "#6B5A4B", marginTop: "5px" }}>
-            Tổng các đơn chưa hủy ({deliveredOrders.length + inFlightOrders.length} đơn)
+            {refundPendingOrders.length} đơn đã hủy cần phòng tài vụ hoàn tiền
           </div>
         </div>
 
@@ -203,14 +208,14 @@ export default function AdminReports() {
             boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
           }}
         >
-          <div style={{ fontSize: "12px", fontWeight: "600", textTransform: "uppercase", color: "#D9534F", marginBottom: "8px" }}>
-            Giá Trị Đơn Đã Hủy / Hoàn Tiền
+          <div style={{ fontSize: "12px", fontWeight: "600", textTransform: "uppercase", color: "#7B1FA2", marginBottom: "8px" }}>
+            Giá Trị Đã Hoàn Trả Khách Hàng
           </div>
-          <div style={{ fontSize: "28px", fontWeight: "700", color: "#D9534F" }}>
+          <div style={{ fontSize: "28px", fontWeight: "700", color: "#7B1FA2" }}>
             {formatPrice(refundedAmount)}
           </div>
           <div style={{ fontSize: "12px", color: "#6B5A4B", marginTop: "5px" }}>
-            {cancelledOrders.length} đơn đã hủy (Tồn kho đã hoàn trả lại)
+            {refundedOrders.length} đơn đã hoàn tất thủ tục hoàn tiền
           </div>
         </div>
       </div>

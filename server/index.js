@@ -41,7 +41,7 @@ app.get("/api/health", (req, res) => {
   if (connected) {
     return res.json({
       status: "healthy",
-      database: "Microsoft SQL Server (MaisonRueDB)",
+      database: `Microsoft SQL Server (${process.env.DB_NAME || "MaisonRueDB"})`,
       timestamp: new Date().toISOString(),
       uptimeSeconds: Math.floor(process.uptime()),
     });

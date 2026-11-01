@@ -144,3 +144,52 @@ export async function cancelOrder(req, res) {
   }
 }
 
+export async function confirmOrderPayment(req, res) {
+  try {
+    const orderId = req.params.id;
+    const { transactionReference, note } = req.body;
+
+    const confirmedBy = `${req.user.name} (${req.user.role.toUpperCase()})`;
+    const updatedOrder = await db.confirmPayment({
+      orderId,
+      transactionReference,
+      note,
+      confirmedBy,
+    });
+
+    return res.json({
+      success: true,
+      order: updatedOrder,
+      message: "Xác nhận thanh toán thành công.",
+    });
+  } catch (err) {
+    console.error("[Confirm Payment] Error:", err);
+    return res.status(400).json({ success: false, error: err.message || "Lỗi xác nhận thanh toán." });
+  }
+}
+
+export async function processOrderRefund(req, res) {
+  try {
+    const orderId = req.params.id;
+    const { refundReference, note } = req.body;
+
+    const refundedBy = `${req.user.name} (${req.user.role.toUpperCase()})`;
+    const updatedOrder = await db.processRefund({
+      orderId,
+      refundReference,
+      note,
+      refundedBy,
+    });
+
+    return res.json({
+      success: true,
+      order: updatedOrder,
+      message: "Xử lý hoàn tiền thành công.",
+    });
+  } catch (err) {
+    console.error("[Process Refund] Error:", err);
+    return res.status(400).json({ success: false, error: err.message || "Lỗi khi xử lý hoàn tiền." });
+  }
+}
+
+

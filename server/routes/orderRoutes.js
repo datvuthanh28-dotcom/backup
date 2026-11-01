@@ -7,6 +7,8 @@ import {
   createOrder,
   updateOrderStatus,
   cancelOrder,
+  confirmOrderPayment,
+  processOrderRefund,
 } from "../controllers/orderController.js";
 import { authenticateToken, requireRole } from "../middleware/auth.js";
 import { db } from "../config/db.js";
@@ -41,6 +43,8 @@ router.get("/:id", authenticateToken, getOrderById);
 router.post("/", optionalAuth, createOrder);
 router.patch("/:id/status", authenticateToken, requireRole("staff", "admin"), updateOrderStatus);
 router.post("/:id/cancel", authenticateToken, cancelOrder);
+router.post("/:id/payment/confirm", authenticateToken, requireRole("staff", "admin"), confirmOrderPayment);
+router.post("/:id/payment/refund", authenticateToken, requireRole("staff", "admin"), processOrderRefund);
 
 export default router;
 

@@ -1,16 +1,6 @@
 -- ============================================================
 -- MAISON RUE LUXURY E-COMMERCE DATABASE SCHEMA (Microsoft SQL Server)
--- Database Name: MaisonRueDB
 -- ============================================================
-
-IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'MaisonRueDB')
-BEGIN
-    CREATE DATABASE MaisonRueDB;
-END
-GO
-
-USE MaisonRueDB;
-GO
 
 -- 1. USERS TABLE (Role-Based Access Control)
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Users')
@@ -137,7 +127,7 @@ BEGIN
 END
 GO
 
--- 7. PAYMENTS TABLE (Verified Revenue Tracking)
+-- 7. PAYMENTS TABLE (Verified Revenue Tracking & Refund Workflow)
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Payments')
 BEGIN
     CREATE TABLE Payments (
@@ -145,10 +135,14 @@ BEGIN
         order_id NVARCHAR(50) NOT NULL UNIQUE FOREIGN KEY REFERENCES Orders(id) ON DELETE CASCADE,
         payment_method NVARCHAR(50) NOT NULL CHECK (payment_method IN ('cod', 'bank_transfer', 'credit_card')),
         amount DECIMAL(18, 0) NOT NULL,
-        payment_status NVARCHAR(30) NOT NULL CHECK (payment_status IN ('unpaid', 'pending_verification', 'paid', 'refunded')),
+        payment_status NVARCHAR(30) NOT NULL CHECK (payment_status IN ('unpaid', 'pending_verification', 'paid', 'refund_pending', 'refunded', 'cancelled')),
         verified_at DATETIME2,
         verified_by NVARCHAR(120),
         transaction_reference NVARCHAR(100),
+        refunded_at DATETIME2,
+        refunded_by NVARCHAR(120),
+        refund_note NVARCHAR(500),
+        refund_reference NVARCHAR(100),
         created_at DATETIME2 NOT NULL DEFAULT GETDATE(),
         updated_at DATETIME2 NOT NULL DEFAULT GETDATE()
     );

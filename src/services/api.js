@@ -94,6 +94,16 @@ export const ordersAPI = {
       method: "POST",
       body: JSON.stringify({ note }),
     }),
+  confirmPayment: (id, { transactionReference, note } = {}) =>
+    request(`/orders/${id}/payment/confirm`, {
+      method: "POST",
+      body: JSON.stringify({ transactionReference, note }),
+    }),
+  processRefund: (id, { refundReference, note } = {}) =>
+    request(`/orders/${id}/payment/refund`, {
+      method: "POST",
+      body: JSON.stringify({ refundReference, note }),
+    }),
 };
 
 export const employeeAPI = {

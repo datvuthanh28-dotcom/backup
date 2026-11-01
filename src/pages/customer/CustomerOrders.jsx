@@ -22,6 +22,15 @@ function formatDate(isoStr) {
 
 const TRACKER_STEPS = ["pending", "confirmed", "processing", "shipping", "delivered"];
 
+export const PAYMENT_STATUS_META = {
+  paid: { label: "Đã thanh toán", color: "#2E8B57", bg: "#EAF7EE" },
+  pending_verification: { label: "Chờ xác nhận thanh toán", color: "#B8860B", bg: "#FFF8DC" },
+  unpaid: { label: "Chưa thanh toán (COD)", color: "#6B5A4B", bg: "#F5F0EA" },
+  refund_pending: { label: "Chờ xử lý hoàn tiền", color: "#E67E22", bg: "#FDF2E9" },
+  refunded: { label: "Đã hoàn tiền", color: "#7B1FA2", bg: "#F3E5F5" },
+  cancelled: { label: "Đã hủy giao dịch", color: "#9E9E9E", bg: "#EEEEEE" },
+};
+
 export default function CustomerOrders() {
   useDocumentTitle("Đơn Hàng Của Tôi");
   const { orders, cancelOrder } = useStore();
@@ -194,6 +203,9 @@ export default function CustomerOrders() {
             const orderItems = order.items || [];
             const totalAmount = order.total_amount || order.totalAmount;
             const createdAt = order.created_at || order.createdAt;
+            const pmt = order.payment || {};
+            const pmtStatus = pmt.payment_status || "unpaid";
+            const pmtMeta = PAYMENT_STATUS_META[pmtStatus] || { label: pmtStatus, color: "#6B5A4B", bg: "#F5F0EA" };
 
             return (
               <div
@@ -228,7 +240,7 @@ export default function CustomerOrders() {
                     </span>
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                     <span
                       style={{
                         padding: "5px 14px",
@@ -241,6 +253,20 @@ export default function CustomerOrders() {
                       }}
                     >
                       ● {statusMeta.label}
+                    </span>
+
+                    <span
+                      style={{
+                        padding: "5px 14px",
+                        borderRadius: "20px",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        color: pmtMeta.color,
+                        backgroundColor: pmtMeta.bg,
+                        border: `1px solid ${pmtMeta.color}30`,
+                      }}
+                    >
+                      ● {pmtMeta.label}
                     </span>
 
                     <button
@@ -372,17 +398,23 @@ export default function CustomerOrders() {
                   <div
                     style={{
                       padding: "12px 24px",
-                      backgroundColor: "#FFF5F5",
+                      backgroundColor: pmtStatus === "refund_pending" ? "#FDF2E9" : pmtStatus === "refunded" ? "#F3E5F5" : "#FFF5F5",
                       borderBottom: "1px solid #FFE4E4",
                       fontSize: "13px",
-                      color: "#D9534F",
+                      color: pmtStatus === "refund_pending" ? "#E67E22" : pmtStatus === "refunded" ? "#7B1FA2" : "#D9534F",
                       display: "flex",
                       alignItems: "center",
                       gap: "8px",
                     }}
                   >
-                    <i className="fas fa-ban"></i>
-                    <span>Đơn hàng này đã bị hủy. Toàn bộ số lượng sản phẩm đã được hoàn trả lại vào kho hàng.</span>
+                    <i className="fas fa-info-circle"></i>
+                    <span>
+                      {pmtStatus === "refund_pending"
+                        ? "Đơn hàng này đã bị hủy. Yêu cầu hoàn tiền của bạn đang được phòng kế toán đối soát và xử lý trong 24h làm việc."
+                        : pmtStatus === "refunded"
+                        ? `Đơn hàng này đã bị hủy. Khoản tiền đã được hoàn trả thành công${pmt.refund_reference ? ` (Mã hoàn tiền: ${pmt.refund_reference})` : ""}.`
+                        : "Đơn hàng này đã bị hủy. Toàn bộ số lượng sản phẩm đã được tự động hoàn trả lại vào kho hàng."}
+                    </span>
                   </div>
                 )}
 
@@ -604,7 +636,14 @@ export default function CustomerOrders() {
               <div><strong>Người nhận:</strong> {selectedOrder.customer_name || selectedOrder.customerName} ({selectedOrder.customer_phone || selectedOrder.customerPhone})</div>
               <div><strong>Địa chỉ:</strong> {selectedOrder.shipping_address || selectedOrder.shippingAddress}</div>
               <div><strong>Hình thức thanh toán:</strong> {selectedOrder.payment?.payment_method === "cod" ? "Thanh toán khi nhận hàng (COD)" : "Chuyển khoản"}</div>
-              <div><strong>Trạng thái:</strong> {STATUS_LABELS[selectedOrder.order_status || selectedOrder.status]?.label}</div>
+              <div><strong>Trạng thái đơn:</strong> {STATUS_LABELS[selectedOrder.order_status || selectedOrder.status]?.label}</div>
+              <div><strong>Trạng thái thanh toán:</strong> {PAYMENT_STATUS_META[selectedOrder.payment?.payment_status || "unpaid"]?.label}</div>
+              {selectedOrder.payment?.transaction_reference && (
+                <div><strong>Mã giao dịch:</strong> {selectedOrder.payment.transaction_reference}</div>
+              )}
+              {selectedOrder.payment?.refund_reference && (
+                <div><strong>Mã hoàn tiền:</strong> {selectedOrder.payment.refund_reference} (Hoàn tất ngày {formatDate(selectedOrder.payment.refunded_at)})</div>
+              )}
             </div>
 
             <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px", marginBottom: "12px" }}>
