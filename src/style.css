@@ -1317,6 +1317,24 @@ header nav a {
 .size-table-wrap table { width: 100%; border-collapse: collapse; background: #fff; }
 .size-table-wrap th, .size-table-wrap td { padding: 16px; border-bottom: 1px solid #E8E1D6; text-align: center; color: #51443B; }
 .size-table-wrap th { color: #8A7350; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+.gallery-color-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; color: #8A7350; font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase; }
+.gallery-color-label strong { color: #2B211C; font-size: 11px; font-weight: 600; }
+.cart-edit-link { display: inline-block; margin-top: 8px; color: #8A7350; font-size: 11px; text-decoration: underline; text-underline-offset: 3px; }
+.size-guide-overlay { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 24px; background: rgba(43,33,28,.52); }
+.size-guide-modal { position: relative; width: min(680px, 100%); max-height: min(88vh, 760px); overflow: auto; padding: 42px; background: #FBF8F3; box-shadow: 0 24px 80px rgba(43,33,28,.25); }
+.size-guide-close { position: absolute; top: 12px; right: 16px; border: 0; background: transparent; color: #6B5A4B; font-size: 30px; cursor: pointer; }
+.size-guide-modal h2 { margin: 8px 0 10px; font: 500 38px 'Cormorant Garamond', serif; color: #2B211C; }
+.size-guide-intro { color: #6B5A4B; line-height: 1.7; }
+.measurement-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 24px 0; }
+.measurement-grid label { display: grid; gap: 7px; color: #51443B; font-size: 11px; letter-spacing: .8px; text-transform: uppercase; }
+.measurement-grid input { width: 100%; padding: 12px; border: 1px solid #CFC3B4; background: #fff; color: #2B211C; font: inherit; }
+.size-recommendation { display: grid; gap: 4px; margin: 16px 0 24px; padding: 14px 16px; border-left: 3px solid #B89B5E; background: #F3EBDD; color: #51443B; }
+.size-recommendation strong { color: #2B211C; }
+.size-guide-modal h3 { margin: 24px 0 10px; color: #2B211C; font: 500 22px 'Cormorant Garamond', serif; }
+.measure-steps { margin: 0 0 22px; padding-left: 20px; color: #6B5A4B; line-height: 1.8; }
+@media (max-width: 600px) { .size-guide-modal { padding: 34px 20px 24px; } .measurement-grid { grid-template-columns: 1fr; } .size-guide-modal h2 { font-size: 32px; } }
+@media (max-width: 700px) { .product-actions.refined-actions { position: sticky; bottom: 10px; z-index: 20; margin: 18px -8px 0; padding: 10px 8px; background: rgba(251,248,243,.95); box-shadow: 0 -8px 20px rgba(43,33,28,.08); backdrop-filter: blur(8px); } .product-actions.refined-actions .btn-large { flex: 1; } .gallery-color-label { padding: 0 2px; } }
+@media (max-width: 760px) { .checkout-layout { grid-template-columns: 1fr !important; gap: 20px !important; } .checkout-layout > div { padding: 20px !important; } .checkout-layout .cart-summary { position: static !important; } }
 .related-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
 
 @media (max-width: 800px) {

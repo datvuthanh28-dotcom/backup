@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Navigate, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
 
@@ -12,6 +12,10 @@ export default function StaffLogin() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  if (currentUser) {
+    return <Navigate to={role === "admin" ? "/admin" : role === "staff" ? "/staff" : "/account/orders"} replace />;
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault();

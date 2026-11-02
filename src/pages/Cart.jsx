@@ -54,6 +54,7 @@ export default function Cart() {
                     <p className="cart-item-color">Màu: {item.selectedColor}</p>
                   )}
                   {item.selectedSize && <p className="cart-item-color">Size: {item.selectedSize} · {item.sku}</p>}
+                  <Link className="cart-edit-link" to={`/product/${item.id}`}>Chỉnh sửa màu / size</Link>
                   <p className="cart-item-price">{formatPrice(item.price)}</p>
 
                   {/* Stock validation badge */}
