@@ -17,7 +17,9 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import Login from "./pages/Login"; // Customer Login (/login)
 import CustomerOrders from "./pages/customer/CustomerOrders";
+import CustomerAccount from "./pages/customer/CustomerAccount";
 import AccessDenied from "./pages/AccessDenied";
+import SearchResultsPage from "./pages/SearchResultsPage";
 
 // Separate Portals Login Pages
 import StaffLogin from "./pages/staff/StaffLogin"; // Staff Login (/staff/login)
@@ -52,13 +54,14 @@ function App() {
                 <Route path="/collections/heritage-cashmere" element={<ProductListPage collection="Heritage Cashmere" title="Heritage Cashmere" />} />
                 <Route path="/collections/suede-essentials" element={<ProductListPage collection="Suede Essentials" title="Suede Essentials" />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
+                <Route path="/search" element={<SearchResultsPage />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/access-denied" element={<AccessDenied />} />
 
                 {/* Customer Account & Order History */}
-                <Route path="/account" element={<Navigate to="/account/orders" replace />} />
+                <Route path="/account" element={<CustomerAccount />} />
                 <Route
                   path="/account/orders"
                   element={
@@ -67,6 +70,7 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                <Route path="/account/profile" element={<ProtectedRoute allowedRoles={["customer"]} loginRedirect="/login"><CustomerAccount /></ProtectedRoute>} />
               </Route>
 
               {/* 2. STAFF PORTAL (Dedicated Login & Workspace) */}

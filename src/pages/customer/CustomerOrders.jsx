@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useStore, STATUS_LABELS } from "../../context/StoreContext";
 import { useAuth } from "../../context/AuthContext";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
+import CustomerAccountSidebar from "../../components/CustomerAccountSidebar";
 
 function formatPrice(v) {
   return (v || 0).toLocaleString("vi-VN") + "đ";
@@ -40,6 +41,7 @@ export default function CustomerOrders() {
   const [cancelReason, setCancelReason] = useState("");
   const [actionNotice, setActionNotice] = useState("");
   const [loadingCancel, setLoadingCancel] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
 
   // Filter orders for the logged-in customer (backend already scopes, but we also ensure on client)
   const customerOrders = orders.filter((o) => {
@@ -50,7 +52,7 @@ export default function CustomerOrders() {
       custId === currentUser.id ||
       custEmail?.toLowerCase() === currentUser.email?.toLowerCase()
     );
-  });
+  }).filter((o) => statusFilter === "all" || (o.order_status || o.status) === statusFilter);
 
   const handleCancelClick = (order) => {
     setCancellingId(order.id);
@@ -84,7 +86,15 @@ export default function CustomerOrders() {
   };
 
   return (
-    <main style={{ maxWidth: "1150px", margin: "40px auto", padding: "0 20px" }}>
+    <main className="customer-orders-page" style={{ maxWidth: "1150px", margin: "40px auto", padding: "0 20px" }}>
+      <CustomerAccountSidebar />
+      <section className="customer-orders-content">
+      <div className="orders-filter-bar" aria-label="Lọc đơn hàng">
+        <span>Lọc đơn hàng</span>
+        {[['all','Tất cả'],['pending','Chờ xác nhận'],['processing','Đang chuẩn bị'],['shipping','Đang giao'],['delivered','Đã nhận hàng'],['cancelled','Đã hủy']].map(([value, label]) => (
+          <button key={value} className={statusFilter === value ? "active" : ""} onClick={() => setStatusFilter(value)}>{label}</button>
+        ))}
+      </div>
       {/* Header bar */}
       <div
         style={{
@@ -137,7 +147,6 @@ export default function CustomerOrders() {
               fontWeight: "600",
             }}
           >
-            Vai trò: Khách hàng (Customer)
           </span>
         </div>
       </div>
@@ -321,7 +330,7 @@ export default function CustomerOrders() {
                           position: "absolute",
                           top: "14px",
                           left: "40px",
-                          right: "40px",
+                          right: currentStepIdx === TRACKER_STEPS.length - 1 ? "10%" : "40px",
                           height: "2px",
                           backgroundColor: "#E0D7CC",
                           zIndex: 1,
@@ -333,7 +342,7 @@ export default function CustomerOrders() {
                           position: "absolute",
                           top: "14px",
                           left: "40px",
-                          width: `${Math.max(0, (currentStepIdx / (TRACKER_STEPS.length - 1)) * 100)}%`,
+                          width: `${currentStepIdx === TRACKER_STEPS.length - 1 ? 90 : Math.max(0, (currentStepIdx / (TRACKER_STEPS.length - 1)) * 100)}%`,
                           height: "2px",
                           backgroundColor: "#4E342E",
                           zIndex: 2,
@@ -692,6 +701,9 @@ export default function CustomerOrders() {
           </div>
         </div>
       )}
+      </section>
     </main>
   );
 }
+
+

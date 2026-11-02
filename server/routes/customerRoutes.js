@@ -1,0 +1,12 @@
+import { Router } from "express";
+import { authenticateToken, requireRole } from "../middleware/auth.js";
+import { getAccount, addAddress, updateAddress, deleteAddress, updatePreferences, updateProfile } from "../controllers/customerController.js";
+const router = Router();
+router.use(authenticateToken, requireRole("customer"));
+router.get("/account", getAccount);
+router.post("/addresses", addAddress);
+router.patch("/addresses/:id", updateAddress);
+router.delete("/addresses/:id", deleteAddress);
+router.patch("/preferences", updatePreferences);
+router.patch("/profile", updateProfile);
+export default router;
