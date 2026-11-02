@@ -30,8 +30,11 @@ export default function ProductCard({ product }) {
       <div className="product-image">
         <img src={`/${product.images[0]}`} alt={product.name} />
       </div>
+      <div className="product-card-meta">{product.collection || product.productType}</div>
       <h3>{product.name}</h3>
+      <p className="product-card-fit">{product.fit || product.gender}</p>
       <p className="product-price">{product.price.toLocaleString("vi-VN")}đ</p>
+      {product.colorOptions && <div className="card-swatches">{product.colorOptions.slice(0, 4).map((color) => <span key={color.name} title={color.name} style={{ background: color.hex }} />)}</div>}
     </Link>
   );
 }

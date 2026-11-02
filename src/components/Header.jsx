@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { allProducts } from "../data/products";
 import { useCart } from "../hooks/useCart";
 import { useAuth } from "../context/AuthContext";
+import { useStore } from "../hooks/useStore";
 
 export default function Header() {
   const { cartCount } = useCart();
+  const { products } = useStore();
   const { currentUser, role, logout } = useAuth();
   const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
@@ -13,7 +14,7 @@ export default function Header() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const results = query.trim()
-    ? allProducts.filter((p) =>
+    ? products.filter((p) =>
         p.name.toLowerCase().includes(query.trim().toLowerCase())
       )
     : [];
@@ -30,18 +31,22 @@ export default function Header() {
         <div className="nav-dropdown">
           <Link to="/men" className="nav-main">MEN</Link>
           <div className="dropdown-menu">
-            <Link to="/men">All Products</Link>
-            <Link to="/accessories">Accessories</Link>
+            <Link to="/men">All pieces</Link>
+            <Link to="/men">Shirts & Trousers</Link>
+            <Link to="/collections/heritage-cashmere">Heritage Cashmere</Link>
+            <Link to="/collections/suede-essentials">Suede Essentials</Link>
           </div>
         </div>
         <div className="nav-dropdown">
           <Link to="/women" className="nav-main">WOMEN</Link>
           <div className="dropdown-menu">
-            <Link to="/women">All Products</Link>
-            <Link to="/accessories">Accessories</Link>
+            <Link to="/women">All pieces</Link>
+            <Link to="/women">Shirts & Trousers</Link>
+            <Link to="/collections/riviera-linen">Riviera Linen</Link>
+            <Link to="/collections/heritage-cashmere">Heritage Cashmere</Link>
           </div>
         </div>
-        <Link to="/accessories">ACCESSORIES</Link>
+        <div className="nav-dropdown"><Link to="/unisex" className="nav-main">UNISEX</Link><div className="dropdown-menu"><Link to="/unisex">All pieces</Link><Link to="/collections/heritage-cashmere">Cashmere</Link><Link to="/collections/suede-essentials">Suede</Link></div></div>
       </nav>
 
       <Link to="/" className="logo-link">

@@ -25,13 +25,12 @@ export default function Cart() {
   }
 
   // Check if any cart item has insufficient stock
-  let hasStockIssue = false;
   const itemStockStatus = cart.map((item) => {
-    const stock = getProductStock(item.id);
+    const stock = item.variantId ? item.variantStock : getProductStock(item.id);
     const insufficient = item.quantity > stock;
-    if (insufficient) hasStockIssue = true;
     return { ...item, availableStock: stock, insufficient };
   });
+  const hasStockIssue = itemStockStatus.some((item) => item.insufficient);
 
   return (
     <main id="cart-container">
@@ -54,6 +53,7 @@ export default function Cart() {
                   {item.selectedColor && (
                     <p className="cart-item-color">Màu: {item.selectedColor}</p>
                   )}
+                  {item.selectedSize && <p className="cart-item-color">Size: {item.selectedSize} · {item.sku}</p>}
                   <p className="cart-item-price">{formatPrice(item.price)}</p>
 
                   {/* Stock validation badge */}

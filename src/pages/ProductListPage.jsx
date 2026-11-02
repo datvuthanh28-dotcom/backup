@@ -1,14 +1,23 @@
 import ProductCard from "../components/ProductCard";
 import useDocumentTitle from "../hooks/useDocumentTitle";
-import products from "../data/products";
+import { useMemo, useState } from "react";
+import { useStore } from "../hooks/useStore";
 
-export default function ProductListPage({ category, title }) {
+export default function ProductListPage({ gender, collection, title }) {
   useDocumentTitle(title);
-  const items = products[category] || [];
+  const { products } = useStore();
+  const [type, setType] = useState("all");
+  const [sort, setSort] = useState("featured");
+  const types = [...new Set(products.filter((p) => !gender || (gender === "unisex" ? p.gender === "unisex" : p.gender === gender)).map((p) => p.subcategory))];
+  const items = useMemo(() => {
+    const filtered = products.filter((p) => (!gender || p.gender === gender) && (!collection || p.collection === collection) && (type === "all" || p.subcategory === type));
+    return [...filtered].sort((a, b) => sort === "price-low" ? a.price - b.price : sort === "price-high" ? b.price - a.price : a.id - b.id);
+  }, [products, gender, collection, type, sort]);
 
   return (
     <main className="collection-page">
-      <h1 className="page-title">{title}</h1>
+      <div className="collection-hero"><p className="eyebrow">Maison Rue Collection</p><h1 className="page-title">{title}</h1><p>Considered materials, enduring silhouettes and understated detail.</p></div>
+      <div className="catalog-toolbar"><div className="filter-chips"><button className={type === "all" ? "active" : ""} onClick={() => setType("all")}>All pieces</button>{types.map((item) => <button key={item} className={type === item ? "active" : ""} onClick={() => setType(item)}>{item}</button>)}</div><label>{items.length} pieces<select value={sort} onChange={(e) => setSort(e.target.value)}><option value="featured">Featured</option><option value="price-low">Price: Low to high</option><option value="price-high">Price: High to low</option></select></label></div>
       <div id="products-grid">
         {items.map((p) => (
           <ProductCard key={p.id} product={p} />

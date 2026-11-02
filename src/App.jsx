@@ -44,9 +44,13 @@ function App() {
               {/* 1. CUSTOMER PORTAL & STOREFRONT */}
               <Route element={<StorefrontLayout />}>
                 <Route path="/" element={<Home />} />
-                <Route path="/men" element={<ProductListPage category="men" title="Men" />} />
-                <Route path="/women" element={<ProductListPage category="women" title="Women" />} />
-                <Route path="/accessories" element={<ProductListPage category="accessories" title="Accessories" />} />
+                <Route path="/men" element={<ProductListPage gender="nam" title="Men" />} />
+                <Route path="/women" element={<ProductListPage gender="nữ" title="Women" />} />
+                <Route path="/unisex" element={<ProductListPage gender="unisex" title="Unisex" />} />
+                <Route path="/accessories" element={<ProductListPage gender="unisex" title="Accessories" />} />
+                <Route path="/collections/riviera-linen" element={<ProductListPage collection="Riviera Linen" title="Riviera Linen" />} />
+                <Route path="/collections/heritage-cashmere" element={<ProductListPage collection="Heritage Cashmere" title="Heritage Cashmere" />} />
+                <Route path="/collections/suede-essentials" element={<ProductListPage collection="Suede Essentials" title="Suede Essentials" />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/checkout" element={<Checkout />} />

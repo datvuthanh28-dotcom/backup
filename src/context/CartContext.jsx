@@ -15,12 +15,10 @@ export function CartProvider({ children }) {
     localStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
 
-  function addToCart(product, quantity = 1, selectedColor = null) {
+  function addToCart(product, quantity = 1, selectedColor = null, selectedSize = null, variant = null) {
     setCart((prev) => {
       const color = selectedColor || product.colors[0];
-      const existing = prev.find(
-        (item) => item.id === product.id && item.selectedColor === color
-      );
+      const existing = prev.find((item) => item.id === product.id && item.selectedColor === color && item.selectedSize === selectedSize);
       if (existing) {
         return prev.map((item) =>
           item === existing
@@ -30,7 +28,7 @@ export function CartProvider({ children }) {
       }
       return [
         ...prev,
-        { ...product, quantity, selectedColor: color, cartItemId: Date.now() },
+        { ...product, quantity, selectedColor: color, selectedSize, variantId: variant?.id || null, sku: variant?.sku || null, variantStock: variant?.stock ?? product.stock, price: variant?.price ?? product.price, cartItemId: Date.now() },
       ];
     });
   }

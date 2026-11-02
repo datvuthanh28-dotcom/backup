@@ -416,7 +416,7 @@ export default function Checkout() {
                     <div style={{ flex: 1, fontSize: "13px" }}>
                       <div style={{ fontWeight: "600", color: "#2B211C" }}>{item.name}</div>
                       <div style={{ color: "#8A7350" }}>
-                        Màu: {item.selectedColor || "Tiêu chuẩn"} × {item.quantity}
+                        {item.selectedColor || "Tiêu chuẩn"} / {item.selectedSize || "One size"} × {item.quantity}
                       </div>
                     </div>
                     <div style={{ fontWeight: "600", color: "#B89B5E", fontSize: "13.5px" }}>

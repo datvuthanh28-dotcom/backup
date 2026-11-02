@@ -51,7 +51,25 @@ export async function createOrder(req, res) {
     const customerId = req.user ? req.user.id : `usr_guest_${Date.now()}`;
     const orderId = `MR-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
 
-    const totalAmount = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const normalizedItems = [];
+    for (const item of items) {
+      const product = await db.getProductById(item.id);
+      if (!product) throw new Error("Một sản phẩm trong giỏ hàng không còn tồn tại.");
+      const quantity = Math.max(1, Number.parseInt(item.quantity, 10) || 1);
+      const variant = item.variantId ? product.variants?.find((entry) => entry.id === item.variantId) : null;
+      if (item.variantId && !variant) throw new Error("Biến thể sản phẩm không hợp lệ.");
+      normalizedItems.push({
+        ...item,
+        name: product.name,
+        price: variant?.price ?? Number(product.price),
+        quantity,
+        selectedColor: variant?.color ?? item.selectedColor,
+        selectedSize: variant?.size ?? item.selectedSize,
+        sku: variant?.sku ?? item.sku,
+        image: product.colorImages?.[variant?.color ?? item.selectedColor]?.[0] || product.images?.[0] || null,
+      });
+    }
+    const totalAmount = normalizedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
     const orderData = {
       id: orderId,
@@ -67,7 +85,7 @@ export async function createOrder(req, res) {
 
     const newOrder = await db.createOrderWithTransaction({
       orderData,
-      items,
+      items: normalizedItems,
       paymentData: { method: paymentMethod || "cod" },
     });
 

@@ -1,5 +1,7 @@
+/* global process */
 import sql from "mssql";
 import dotenv from "dotenv";
+import { allProducts as catalogProducts } from "../../src/data/products.js";
 
 dotenv.config();
 
@@ -40,7 +42,7 @@ export async function connectDB() {
     pool = null;
     const errorMsg = `[Database Error] Microsoft SQL Server (${sqlConfig.server}:${sqlConfig.port}/${sqlConfig.database}) is unavailable: ${err.message}`;
     console.error(errorMsg);
-    throw new Error(errorMsg);
+    throw new Error(errorMsg, { cause: err });
   }
 }
 
@@ -145,12 +147,13 @@ export const db = {
   async getAllProducts() {
     const p = await getActivePool();
     const res = await p.request().query("SELECT * FROM Products ORDER BY id ASC");
-    return res.recordset.map((r) => ({
-      ...r,
-      images: JSON.parse(r.images_json),
-      colors: JSON.parse(r.colors_json),
-      colorImages: JSON.parse(r.color_images_json),
-    }));
+    const variantRes = await p.request().query("SELECT * FROM ProductVariants WHERE is_active = 1 ORDER BY product_id, color_name, size_name");
+    return res.recordset.map((r) => {
+      const catalog = catalogProducts.find((product) => product.id === r.id) || {};
+      const variants = variantRes.recordset.filter((variant) => variant.product_id === r.id).map((variant) => ({ id: variant.id, sku: variant.sku, color: variant.color_name, size: variant.size_name, price: Number(variant.price), stock: variant.stock_quantity }))
+        .sort((a, b) => (catalog.colors?.indexOf(a.color) ?? 0) - (catalog.colors?.indexOf(b.color) ?? 0) || (catalog.sizes?.indexOf(a.size) ?? 0) - (catalog.sizes?.indexOf(b.size) ?? 0));
+      return { ...catalog, ...r, stock: variants.reduce((sum, variant) => sum + variant.stock, 0), variants, images: JSON.parse(r.images_json), colors: JSON.parse(r.colors_json), colorImages: JSON.parse(r.color_images_json) };
+    });
   },
 
   async getProductById(id) {
@@ -162,8 +165,14 @@ export const db = {
       .query("SELECT * FROM Products WHERE id = @id");
     const r = res.recordset[0];
     if (!r) return null;
+    const catalog = catalogProducts.find((product) => product.id === r.id) || {};
+    const variantRes = await p.request().input("product_id", sql.Int, numId).query("SELECT * FROM ProductVariants WHERE product_id=@product_id AND is_active=1 ORDER BY color_name, size_name");
+    const variants = variantRes.recordset.map((variant) => ({ id: variant.id, sku: variant.sku, color: variant.color_name, size: variant.size_name, price: Number(variant.price), stock: variant.stock_quantity }))
+      .sort((a, b) => (catalog.colors?.indexOf(a.color) ?? 0) - (catalog.colors?.indexOf(b.color) ?? 0) || (catalog.sizes?.indexOf(a.size) ?? 0) - (catalog.sizes?.indexOf(b.size) ?? 0));
     return {
-      ...r,
+      ...catalog, ...r,
+      stock: variants.reduce((sum, variant) => sum + variant.stock, 0),
+      variants,
       images: JSON.parse(r.images_json),
       colors: JSON.parse(r.colors_json),
       colorImages: JSON.parse(r.color_images_json),
@@ -266,6 +275,16 @@ export const db = {
     try {
       // 1. Check stock availability for all items
       for (const item of items) {
+        if (item.variantId) {
+          const variantRes = await transaction.request()
+            .input("variant_id", sql.NVarChar, item.variantId)
+            .query("SELECT id, sku, stock_quantity FROM ProductVariants WITH (UPDLOCK, ROWLOCK) WHERE id=@variant_id AND is_active=1");
+          const variant = variantRes.recordset[0];
+          if (!variant || variant.stock_quantity < item.quantity) {
+            throw new Error(`Biến thể ${item.sku || item.variantId} không đủ tồn kho.`);
+          }
+          continue;
+        }
         const prodRes = await transaction
           .request()
           .input("id", sql.Int, item.id)
@@ -303,19 +322,23 @@ export const db = {
           .input("product_id", sql.Int, item.id)
           .input("product_name", sql.NVarChar, item.name)
           .input("selected_color", sql.NVarChar, item.selectedColor || "Tiêu chuẩn")
+          .input("selected_size", sql.NVarChar, item.selectedSize || "ONE SIZE")
+          .input("variant_id", sql.NVarChar, item.variantId || null)
+          .input("variant_sku", sql.NVarChar, item.sku || null)
           .input("quantity", sql.Int, item.quantity)
           .input("unit_price", sql.Decimal(18, 0), item.price)
           .input("total_price", sql.Decimal(18, 0), item.price * item.quantity)
           .input("image_url", sql.NVarChar, item.image || null)
           .query(`
-            INSERT INTO OrderItems (order_id, product_id, product_name, selected_color, quantity, unit_price, total_price, image_url, created_at)
-            VALUES (@order_id, @product_id, @product_name, @selected_color, @quantity, @unit_price, @total_price, @image_url, GETDATE())
+            INSERT INTO OrderItems (order_id, product_id, product_name, selected_color, selected_size, variant_id, variant_sku, quantity, unit_price, total_price, image_url, created_at)
+            VALUES (@order_id, @product_id, @product_name, @selected_color, @selected_size, @variant_id, @variant_sku, @quantity, @unit_price, @total_price, @image_url, GETDATE())
           `);
 
-        await transaction
-          .request()
-          .input("id", sql.Int, item.id)
-          .input("qty", sql.Int, item.quantity)
+        if (item.variantId) {
+          await transaction.request().input("variant_id", sql.NVarChar, item.variantId).input("qty", sql.Int, item.quantity)
+            .query("UPDATE ProductVariants SET stock_quantity=stock_quantity-@qty, updated_at=GETDATE() WHERE id=@variant_id");
+        }
+        await transaction.request().input("id", sql.Int, item.id).input("qty", sql.Int, item.quantity)
           .query("UPDATE Products SET stock = stock - @qty, updated_at = GETDATE() WHERE id = @id");
 
         const updatedProd = await transaction
@@ -326,6 +349,7 @@ export const db = {
         await transaction
           .request()
           .input("product_id", sql.Int, item.id)
+          .input("variant_id", sql.NVarChar, item.variantId || null)
           .input("movement_type", sql.NVarChar, "order_deduction")
           .input("quantity_change", sql.Int, -item.quantity)
           .input("resulting_stock", sql.Int, updatedProd.recordset[0].stock)
@@ -333,8 +357,8 @@ export const db = {
           .input("note", sql.NVarChar, `Đơn hàng #${orderData.id}`)
           .input("performed_by", sql.NVarChar, orderData.customer_name)
           .query(`
-            INSERT INTO InventoryMovements (product_id, movement_type, quantity_change, resulting_stock, reference_id, note, performed_by, created_at)
-            VALUES (@product_id, @movement_type, @quantity_change, @resulting_stock, @reference_id, @note, @performed_by, GETDATE())
+            INSERT INTO InventoryMovements (product_id, variant_id, movement_type, quantity_change, resulting_stock, reference_id, note, performed_by, created_at)
+            VALUES (@product_id, @variant_id, @movement_type, @quantity_change, @resulting_stock, @reference_id, @note, @performed_by, GETDATE())
           `);
       }
 
@@ -401,6 +425,10 @@ export const db = {
       // When cancelling an order whose stock was deducted, restore the inventory
       if (newStatus === "cancelled" && stockDeducted) {
         for (const item of currentOrder.items) {
+          if (item.variant_id) {
+            await transaction.request().input("variant_id", sql.NVarChar, item.variant_id).input("qty", sql.Int, item.quantity)
+              .query("UPDATE ProductVariants SET stock_quantity=stock_quantity+@qty, updated_at=GETDATE() WHERE id=@variant_id");
+          }
           await transaction
             .request()
             .input("id", sql.Int, item.product_id)
@@ -415,6 +443,7 @@ export const db = {
           await transaction
             .request()
             .input("product_id", sql.Int, item.product_id)
+            .input("variant_id", sql.NVarChar, item.variant_id || null)
             .input("movement_type", sql.NVarChar, "order_cancellation_restore")
             .input("quantity_change", sql.Int, item.quantity)
             .input("resulting_stock", sql.Int, updatedProd.recordset[0].stock)
@@ -422,8 +451,8 @@ export const db = {
             .input("note", sql.NVarChar, `Hoàn tồn kho do hủy đơn #${orderId}`)
             .input("performed_by", sql.NVarChar, updatedBy)
             .query(`
-              INSERT INTO InventoryMovements (product_id, movement_type, quantity_change, resulting_stock, reference_id, note, performed_by, created_at)
-              VALUES (@product_id, @movement_type, @quantity_change, @resulting_stock, @reference_id, @note, @performed_by, GETDATE())
+              INSERT INTO InventoryMovements (product_id, variant_id, movement_type, quantity_change, resulting_stock, reference_id, note, performed_by, created_at)
+              VALUES (@product_id, @variant_id, @movement_type, @quantity_change, @resulting_stock, @reference_id, @note, @performed_by, GETDATE())
             `);
         }
         stockDeducted = false;
