@@ -8,11 +8,11 @@ const products = {
       price: 6490000,
       category: "men",
       gender: "nam",
-      images: ["image/Cashmere Cardigan - Men/BEIGE/1.png", "image/Cashmere Cardigan - Men/BEIGE/2.png", "image/Cashmere Cardigan - Men/BEIGE/3.png", "image/Cashmere Cardigan - Men/BEIGE/4.png", "image/Cashmere Cardigan - Men/NAVY BLUE/1.png", "image/Cashmere Cardigan - Men/NAVY BLUE/2.png", "image/Cashmere Cardigan - Men/NAVY BLUE/3.png", "image/Cashmere Cardigan - Men/NAVY BLUE/4.png"],
+      images: ["image/Cashmere Cardigan - Men/BEIGE/1.webp", "image/Cashmere Cardigan - Men/BEIGE/2.webp", "image/Cashmere Cardigan - Men/BEIGE/3.webp", "image/Cashmere Cardigan - Men/BEIGE/4.webp", "image/Cashmere Cardigan - Men/NAVY BLUE/1.webp", "image/Cashmere Cardigan - Men/NAVY BLUE/2.webp", "image/Cashmere Cardigan - Men/NAVY BLUE/3.webp", "image/Cashmere Cardigan - Men/NAVY BLUE/4.webp"],
       colors: ["BEIGE", "NAVY BLUE"],
       colorImages: {
-        "BEIGE": ["image/Cashmere Cardigan - Men/BEIGE/1.png", "image/Cashmere Cardigan - Men/BEIGE/2.png", "image/Cashmere Cardigan - Men/BEIGE/3.png", "image/Cashmere Cardigan - Men/BEIGE/4.png"],
-        "NAVY BLUE": ["image/Cashmere Cardigan - Men/NAVY BLUE/1.png", "image/Cashmere Cardigan - Men/NAVY BLUE/2.png", "image/Cashmere Cardigan - Men/NAVY BLUE/3.png", "image/Cashmere Cardigan - Men/NAVY BLUE/4.png"]
+        "BEIGE": ["image/Cashmere Cardigan - Men/BEIGE/1.webp", "image/Cashmere Cardigan - Men/BEIGE/2.webp", "image/Cashmere Cardigan - Men/BEIGE/3.webp", "image/Cashmere Cardigan - Men/BEIGE/4.webp"],
+        "NAVY BLUE": ["image/Cashmere Cardigan - Men/NAVY BLUE/1.webp", "image/Cashmere Cardigan - Men/NAVY BLUE/2.webp", "image/Cashmere Cardigan - Men/NAVY BLUE/3.webp", "image/Cashmere Cardigan - Men/NAVY BLUE/4.webp"]
       },
       description: "Premium cashmere cardigan with a refined old-money silhouette. Soft-touch knit, classic crew neckline, tonal buttons, ribbed cuffs and hem. Designed for a clean, elevated layering look. Finished with subtle MR tonal embroidery on the left chest."
     },
@@ -22,10 +22,10 @@ const products = {
       price: 2690000,
       category: "men",
       gender: "nam",
-      images: ["image/Linen Pants - Men/1.png", "image/Linen Pants - Men/2.png", "image/Linen Pants - Men/3.png", "image/Linen Pants - Men/4.png"],
+      images: ["image/Linen Pants - Men/1.webp", "image/Linen Pants - Men/2.webp", "image/Linen Pants - Men/3.webp", "image/Linen Pants - Men/4.webp"],
       colors: ["NATURAL WHITE"],
       colorImages: {
-        "NATURAL WHITE": ["image/Linen Pants - Men/1.png", "image/Linen Pants - Men/2.png", "image/Linen Pants - Men/3.png", "image/Linen Pants - Men/4.png"]
+        "NATURAL WHITE": ["image/Linen Pants - Men/1.webp", "image/Linen Pants - Men/2.webp", "image/Linen Pants - Men/3.webp", "image/Linen Pants - Men/4.webp"]
       },
       description: "Tailored wide-leg linen trousers with a relaxed luxury fit. Front pleats, structured waistband, belt loops, side pockets, and clean back welt pockets. Lightweight, breathable, and suitable for both resort and city styling."
     },
@@ -35,10 +35,10 @@ const products = {
       price: 2390000,
       category: "men",
       gender: "nam",
-      images: ["image/Linen Shirt - Men/1.png", "image/Linen Shirt - Men/2.png", "image/Linen Shirt - Men/3.png", "image/Linen Shirt - Men/4.png", "image/Linen Shirt - Men/5.png"],
+      images: ["image/Linen Shirt - Men/1.webp", "image/Linen Shirt - Men/2.webp", "image/Linen Shirt - Men/3.webp", "image/Linen Shirt - Men/4.webp", "image/Linen Shirt - Men/5.webp"],
       colors: ["IVORY WHITE"],
       colorImages: {
-        "IVORY WHITE": ["image/Linen Shirt - Men/1.png", "image/Linen Shirt - Men/2.png", "image/Linen Shirt - Men/3.png", "image/Linen Shirt - Men/4.png", "image/Linen Shirt - Men/5.png"]
+        "IVORY WHITE": ["image/Linen Shirt - Men/1.webp", "image/Linen Shirt - Men/2.webp", "image/Linen Shirt - Men/3.webp", "image/Linen Shirt - Men/4.webp", "image/Linen Shirt - Men/5.webp"]
       },
       description: "Premium long-sleeve linen shirt with a relaxed but polished fit. Classic collar, front button closure, natural linen texture, curved hem, and refined cuffs."
     },
@@ -48,10 +48,10 @@ const products = {
       price: 5290000,
       category: "men",
       gender: "nam",
-      images: ["image/Suede Loafer - Men/1.png", "image/Suede Loafer - Men/2.png", "image/Suede Loafer - Men/3.png"],
+      images: ["image/Suede Loafer - Men/1.webp", "image/Suede Loafer - Men/2.webp", "image/Suede Loafer - Men/3.webp"],
       colors: ["SUEDE TAN"],
       colorImages: {
-        "SUEDE TAN": ["image/Suede Loafer - Men/1.png", "image/Suede Loafer - Men/2.png", "image/Suede Loafer - Men/3.png"]
+        "SUEDE TAN": ["image/Suede Loafer - Men/1.webp", "image/Suede Loafer - Men/2.webp", "image/Suede Loafer - Men/3.webp"]
       },
       description: "Classic suede penny loafer with a refined profile. Soft suede upper, leather lining, almond toe shape, hand-stitched moc toe detailing, low stacked heel, and slim leather sole. Inside branding: Maison Rue."
     }
@@ -63,11 +63,11 @@ const products = {
       price: 6290000,
       category: "women",
       gender: "nữ",
-      images: ["image/Cashmere Cardigan - Women/BEIGE/1.png", "image/Cashmere Cardigan - Women/BEIGE/2.png", "image/Cashmere Cardigan - Women/BEIGE/3.png", "image/Cashmere Cardigan - Women/GRAPEFRUIT SODA/1.png", "image/Cashmere Cardigan - Women/GRAPEFRUIT SODA/2.png", "image/Cashmere Cardigan - Women/GRAPEFRUIT SODA/3.png", "image/Cashmere Cardigan - Women/GRAPEFRUIT SODA/4.png"],
+      images: ["image/Cashmere Cardigan - Women/BEIGE/1.webp", "image/Cashmere Cardigan - Women/BEIGE/2.webp", "image/Cashmere Cardigan - Women/BEIGE/3.webp", "image/Cashmere Cardigan - Women/GRAPEFRUIT SODA/1.webp", "image/Cashmere Cardigan - Women/GRAPEFRUIT SODA/2.webp", "image/Cashmere Cardigan - Women/GRAPEFRUIT SODA/3.webp", "image/Cashmere Cardigan - Women/GRAPEFRUIT SODA/4.webp"],
       colors: ["BEIGE", "GRAPEFRUIT SODA"],
       colorImages: {
-        "BEIGE": ["image/Cashmere Cardigan - Women/BEIGE/1.png", "image/Cashmere Cardigan - Women/BEIGE/2.png", "image/Cashmere Cardigan - Women/BEIGE/3.png"],
-        "GRAPEFRUIT SODA": ["image/Cashmere Cardigan - Women/GRAPEFRUIT SODA/1.png", "image/Cashmere Cardigan - Women/GRAPEFRUIT SODA/2.png", "image/Cashmere Cardigan - Women/GRAPEFRUIT SODA/3.png", "image/Cashmere Cardigan - Women/GRAPEFRUIT SODA/4.png"]
+        "BEIGE": ["image/Cashmere Cardigan - Women/BEIGE/1.webp", "image/Cashmere Cardigan - Women/BEIGE/2.webp", "image/Cashmere Cardigan - Women/BEIGE/3.webp"],
+        "GRAPEFRUIT SODA": ["image/Cashmere Cardigan - Women/GRAPEFRUIT SODA/1.webp", "image/Cashmere Cardigan - Women/GRAPEFRUIT SODA/2.webp", "image/Cashmere Cardigan - Women/GRAPEFRUIT SODA/3.webp", "image/Cashmere Cardigan - Women/GRAPEFRUIT SODA/4.webp"]
       },
       description: "Feminine cashmere cardigan with a slightly cropped, elegant fit. Soft round neckline, delicate button front, ribbed hem and cuffs. Finished with subtle MR tonal embroidery on the left chest."
     },
@@ -77,10 +77,10 @@ const products = {
       price: 2590000,
       category: "women",
       gender: "nữ",
-      images: ["image/Linen Pants - Women/1.png", "image/Linen Pants - Women/2.png", "image/Linen Pants - Women/3.png", "image/Linen Pants - Women/4.png"],
+      images: ["image/Linen Pants - Women/1.webp", "image/Linen Pants - Women/2.webp", "image/Linen Pants - Women/3.webp", "image/Linen Pants - Women/4.webp"],
       colors: ["NATURAL WHITE"],
       colorImages: {
-        "NATURAL WHITE": ["image/Linen Pants - Women/1.png", "image/Linen Pants - Women/2.png", "image/Linen Pants - Women/3.png", "image/Linen Pants - Women/4.png"]
+        "NATURAL WHITE": ["image/Linen Pants - Women/1.webp", "image/Linen Pants - Women/2.webp", "image/Linen Pants - Women/3.webp", "image/Linen Pants - Women/4.webp"]
       },
       description: "High-waisted linen trousers with a soft wide-leg shape. Front pleats, elegant drape, side pockets, belt loops, and clean waistband finishing. Designed to be worn with tucked-in linen shirts, tanks, or cashmere knits."
     },
@@ -90,10 +90,10 @@ const products = {
       price: 2290000,
       category: "women",
       gender: "nữ",
-      images: ["image/Linen Shirt - Women/1.png", "image/Linen Shirt - Women/2.png", "image/Linen Shirt - Women/3.png", "image/Linen Shirt - Women/4.png", "image/Linen Shirt - Women/5.png"],
+      images: ["image/Linen Shirt - Women/1.webp", "image/Linen Shirt - Women/2.webp", "image/Linen Shirt - Women/3.webp", "image/Linen Shirt - Women/4.webp", "image/Linen Shirt - Women/5.webp"],
       colors: ["IVORY WHITE"],
       colorImages: {
-        "IVORY WHITE": ["image/Linen Shirt - Women/1.png", "image/Linen Shirt - Women/2.png", "image/Linen Shirt - Women/3.png", "image/Linen Shirt - Women/4.png", "image/Linen Shirt - Women/5.png"]
+        "IVORY WHITE": ["image/Linen Shirt - Women/1.webp", "image/Linen Shirt - Women/2.webp", "image/Linen Shirt - Women/3.webp", "image/Linen Shirt - Women/4.webp", "image/Linen Shirt - Women/5.webp"]
       },
       description: "Lightweight linen shirt with a soft oversized silhouette. Classic collar, button front, relaxed sleeves, curved hem, and clean minimal finishing. Can be worn tucked, half-tucked, or open over a tank for a classic look."
     },
@@ -103,10 +103,10 @@ const products = {
       price: 5190000,
       category: "women",
       gender: "nữ",
-      images: ["image/Suede Loafers - Women/1.png", "image/Suede Loafers - Women/2.png", "image/Suede Loafers - Women/3.png"],
+      images: ["image/Suede Loafers - Women/1.webp", "image/Suede Loafers - Women/2.webp", "image/Suede Loafers - Women/3.webp"],
       colors: ["SUEDE TAN"],
       colorImages: {
-        "SUEDE TAN": ["image/Suede Loafers - Women/1.png", "image/Suede Loafers - Women/2.png", "image/Suede Loafers - Women/3.png"]
+        "SUEDE TAN": ["image/Suede Loafers - Women/1.webp", "image/Suede Loafers - Women/2.webp", "image/Suede Loafers - Women/3.webp"]
       },
       description: "Elegant women's suede loafer with a slim, polished silhouette. Soft suede upper, leather lining, penny strap detail, moc-toe stitching, low comfortable heel, and clean leather sole. Inside branding: Maison Rue."
     }
@@ -120,19 +120,19 @@ const products = {
       gender: "unisex",
       images: [
         "image/Suede Baseball Cap/DARK-CHOCOLATE-BROWN/1.jpg",
-        "image/Suede Baseball Cap/DARK-CHOCOLATE-BROWN/2.png",
-        "image/Suede Baseball Cap/DEEP-TEAL/1.png",
-        "image/Suede Baseball Cap/DEEP-TEAL/2.png"
+        "image/Suede Baseball Cap/DARK-CHOCOLATE-BROWN/2.webp",
+        "image/Suede Baseball Cap/DEEP-TEAL/1.webp",
+        "image/Suede Baseball Cap/DEEP-TEAL/2.webp"
       ],
       colors: ["DARK-CHOCOLATE-BROWN", "DEEP-TEAL"],
       colorImages: {
         "DARK-CHOCOLATE-BROWN": [
           "image/Suede Baseball Cap/DARK-CHOCOLATE-BROWN/1.jpg",
-          "image/Suede Baseball Cap/DARK-CHOCOLATE-BROWN/2.png"
+          "image/Suede Baseball Cap/DARK-CHOCOLATE-BROWN/2.webp"
         ],
         "DEEP-TEAL": [
-          "image/Suede Baseball Cap/DEEP-TEAL/1.png",
-          "image/Suede Baseball Cap/DEEP-TEAL/2.png"
+          "image/Suede Baseball Cap/DEEP-TEAL/1.webp",
+          "image/Suede Baseball Cap/DEEP-TEAL/2.webp"
         ]
       },
       description: "Premium suede baseball cap with a structured yet soft shape, tonal stitching and adjustable strap back."
@@ -143,10 +143,10 @@ const products = {
       price: 3290000,
       category: "accessories",
       gender: "unisex",
-      images: ["image/Heritage Cashmere Scarf/camel.png"],
+      images: ["image/Heritage Cashmere Scarf/camel.webp"],
       colors: ["CAMEL"],
       colorImages: {
-        "CAMEL": ["image/Heritage Cashmere Scarf/camel.png"]
+        "CAMEL": ["image/Heritage Cashmere Scarf/camel.webp"]
       },
       description: "A pure cashmere scarf with a soft brushed finish, generous proportions and discreet hand-finished fringe."
     },
@@ -156,10 +156,10 @@ const products = {
       price: 5890000,
       category: "accessories",
       gender: "unisex",
-      images: ["image/Heritage Cashmere Crewneck/navy.png"],
+      images: ["image/Heritage Cashmere Crewneck/navy.webp"],
       colors: ["NAVY BLUE"],
       colorImages: {
-        "NAVY BLUE": ["image/Heritage Cashmere Crewneck/navy.png"]
+        "NAVY BLUE": ["image/Heritage Cashmere Crewneck/navy.webp"]
       },
       description: "A quietly refined cashmere crewneck with a clean neckline, balanced drape and softly ribbed edges."
     },
@@ -169,10 +169,10 @@ const products = {
       price: 2490000,
       category: "accessories",
       gender: "unisex",
-      images: ["image/Suede Leather Belt/dark-chocolate.png"],
+      images: ["image/Suede Leather Belt/dark-chocolate.webp"],
       colors: ["DARK CHOCOLATE"],
       colorImages: {
-        "DARK CHOCOLATE": ["image/Suede Leather Belt/dark-chocolate.png"]
+        "DARK CHOCOLATE": ["image/Suede Leather Belt/dark-chocolate.webp"]
       },
       description: "A slim Italian suede belt finished with tonal stitching, a brushed brass buckle and a vegetable-tanned leather lining."
     }
@@ -421,8 +421,8 @@ function galleryForProduct(audienceKey, designSlug, colorNames, fallbackImage) {
   return Object.fromEntries(colorNames.map((color, index) => [
     color,
     index === 0
-      ? [`${base}/${colorSlug(color)}-studio.png`, `${base}/${colorSlug(color)}-model.png`, `${base}/${colorSlug(color)}-detail.png`]
-      : [`${base}/${colorSlug(color)}-studio.png`]
+      ? [`${base}/${colorSlug(color)}-studio.webp`, `${base}/${colorSlug(color)}-model.webp`, `${base}/${colorSlug(color)}-detail.webp`]
+      : [`${base}/${colorSlug(color)}-studio.webp`]
   ]));
 }
 
@@ -435,7 +435,7 @@ function buildFullCatalog() {
         const audienceBaseName = audienceProductNames[audienceKey]?.[baseName] || baseName;
         const source = originalProducts.find((item) => item.id === audience.source[category]) || originalProducts[0];
         const designSlug = baseName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-        const catalogImage = `image/catalog/${designSlug}.png`;
+        const catalogImage = `image/catalog/${designSlug}.webp`;
         const config = categoryConfig[category];
         const collection = collectionForDesign(baseName, category);
         const primaryColor = designPrimaryColor[designSlug];
