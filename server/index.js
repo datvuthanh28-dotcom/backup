@@ -15,12 +15,20 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:5173";
+const configuredOrigin = process.env.CLIENT_ORIGIN || "http://localhost:5173";
+const allowedOrigins = new Set([
+  configuredOrigin,
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+]);
 
 // Middleware configuration
 app.use(
   cors({
-    origin: CLIENT_ORIGIN,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+      return callback(new Error("Origin không được phép."));
+    },
     credentials: true,
   })
 );
@@ -63,6 +71,7 @@ app.use("/api/admin/employees", employeeRoutes);
 app.use("/api/admin/reports", reportRoutes);
 
 // Global Error Handler
+// eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   console.error("[Server Error]", err);
   res.status(err.status || 500).json({
@@ -82,7 +91,7 @@ async function startServer() {
 
   app.listen(PORT, () => {
     console.log(`[Server] Express API listening on http://localhost:${PORT}`);
-    console.log(`[Server] Configured client origin: ${CLIENT_ORIGIN}`);
+    console.log(`[Server] Configured client origins: ${[...allowedOrigins].join(", ")}`);
     console.log(`[Server] Three role portals ready: Customer (/login), Staff (/staff/login), Admin (/admin/login)`);
     console.log(`[Server] Database: Microsoft SQL Server (MaisonRueDB)`);
   });

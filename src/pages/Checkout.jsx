@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
 import { useStore } from "../hooks/useStore";
 import { useAuth } from "../context/AuthContext";
@@ -14,7 +14,6 @@ export default function Checkout() {
   const { cart, cartTotal, removeFromCart } = useCart();
   const { createOrder } = useStore();
   const { currentUser } = useAuth();
-  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     name: currentUser?.name || "",

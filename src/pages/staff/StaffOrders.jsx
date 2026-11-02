@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useStore, STATUS_LABELS, VALID_STATUS_TRANSITIONS } from "../../context/StoreContext";
-import { useAuth } from "../../context/AuthContext";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
 
 export const PAYMENT_STATUS_META = {
@@ -31,7 +30,6 @@ function formatDate(isoStr) {
 export default function StaffOrders() {
   useDocumentTitle("Staff Portal — Xử Lý Đơn Hàng");
   const { orders, updateOrderStatus, confirmOrderPayment, processOrderRefund } = useStore();
-  const { currentUser } = useAuth();
 
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");

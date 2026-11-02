@@ -39,7 +39,7 @@ Các mật khẩu được băm an toàn bằng **bcrypt** (10 rounds) và lưu 
 
 ### Yêu cầu môi trường
 - **Node.js** >= 18.0.0
-- **Microsoft SQL Server** (Standard, Developer, Enterprise hoặc Express - đã xác thực hoạt động với SQL Server 2025 instance `MSSQLSERVER02` tại cổng 1435)
+- **Microsoft SQL Server** (Standard, Developer, Enterprise hoặc Express; cổng TCP mặc định thường là 1433)
 
 ### Bước 1: Cài đặt thư viện dependencies
 ```bash
@@ -53,8 +53,8 @@ PORT=5000
 NODE_ENV=development
 CLIENT_ORIGIN=http://localhost:5173
 JWT_SECRET=maison_rue_super_secret_jwt_key_2026_luxury_old_money
-DB_SERVER=localhost
-DB_PORT=1435
+DB_SERVER=127.0.0.1
+DB_PORT=1433
 DB_NAME=MaisonRueDB
 DB_USER=sa
 DB_PASSWORD=YourStrongPassword123!
@@ -75,17 +75,13 @@ npm run db:seed
 npm test
 ```
 
-### Bước 5: Khởi chạy Backend Server (Port 5000)
-Mở một cửa sổ Terminal và chạy:
-```bash
-npm run server
-```
-
-### Bước 6: Khởi chạy Frontend React/Vite (Port 5173)
-Mở một cửa sổ Terminal thứ hai và chạy:
+### Bước 5: Khởi chạy Backend và Frontend
+Lệnh phát triển khởi chạy cả backend API (port 5000) và frontend React/Vite (port 5173):
 ```bash
 npm run dev
 ```
+
+Để chỉ khởi chạy backend API, dùng `npm run server` trong một cửa sổ Terminal riêng.
 
 Mở trình duyệt truy cập:
 - **Customer Storefront:** `http://localhost:5173`

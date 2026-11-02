@@ -83,7 +83,7 @@ export async function authenticateToken(req, res, next) {
     };
 
     next();
-  } catch (err) {
+  } catch {
     clearAuthCookie(res);
     return res.status(401).json({
       success: false,

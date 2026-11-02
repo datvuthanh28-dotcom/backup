@@ -1,4 +1,3 @@
-/* global process */
 import sql from "mssql";
 import dotenv from "dotenv";
 import { allProducts as catalogProducts } from "../../src/data/products.js";
@@ -10,7 +9,7 @@ const sqlConfig = {
   password: process.env.DB_PASSWORD || "YourStrongPassword123!",
   database: process.env.DB_NAME || "MaisonRueDB",
   server: process.env.DB_SERVER || "localhost",
-  port: parseInt(process.env.DB_PORT, 10) || 1435,
+  port: parseInt(process.env.DB_PORT, 10) || 1433,
   pool: {
     max: 15,
     min: 1,

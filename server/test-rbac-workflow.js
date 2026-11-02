@@ -4,7 +4,7 @@ process.env.PORT = "5099";
 
 const http = await import("http");
 const { default: app } = await import("./index.js");
-const { connectDB, getPool, db } = await import("./config/db.js");
+const { connectDB } = await import("./config/db.js");
 const { runMigration } = await import("./db/migrate.js");
 const { runSeed } = await import("./db/seed.js");
 const sql = (await import("mssql")).default;
@@ -33,17 +33,18 @@ function makeRequest(method, path, body = null, cookie = null) {
         const setCookie = res.headers["set-cookie"];
         res.on("data", (chunk) => (data += chunk));
         res.on("end", () => {
-          let json = {};
-          try {
-            json = JSON.parse(data);
-          } catch {
-            json = { raw: data };
-          }
+          const parsedBody = (() => {
+            try {
+              return JSON.parse(data);
+            } catch {
+              return { raw: data };
+            }
+          })();
           resolve({
             status: res.statusCode,
+            body: parsedBody,
             headers: res.headers,
             cookie: setCookie ? setCookie[0].split(";")[0] : null,
-            body: json,
           });
         });
       }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useStore } from "../../context/StoreContext";
 import { productsAPI } from "../../services/api";
 import useDocumentTitle from "../../hooks/useDocumentTitle";

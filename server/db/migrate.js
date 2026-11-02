@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { connectDB, getPool, isConnectedToSqlServer } from "../config/db.js";
+import { connectDB, getPool } from "../config/db.js";
 import { runSeed } from "./seed.js";
 
 const __filename = fileURLToPath(import.meta.url);

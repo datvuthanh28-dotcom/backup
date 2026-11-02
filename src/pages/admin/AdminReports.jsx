@@ -35,14 +35,12 @@ export default function AdminReports() {
   );
   const refundPendingOrders = orders.filter((o) => o.payment?.payment_status === "refund_pending");
   const refundedOrders = orders.filter((o) => o.payment?.payment_status === "refunded");
-  const cancelledOrders = orders.filter((o) => getOrderStatus(o) === "cancelled");
 
   // Verified Actual Collected Revenue strictly from database payment record
   const actualCollected = revenueReport?.actualCollectedRevenue ?? metrics.totalDeliveredRevenue;
   const inFlightAmount = (revenueReport?.pendingVerificationRevenue || 0) + (revenueReport?.unpaidRevenue || 0) || metrics.inFlightRevenue;
   const refundPendingAmount = revenueReport?.refundPendingRevenue ?? (refundPendingOrders.reduce((s, o) => s + getOrderAmount(o), 0));
   const refundedAmount = revenueReport?.refundedRevenue ?? metrics.cancelledAmount;
-  const grossCommittedSales = actualCollected + inFlightAmount;
 
   // Top products from backend report or fallback
   const topProducts =

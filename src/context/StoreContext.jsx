@@ -29,7 +29,6 @@ export function StoreProvider({ children }) {
   const [products, setProducts] = useState(staticProducts);
   const [orders, setOrders] = useState([]);
   const [revenueReport, setRevenueReport] = useState(null);
-  const [loading, setLoading] = useState(false);
 
   // Fetch Products & Stock from Backend
   const refreshProducts = useCallback(async () => {

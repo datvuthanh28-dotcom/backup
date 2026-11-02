@@ -39,7 +39,8 @@ export async function createEmployee(req, res) {
     };
 
     const created = await db.createUser(newStaff);
-    const { password_hash: _, ...safeStaff } = created;
+    const safeStaff = { ...created };
+    delete safeStaff.password_hash;
 
     return res.status(201).json({
       success: true,
@@ -67,7 +68,8 @@ export async function updateEmployee(req, res) {
       phone: phone ? phone.trim() : existing.phone,
     });
 
-    const { password_hash: _, ...safeStaff } = updated;
+    const safeStaff = { ...updated };
+    delete safeStaff.password_hash;
     return res.json({ success: true, staff: safeStaff, message: "Cập nhật thông tin nhân viên thành công." });
   } catch (err) {
     console.error("[Update Employee] Error:", err);
@@ -85,7 +87,7 @@ export async function toggleEmployeeStatus(req, res) {
     }
 
     const newStatus = !existing.is_active;
-    const updated = await db.updateUser(staffId, { is_active: newStatus });
+    await db.updateUser(staffId, { is_active: newStatus });
 
     return res.json({
       success: true,
