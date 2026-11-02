@@ -44,9 +44,10 @@ export default function ProtectedRoute({ allowedRoles = [], loginRedirect, child
 
   // Role validation
   if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
+    const ownPortal = role === "admin" ? "/admin" : role === "staff" ? "/staff" : "/account/orders";
     return (
       <Navigate
-        to="/access-denied"
+        to={ownPortal}
         state={{
           requiredRoles: allowedRoles,
           currentRole: role,

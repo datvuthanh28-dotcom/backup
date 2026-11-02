@@ -48,8 +48,8 @@ export default function Checkout() {
     e.preventDefault();
     const errs = {};
     if (!formData.name.trim()) errs.name = "Vui lòng nhập họ và tên người nhận.";
-    if (!formData.phone.trim()) errs.phone = "Vui lòng nhập số điện thoại liên hệ.";
-    if (!formData.email.trim()) errs.email = "Vui lòng nhập email nhận hóa đơn.";
+    if (!/^0\d{9,10}$/.test(formData.phone.trim())) errs.phone = "Vui lòng nhập số điện thoại Việt Nam hợp lệ.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) errs.email = "Vui lòng nhập email hợp lệ.";
     if (!formData.address.trim()) errs.address = "Vui lòng nhập địa chỉ nhận hàng chi tiết.";
 
     setErrors(errs);
@@ -219,7 +219,7 @@ export default function Checkout() {
       )}
 
       <form onSubmit={handleSubmit}>
-        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: "40px" }}>
+        <div className="checkout-layout" style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: "40px" }}>
           {/* Shipping Details */}
           <div
             style={{
