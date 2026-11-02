@@ -5,6 +5,9 @@ export default function ProductCard({ product }) {
   const { getProductStock } = useStore();
   const stock = getProductStock(product.id);
   const isOutOfStock = stock === 0;
+  const modelImage = product.images?.find((image) => image.toLowerCase().includes("model"));
+  // Curate model covers for roughly one third of cards so the catalog keeps visual rhythm.
+  const coverImage = modelImage && product.id % 3 === 0 ? modelImage : product.images?.[0];
 
   return (
     <Link to={`/product/${product.id}`} className="product-card" style={{ position: "relative" }}>
@@ -28,7 +31,7 @@ export default function ProductCard({ product }) {
         </span>
       )}
       <div className="product-image">
-        <img src={`/${product.images[0]}`} alt={product.name} />
+        <img src={`/${coverImage}`} alt={product.name} />
       </div>
       <div className="product-card-meta">{product.collection || product.productType}</div>
       <h3>{product.name}</h3>

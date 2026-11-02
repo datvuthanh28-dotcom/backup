@@ -3,12 +3,55 @@
    File CSS hợp nhất từ: homepage.css + products.css + login.css
    ============================================================ */
 
+/* Account page polish */
+.address-modal{box-sizing:border-box!important;padding:30px!important}.address-grid{gap:14px!important;margin-top:12px!important}.phone-field{display:flex!important;align-items:center;gap:10px!important;padding:0 12px!important;background:#fff}.phone-field:before{content:"🇻🇳";font-size:18px}.phone-field input{min-width:0!important}
+.address-country{color:#333!important;background:#fff!important;opacity:1!important}.address-country-label:after{content:"★";display:grid;place-items:center;width:22px;height:16px;border-radius:2px;background:#E31B23;color:#FFD700;font-size:10px;right:38px;bottom:15px}.phone-field:before{content:"★";display:grid;place-items:center;width:22px;height:16px;border-radius:2px;background:#E31B23;color:#FFD700;font-size:10px}.phone-field span{color:#333!important}
+.phone-field span{font-size:0}.phone-field span:after{content:"+84";font-size:14px}
+.address-country option{color:#333!important;background:#fff!important;font-size:14px}.address-country{appearance:auto!important;-webkit-appearance:menulist!important;color:#333!important;text-indent:0!important;line-height:20px!important;padding-top:22px!important;padding-bottom:2px!important}
+.address-country-label{position:relative;display:block;height:54px;padding-top:0;color:transparent;font-size:0}.address-country-label:before{content:"Quốc gia/khu vực";position:absolute;z-index:2;top:8px;left:13px;color:#777;font-size:11px;pointer-events:none}.address-country-label:after{content:"🇻🇳";position:absolute;z-index:2;right:34px;bottom:13px;font-size:18px;pointer-events:none}.address-country{height:54px!important;padding:20px 38px 5px 13px!important}.phone-field{display:flex;align-items:center;gap:8px;padding:0 12px;border:1px solid #D8D8D8;border-radius:11px}.phone-field span{white-space:nowrap}.phone-field input{border:0!important;flex:1}
+
+/* Keep the selected country visible while the label floats inside the field. */
+.account-simple .address-country-label select.address-country{display:block!important;width:100%!important;height:54px!important;color:#333!important;background:#fff!important;opacity:1!important;font-family:Arial,sans-serif!important;font-size:14px!important;line-height:normal!important;text-indent:0!important;padding:20px 38px 4px 13px!important;visibility:visible!important}
+.account-simple .address-country-label:after{content:"★"!important;display:grid!important;place-items:center;position:absolute;z-index:2;left:13px;right:auto;bottom:13px;width:22px;height:16px;border-radius:2px;background:#e31b23;color:#ffd700;font-size:10px;line-height:16px;pointer-events:none}
+.account-simple .address-country-label select.address-country{padding-left:44px!important}
+.phone-country{border:0;background:transparent;font:inherit;min-width:72px;color:#333;outline:0;cursor:pointer}
+.account-simple .phone-field:before{display:grid!important;content:"★";place-items:center;width:24px;height:18px;background:#e31b23;color:#ffd700;font-size:10px}
+.account-simple .phone-field[data-country="US"]:before{content:"";background:repeating-linear-gradient(to bottom,#b22234 0 2px,#fff 2px 4px)}
+.account-simple .phone-field[data-country="JP"]:before{content:"";background:radial-gradient(circle,#bc002d 0 4px,#fff 4px)}
+.account-simple .phone-field[data-country="KR"]:before{content:"";background:radial-gradient(circle at center,#c60c30 0 3px,#183f8a 3px 5px,#fff 5px)}
+.account-simple .phone-field[data-country="SG"]:before{content:"";background:linear-gradient(#ed2939 0 50%,#fff 50%)}
+.account-simple .phone-field[data-country="US"]:before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 16'%3E%3Cpath fill='%23fff' d='M0 0h22v16H0z'/%3E%3Cpath fill='%23b22234' d='M0 0h22v2H0zm0 4h22v2H0zm0 4h22v2H0zm0 4h22v2H0z'/%3E%3Cpath fill='%233c3b6e' d='M0 0h10v9H0z'/%3E%3C/svg%3E");background-size:cover}
+.account-simple .phone-field[data-country="JP"]:before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 16'%3E%3Crect width='22' height='16' fill='%23fff'/%3E%3Ccircle cx='11' cy='8' r='4' fill='%23bc002d'/%3E%3C/svg%3E");background-size:cover}
+.account-simple .phone-field[data-country="KR"]:before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 16'%3E%3Crect width='22' height='16' fill='%23fff'/%3E%3Cpath fill='%23c60c30' d='M14 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0z'/%3E%3Cpath fill='%23183f8a' d='M8 8a3 3 0 0 0 6 0 3 3 0 0 1-6 0z'/%3E%3C/svg%3E");background-size:cover}
+.account-simple .phone-field[data-country="SG"]:before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 16'%3E%3Cpath fill='%23ed2939' d='M0 0h22v8H0z'/%3E%3Cpath fill='%23fff' d='M0 8h22v8H0z'/%3E%3Ccircle cx='6' cy='4' r='3' fill='%23fff'/%3E%3Ccircle cx='7' cy='4' r='2.3' fill='%23ed2939'/%3E%3C/svg%3E");background-size:cover}
+.account-simple .address-country-label[data-country="US"]:after{content:""!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 16'%3E%3Cpath fill='%23fff' d='M0 0h22v16H0z'/%3E%3Cpath fill='%23b22234' d='M0 0h22v2H0zm0 4h22v2H0zm0 4h22v2H0zm0 4h22v2H0z'/%3E%3Cpath fill='%233c3b6e' d='M0 0h10v9H0z'/%3E%3C/svg%3E")!important;background-size:cover;color:transparent}
+.account-simple .address-country-label[data-country="JP"]:after{content:""!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 16'%3E%3Crect width='22' height='16' fill='%23fff'/%3E%3Ccircle cx='11' cy='8' r='4' fill='%23bc002d'/%3E%3C/svg%3E")!important;background-size:cover;color:transparent}
+.account-simple .address-country-label[data-country="KR"]:after{content:""!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 16'%3E%3Crect width='22' height='16' fill='%23fff'/%3E%3Cpath fill='%23c60c30' d='M14 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0z'/%3E%3Cpath fill='%23183f8a' d='M8 8a3 3 0 0 0 6 0 3 3 0 0 1-6 0z'/%3E%3C/svg%3E")!important;background-size:cover;color:transparent}
+.account-simple .address-country-label[data-country="SG"]:after{content:""!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 16'%3E%3Cpath fill='%23ed2939' d='M0 0h22v8H0z'/%3E%3Cpath fill='%23fff' d='M0 8h22v8H0z'/%3E%3Ccircle cx='6' cy='4' r='3' fill='%23fff'/%3E%3Ccircle cx='7' cy='4' r='2.3' fill='%23ed2939'/%3E%3C/svg%3E")!important;background-size:cover;color:transparent}
+.account-simple .address-country-label[data-country="KR"]:after,.account-simple .phone-field[data-country="KR"]:before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 16'%3E%3Crect width='22' height='16' fill='%23fff'/%3E%3Cpath fill='%23c60c30' d='M14 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0z'/%3E%3Cpath fill='%23183f8a' d='M8 8a3 3 0 0 0 6 0 3 3 0 0 1-6 0z'/%3E%3Cg stroke='%23000' stroke-width='0.7'%3E%3Cpath d='M3 3h3M3 4.2h3M3 5.4h3M16 10.6h3M16 11.8h3M16 13h3'/%3E%3C/g%3E%3C/svg%3E")!important;background-size:cover}
+.account-simple .address-country-label[data-country="KR"]:after,.account-simple .phone-field[data-country="KR"]:before{background-image:url('/flags/kr.png')!important;background-size:cover!important;background-repeat:no-repeat!important}
+.address-modal-overlay{position:fixed;inset:0;z-index:3000;display:grid;place-items:center;background:rgba(43,33,28,.58);padding:20px}.address-modal{position:relative;width:min(640px,100%);padding:28px 30px;border-radius:18px;background:#fff;box-shadow:0 20px 60px rgba(0,0,0,.2)}.address-modal h2{margin:0 0 18px;font:600 24px Arial,sans-serif;color:#171717}.address-modal-close{position:absolute;right:18px;top:10px;border:0;background:none;color:#777;font-size:30px;cursor:pointer}.address-country{width:100%;margin-bottom:12px;padding:13px 12px;border:1px solid #D8D8D8;border-radius:11px;background:#fff;font:inherit}.address-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.address-grid input{padding:14px 12px;border:1px solid #D8D8D8;border-radius:11px;font:inherit}.address-grid input:focus,.address-country:focus{outline:2px solid #2F80ED;outline-offset:1px}.address-grid .full{grid-column:1/-1}.address-default{display:flex;align-items:center;gap:8px;margin:16px 0 22px;color:#333;font-size:13px}.address-default input{width:18px;height:18px}.address-modal-actions{display:flex;justify-content:flex-end;gap:14px;align-items:center}.address-modal .account-action,.address-modal .account-cancel{cursor:pointer;border-radius:10px;padding:11px 18px}.address-modal .account-action{background:#F6F6F6;color:#888;border:1px solid #E5E5E5}.address-modal .account-cancel{border:0;color:#1769D1;text-decoration:underline;background:transparent}
+.account-simple .account-sidebar { padding-top: 8px; }.account-simple .account-sidebar h1 { font-size: 34px; line-height: 1.08; margin-bottom: 24px; }.account-simple .account-sidebar a,.account-simple .account-sidebar strong { display:block; padding:6px 0; color:#2B211C; text-decoration:none; font-size:15px; }.account-simple .account-sidebar a { color:#6B5A4B; }.account-simple .account-panel { max-width:680px; }.account-section-heading { display:flex; align-items:center; justify-content:space-between; margin:8px 0 12px; }.account-section-heading h2,.account-section-heading h3,.account-section-title { margin:0; color:#2B211C; font:500 28px 'Cormorant Garamond',serif; }.account-simple .account-card { min-height:54px; align-items:center; }.account-simple .address-card { justify-content:flex-start; gap:18px; min-height:74px; }.account-simple .address-card span { display:grid; place-items:center; width:38px; height:38px; border-radius:10px; background:#F3F0EB; color:#2B211C; font-size:20px; }.account-simple .account-add-row { margin-bottom:26px; }.account-simple .account-add-row input { width:100%; }.account-simple .account-section-title { margin:28px 0 12px; font-size:22px; }.account-simple .preference-card { min-height:58px; }.account-logout-row { display:flex; align-items:center; gap:20px; margin-top:30px; }.account-link-button { border:0; background:none; color:#2463C5; cursor:pointer; font:inherit; }.account-simple .account-outline { border-radius:10px; background:#fff; }
+.account-page .account-shell { grid-template-columns: 240px minmax(0, 680px); gap: 56px; align-items: start; }
+.account-page .account-sidebar h1 { font-size: 38px; line-height: 1.05; margin-bottom: 22px; }
+.account-page .account-sidebar nav { gap: 2px; }
+.account-page .account-sidebar nav button, .account-page .account-sidebar nav a { font-size: 14px; text-decoration: none; }
+.account-page .account-orders-link { color: #6B5A4B; display: block; padding: 8px 0; }
+.account-page .account-sidebar nav button.active { font-weight: 700; color: #2B211C; }
+.account-page .account-signout { margin-top: 28px; font-size: 13px; }
+.account-page .account-heading { align-items: center; }
+.account-page .account-heading h2 { font-size: 40px; margin-bottom: 14px; }
+.account-page .account-outline { border-radius: 10px; padding: 11px 18px; }
+.account-page .account-card { min-height: 70px; padding: 20px 22px; border-radius: 16px; }
+.account-page .account-card span { font-size: 13px; }
+.account-page .account-card strong { font-size: 16px; }
 /* ============ GENERAL RESET (từ products.css) ============ */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
+.account-outline,.account-cancel { padding:10px 16px; border:1px solid #D8CEC1; border-radius:8px; background:transparent; color:#3B2B24; cursor:pointer; }.account-edit-form { display:grid; gap:16px; padding:24px; border:1px solid #E8E1D6; border-radius:14px; background:#fff; }.account-edit-form label { display:grid; gap:8px; color:#8A7350; font-size:13px; }.account-edit-form input { padding:12px; border:1px solid #D8CEC1; border-radius:8px; font:inherit; }.account-edit-form > div { display:flex; gap:10px; }
 
 body {
     background-color: #F8F5F0;
@@ -678,6 +721,21 @@ header nav a {
     border-radius: 14px;
     box-shadow: 0 20px 50px rgba(43, 33, 28, 0.25);
 }
+.search-form { display: flex; gap: 8px; align-items: center; }
+.search-form input { flex: 1; }
+.search-submit, .search-clear, .search-view-all { border: 1px solid #D8CEC1; border-radius: 6px; background: #F8F5F0; color: #51443B; padding: 10px 16px; cursor: pointer; text-transform: uppercase; letter-spacing: 1.2px; font-size: 10px; transition: background .2s ease, border-color .2s ease, color .2s ease; }
+.search-submit { background: #3B2B24; border-color: #3B2B24; color: #FFFDF9; }
+.search-submit:hover, .search-clear:hover, .search-view-all:hover { background: #B89B5E; border-color: #B89B5E; color: #fff; }
+.search-view-all { margin-top: 12px; width: 100%; }
+.search-result-item { display: flex !important; align-items: center; justify-content: flex-start !important; gap: 20px; width: 100%; padding: 10px 0; border-bottom: 1px solid #EEE7DE; color: #3B2B24; text-decoration: none; text-align: left !important; }
+.search-result-item img { flex: 0 0 15%; width: 15%; height: 58px; padding: 4px; box-sizing: border-box; object-fit: contain; background: #F1ECE4; }
+.search-result-item span { display: grid; flex: 1; min-width: 0; gap: 4px; }
+.search-result-item strong { overflow: hidden; font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.search-result-item small { color: #9B7D55; font-size: 10px; letter-spacing: .7px; text-transform: uppercase; }
+.search-result-item:hover strong { color: #9B7D55; }
+.search-empty { color: #8A7350; padding: 14px 0; }
+.search-no-results { padding: 70px 20px; text-align: center; border-top: 1px solid #D8CEC1; }
+@media (max-width: 600px) { .search-box { padding: 55px 14px 20px; } .search-content { width: 100%; max-width: 540px; padding: 28px 20px 20px; } .search-form { flex-wrap: wrap; } .search-form input { min-width: 100%; order: -1; } .search-submit, .search-clear { flex: 0 0 auto; } .search-submit { margin-left: auto; } }
 
 #closeSearch {
     position: absolute;
@@ -1220,18 +1278,20 @@ header nav a {
     width: 100%;
     height: 300px;
     overflow: hidden;
-    background: #FFF;
+    background: #F3EEE6;
 }
 
 .product-image img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    box-sizing: border-box;
+    padding: 10px;
+    object-fit: contain;
     transition: transform 0.3s ease;
 }
 
 .product-card:hover .product-image img {
-    transform: scale(1.05);
+    transform: scale(1.02);
 }
 
 .product-card h3 {
@@ -1335,6 +1395,7 @@ header nav a {
 @media (max-width: 600px) { .size-guide-modal { padding: 34px 20px 24px; } .measurement-grid { grid-template-columns: 1fr; } .size-guide-modal h2 { font-size: 32px; } }
 @media (max-width: 700px) { .product-actions.refined-actions { position: sticky; bottom: 10px; z-index: 20; margin: 18px -8px 0; padding: 10px 8px; background: rgba(251,248,243,.95); box-shadow: 0 -8px 20px rgba(43,33,28,.08); backdrop-filter: blur(8px); } .product-actions.refined-actions .btn-large { flex: 1; } .gallery-color-label { padding: 0 2px; } }
 @media (max-width: 760px) { .checkout-layout { grid-template-columns: 1fr !important; gap: 20px !important; } .checkout-layout > div { padding: 20px !important; } .checkout-layout .cart-summary { position: static !important; } }
+.account-page { min-height: 70vh; padding: 70px 6%; background: #F8F5F0; }.account-shell { display:grid; grid-template-columns:220px minmax(0,1fr); gap:70px; max-width:1180px; margin:auto; }.account-sidebar h1,.account-panel h2 { color:#2B211C; font:500 34px 'Cormorant Garamond',serif; }.account-sidebar button { display:block; border:0; background:none; padding:8px 0; color:#6B5A4B; cursor:pointer; }.account-sidebar button.active { color:#2B211C; font-weight:700; }.account-card { display:flex; justify-content:space-between; gap:20px; margin-bottom:16px; padding:20px; border:1px solid #E8E1D6; border-radius:14px; background:#fff; }.account-card span { color:#8A7350; font-size:12px; }.account-add-row { display:flex; gap:10px; }.account-add-row input { flex:1; padding:12px; border:1px solid #D8CEC1; border-radius:8px; }.account-add-row button,.account-action { padding:10px 16px; border:0; border-radius:8px; background:#2B211C; color:#fff; }.toggle { width:48px; height:26px; border:0; border-radius:20px; background:#D8CEC1; }.toggle.on { background:#2B211C; }.toggle span { display:block; width:20px; height:20px; border-radius:50%; background:#fff; }.toggle.on span { transform:translateX(22px); }@media(max-width:700px){.account-page{padding:40px 20px}.account-shell{grid-template-columns:1fr;gap:25px}}
 .related-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
 
 @media (max-width: 800px) {
@@ -2326,3 +2387,42 @@ header nav a {
 .bs-cards > div p:last-of-type{
     font-size: clamp(16px, 1.3vw, 24px);
 }
+
+.account-simple .account-panel{gap:22px}
+.account-simple .account-card+.account-section-heading{margin-top:30px}
+.account-simple .account-section-title{margin-top:34px}
+.account-simple .account-card>strong{font-weight:400}
+html{scrollbar-gutter:stable}
+body{overflow-y:scroll}
+.account-page,.customer-orders-page{box-sizing:border-box;width:100%;max-width:none;margin:0;padding:70px 6%;background:#F8F5F0;min-height:70vh}
+.account-page .account-shell,.customer-orders-page{display:grid;grid-template-columns:220px minmax(0,1fr);gap:70px;width:min(1180px,100%);max-width:1180px;margin:0 auto;align-items:start}
+.customer-orders-page{padding-bottom:35px}
+.account-shell .customer-account-sidebar,.customer-orders-page .customer-account-sidebar{position:sticky;top:32px;align-self:start}
+.customer-orders-page{max-width:1180px!important;padding:70px 0!important;margin:0 auto!important}
+.customer-orders-content>div:nth-of-type(2)>div:last-child>span{display:none!important}
+.orders-filter-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 18px;padding-bottom:14px;border-bottom:1px solid #D8CEC1;color:#6B5A4B;font-size:13px}
+.orders-filter-bar span{margin-right:6px;font-weight:600;color:#2B211C}
+.orders-filter-bar button{border:1px solid #D8CEC1;border-radius:999px;background:#fff;color:#6B5A4B;padding:7px 12px;cursor:pointer;font:inherit}
+.orders-filter-bar button.active{background:#2B211C;color:#fff;border-color:#2B211C}
+@media(max-width:700px){.orders-filter-bar{overflow-x:auto;flex-wrap:nowrap}.orders-filter-bar button{white-space:nowrap}}
+.customer-account-sidebar>a{display:block!important;width:100%!important;height:28px!important;line-height:28px!important;margin:0 0 12px!important;padding:0!important}
+.customer-account-sidebar>a.active{font-weight:700!important;color:#2B211C!important}
+.customer-account-sidebar>a{color:#6B5A4B!important;text-decoration:none!important}
+.customer-account-sidebar{display:flex!important;flex-direction:column!important;gap:0!important;padding-top:8px!important;width:220px!important;min-width:220px!important;box-sizing:border-box!important}
+.customer-account-sidebar .eyebrow{margin:0 0 8px!important;line-height:1.2!important}
+.customer-account-sidebar h1{margin:0 0 22px!important;font-size:38px!important;line-height:1.05!important;font-weight:500!important;color:#2B211C!important}
+.customer-account-sidebar>a{display:block!important;height:28px!important;line-height:28px!important;margin:0 0 12px!important;padding:0!important;color:#6B5A4B!important;text-decoration:none!important;font-size:15px!important;font-weight:400!important}
+.customer-account-sidebar>a.active{color:#2B211C!important;font-weight:700!important}
+.account-notice{padding:12px 16px;margin-bottom:16px;border:1px solid #b8d8bd;border-radius:10px;background:#edf8ef;color:#286b35;font-size:14px}
+.account-edit-form{display:grid;grid-template-columns:1fr 1fr;align-items:end;gap:14px}
+.account-edit-form label{display:flex;flex-direction:column;gap:6px;color:#8A7350;font-size:12px}
+.account-edit-form input{padding:10px;border:1px solid #D8CEC1;border-radius:8px;font:inherit;color:#2B211C}
+.account-edit-form>div{display:flex;gap:8px;align-items:center;align-self:end;margin-top:18px}
+.address-card-actions{display:flex;gap:8px;margin-left:auto}.address-card-actions button{border:1px solid #D8CEC1;background:#fff;border-radius:8px;padding:7px 10px;color:#6B5A4B;cursor:pointer}.address-card-actions button:hover{background:#F8F5F0}
+.default-address-badge{display:inline-block;margin-left:10px;padding:3px 8px;border-radius:999px;background:#F5EAD7;color:#8A6735;font-size:11px;font-style:normal;font-weight:600}
+.account-loading,.account-error{padding:14px 16px;margin-bottom:16px;border-radius:10px;font-size:14px}.account-loading{background:#F5F0E9;color:#8A7350}.account-error{background:#FFF0F0;border:1px solid #E7B8B8;color:#A33A3A}
+@media(max-width:900px){.account-page,.customer-orders-page{padding:48px 24px!important}.account-page .account-shell,.customer-orders-page{grid-template-columns:190px minmax(0,1fr)!important;gap:36px!important}.customer-account-sidebar{width:190px!important;min-width:190px!important}.customer-account-sidebar h1{font-size:32px!important}.customer-orders-content>div:first-child h1{font-size:34px!important;white-space:normal}.account-panel{min-width:0}}
+@media(max-width:640px){.account-page,.customer-orders-page{padding:32px 16px!important}.account-page .account-shell,.customer-orders-page{display:block!important}.customer-account-sidebar{position:static!important;width:100%!important;margin-bottom:32px}.customer-account-sidebar h1{font-size:34px!important}.account-panel,.customer-orders-content{width:100%!important}.customer-orders-content>div:first-child>div:last-child{text-align:left!important;margin-top:14px}.account-card{flex-wrap:wrap}.account-card strong{max-width:100%;word-break:break-word}.address-card-actions{width:100%;margin-left:0}.account-logout-row{flex-wrap:wrap}}
+@media(max-width:700px){.account-edit-form{grid-template-columns:1fr}.account-edit-form>div{grid-column:1}}
+
+

@@ -162,6 +162,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     currentUser,
+    updateCurrentUser: (user) => setCurrentUser((prev) => ({ ...prev, ...user })),
     isAuthenticated: !!currentUser,
     role: currentUser?.role || null,
     loading,

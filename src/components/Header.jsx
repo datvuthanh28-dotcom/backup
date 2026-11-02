@@ -13,6 +13,15 @@ export default function Header() {
   const [query, setQuery] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
+  const handleSearch = (event) => {
+    event?.preventDefault();
+    const term = query.trim();
+    if (!term) return;
+    setSearchOpen(false);
+    setQuery("");
+    navigate(`/search?q=${encodeURIComponent(term)}`);
+  };
+
   const results = query.trim()
     ? products.filter((p) =>
         p.name.toLowerCase().includes(query.trim().toLowerCase())
@@ -132,6 +141,9 @@ export default function Header() {
 
               {role === "customer" && (
                 <>
+                  <Link to="/account/profile" onClick={() => setUserMenuOpen(false)}>
+                    <i className="fas fa-user" style={{ marginRight: "8px" }}></i> Hồ sơ của tôi
+                  </Link>
                   <Link to="/account/orders" onClick={() => setUserMenuOpen(false)}>
                     <i className="fas fa-box-open" style={{ marginRight: "8px" }}></i> Đơn hàng của tôi
                   </Link>
@@ -200,6 +212,7 @@ export default function Header() {
         <div className="search-box" id="searchBox" style={{ display: "flex" }}>
           <div className="search-content">
             <button id="closeSearch" type="button" onClick={() => setSearchOpen(false)}>×</button>
+            <form className="search-form" onSubmit={handleSearch}>
             <input
               type="text"
               id="searchInput"
@@ -208,17 +221,23 @@ export default function Header() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
+            {query && <button type="button" className="search-clear" onClick={() => setQuery("")} aria-label="Clear search">Clear</button>}
+            <button type="submit" className="search-submit">Search</button>
+            </form>
             <div id="searchResults">
-              {results.map((p) => (
+              {query.trim() && results.length === 0 && <p className="search-empty">No products found. Try another keyword.</p>}
+              {results.slice(0, 6).map((p) => (
                 <Link
                   key={p.id}
+                  className="search-result-item"
                   to={`/product/${p.id}`}
-                  onClick={() => setSearchOpen(false)}
-                  style={{ display: "block", padding: "6px 0" }}
+                  onClick={() => { setSearchOpen(false); setQuery(""); }}
                 >
-                  {p.name} — {p.price.toLocaleString("vi-VN")}đ
+                  <img src={`/${p.images[0]}`} alt="" />
+                  <span><strong>{p.name}</strong><small>{p.collection || p.productType} · {p.price.toLocaleString("vi-VN")}đ</small></span>
                 </Link>
               ))}
+              {results.length > 6 && <button className="search-view-all" onClick={handleSearch}>View all {results.length} results →</button>}
             </div>
           </div>
         </div>

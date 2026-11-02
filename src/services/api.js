@@ -63,6 +63,7 @@ export const authAPI = {
 
   getMe: () => request("/auth/me"),
 };
+export const customerAPI = { getAccount: () => request("/customer/account"), addAddress: (address, isDefault = false) => request("/customer/addresses", { method: "POST", body: JSON.stringify({ address, isDefault }) }), updateAddress: (id, address, isDefault = false) => request(`/customer/addresses/${id}`, { method: "PATCH", body: JSON.stringify({ address, isDefault }) }), deleteAddress: (id) => request(`/customer/addresses/${id}`, { method: "DELETE" }), updatePreferences: (marketingEmail) => request("/customer/preferences", { method: "PATCH", body: JSON.stringify({ marketingEmail }) }), updateProfile: (payload) => request("/customer/profile", { method: "PATCH", body: JSON.stringify(payload) }) };
 
 export const productsAPI = {
   getAll: () => request("/products"),
