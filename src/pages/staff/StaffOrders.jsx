@@ -86,7 +86,13 @@ export default function StaffOrders() {
       return { type: "payment", label: paymentMethod === "cod" ? "Xác nhận đã thu COD" : "Xác minh chuyển khoản" };
     }
     const nextStatus = (VALID_STATUS_TRANSITIONS[status] || [])[0];
-    if (nextStatus) return { type: "status", label: `Chuyển sang: ${STATUS_LABELS[nextStatus]?.label || nextStatus}` };
+    const actionLabels = {
+      confirmed: "Xác nhận đơn",
+      processing: "Chuẩn bị hàng",
+      shipping: "Bàn giao vận chuyển",
+      delivered: "Xác nhận đã giao",
+    };
+    if (nextStatus) return { type: "status", label: actionLabels[nextStatus] || STATUS_LABELS[nextStatus]?.label || nextStatus };
     return null;
   };
 
@@ -187,39 +193,11 @@ export default function StaffOrders() {
               fontFamily: "'Cormorant Garamond', serif",
               fontSize: "30px",
               color: "#2B211C",
-              margin: "0 0 6px",
+              margin: 0,
             }}
           >
             QUY TRÌNH XỬ LÝ ĐƠN HÀNG VẬN HÀNH
           </h1>
-          <p style={{ color: "#6B5A4B", fontSize: "14px", margin: 0 }}>
-            Tiếp nhận, kiểm tra đóng gói và cập nhật tiến trình đơn hàng (Server-side validated transitions).
-          </p>
-        </div>
-
-        {/* Workflow Diagram */}
-        <div
-          style={{
-            backgroundColor: "#FFFFFF",
-            border: "1px solid #D8CEC1",
-            borderRadius: "6px",
-            padding: "8px 16px",
-            fontSize: "12px",
-            color: "#4E342E",
-          }}
-        >
-          <strong>Vòng đời chuẩn:</strong> Chờ xác nhận → Đã xác nhận → Đang chuẩn bị → Đang giao → Đã giao
-        </div>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
-        <div style={{ background: "#FFF", border: "1px solid #D8CEC1", borderRadius: 7, padding: "13px 16px" }}>
-          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, color: "#4E342E", marginBottom: 5 }}>VẬN HÀNH ĐƠN HÀNG</div>
-          <div style={{ fontSize: 12.5, color: "#6B5A4B" }}>Xác nhận → chuẩn bị → giao hàng → hoàn tất. Hệ thống tự động lưu người thực hiện và thời gian của từng bước.</div>
-        </div>
-        <div style={{ background: "#F7FBF8", border: "1px solid #CFE3D5", borderRadius: 7, padding: "13px 16px" }}>
-          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, color: "#2E6B45", marginBottom: 5 }}>THANH TOÁN ĐỘC LẬP</div>
-          <div style={{ fontSize: 12.5, color: "#55705F" }}>Chuyển khoản cần mã đối soát; COD chỉ xác nhận sau khi đã giao. Hoàn tiền do Admin phê duyệt.</div>
         </div>
       </div>
 
@@ -332,8 +310,8 @@ export default function StaffOrders() {
                 <th style={{ padding: "14px 18px", fontWeight: "600" }}>Sản Phẩm</th>
                 <th style={{ padding: "14px 18px", fontWeight: "600" }}>Tổng Tiền</th>
                 <th style={{ padding: "14px 18px", fontWeight: "600" }}>Trạng Thái Đơn</th>
-                <th style={{ padding: "14px 18px", fontWeight: "600" }}>Thanh Toán</th>
-                <th style={{ padding: "14px 18px", fontWeight: "600", textAlign: "right" }}>Thao Tác</th>
+                <th style={{ padding: "14px 18px", fontWeight: "600", minWidth: "150px" }}>Thanh Toán</th>
+                <th style={{ padding: "14px 18px", fontWeight: "600", textAlign: "right", minWidth: "160px" }}>Thao Tác</th>
               </tr>
             </thead>
             <tbody>
@@ -402,7 +380,8 @@ export default function StaffOrders() {
                       <td style={{ padding: "14px 18px" }}>
                         <span
                           style={{
-                            display: "inline-block",
+                            display: "inline-flex",
+                            alignItems: "center",
                             padding: "4px 12px",
                             borderRadius: "15px",
                             fontSize: "12px",
@@ -427,6 +406,7 @@ export default function StaffOrders() {
                             color: pmtMeta.color,
                             backgroundColor: pmtMeta.bg,
                             border: `1px solid ${pmtMeta.color}35`,
+                            whiteSpace: "nowrap",
                           }}
                         >
                           ● {pmtMeta.label}
@@ -437,11 +417,12 @@ export default function StaffOrders() {
                       </td>
 
                       <td style={{ padding: "14px 18px", textAlign: "right" }}>
-                        <div style={{ display: "inline-flex", gap: "6px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                        <div style={{ display: "inline-flex", minWidth: "145px", flexDirection: "column", gap: "7px", alignItems: "stretch" }}>
                           <button
                             onClick={() => setSelectedOrder(order)}
                             style={{
-                              padding: "5px 10px",
+                              minHeight: "32px",
+                              padding: "6px 12px",
                               backgroundColor: "#FAF6F0",
                               border: "1px solid #D8CEC1",
                               borderRadius: "4px",
@@ -460,7 +441,8 @@ export default function StaffOrders() {
                             <button
                               onClick={() => nextAction.type === "payment" ? handleOpenPaymentConfirm(order) : handleOpenStatusModal(order)}
                               style={{
-                                padding: "5px 10px",
+                                minHeight: "32px",
+                                padding: "6px 12px",
                                 backgroundColor: "#2B211C",
                                 color: "#F8F5F0",
                                 border: "none",
@@ -470,7 +452,7 @@ export default function StaffOrders() {
                                 cursor: "pointer",
                               }}
                             >
-                              {nextAction.label} →
+                              {nextAction.label}
                             </button>
                           ) : (
                             <span style={{ fontSize: "11px", color: "#A09384", padding: "5px 4px" }}>

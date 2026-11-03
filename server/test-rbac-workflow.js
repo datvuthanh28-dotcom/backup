@@ -195,20 +195,20 @@ async function runTests() {
     console.log("\n--- Testing Variant-Level Inventory Adjustment ---");
     const productTwoBefore = await pool.request().query("SELECT stock FROM Products WHERE id = 2");
     const productTwoOriginalStock = productTwoBefore.recordset[0].stock;
-    let variantBeforeRes = await pool.request().query("SELECT TOP 1 id, product_id, stock_quantity FROM ProductVariants WHERE product_id = 2 AND is_active = 1 ORDER BY id");
+    let variantBeforeRes = await pool.request().query("SELECT TOP 1 id, product_id, stock_quantity, low_stock_threshold, max_stock_threshold FROM ProductVariants WHERE product_id = 2 AND is_active = 1 ORDER BY id");
     let createdVariantFixture = false;
     if (!variantBeforeRes.recordset.length) {
       await pool.request().query(`INSERT INTO ProductVariants
         (id, product_id, sku, color_name, size_name, price, stock_quantity, low_stock_threshold, is_active)
         VALUES ('TEST-P2-IVORY-M', 2, 'TEST-P2-IVORY-M', 'IVORY', 'M', 1000000, 4, 3, 1)`);
       createdVariantFixture = true;
-      variantBeforeRes = await pool.request().query("SELECT id, product_id, stock_quantity FROM ProductVariants WHERE id='TEST-P2-IVORY-M'");
+      variantBeforeRes = await pool.request().query("SELECT id, product_id, stock_quantity, low_stock_threshold, max_stock_threshold FROM ProductVariants WHERE id='TEST-P2-IVORY-M'");
     }
     const testVariant = variantBeforeRes.recordset[0];
     const variantAdjust = await makeRequest(
       "PATCH",
       `/api/products/${testVariant.product_id}/variants/${encodeURIComponent(testVariant.id)}/stock`,
-      { stock: testVariant.stock_quantity + 1, note: "Kiểm thử nhập bổ sung một sản phẩm" },
+      { stock: testVariant.stock_quantity + 1, minStock: testVariant.low_stock_threshold, maxStock: testVariant.max_stock_threshold, note: "Kiểm thử nhập bổ sung một sản phẩm" },
       staffCookie
     );
     assert(variantAdjust.status === 200, "Staff adjusted stock for one exact SKU variant");
@@ -221,7 +221,7 @@ async function runTests() {
     const variantRestore = await makeRequest(
       "PATCH",
       `/api/products/${testVariant.product_id}/variants/${encodeURIComponent(testVariant.id)}/stock`,
-      { stock: testVariant.stock_quantity, note: "Khôi phục tồn kho sau kiểm thử tự động" },
+      { stock: testVariant.stock_quantity, minStock: testVariant.low_stock_threshold, maxStock: testVariant.max_stock_threshold, note: "Khôi phục tồn kho sau kiểm thử tự động" },
       staffCookie
     );
     assert(variantRestore.status === 200, "Variant stock restored after isolated test");

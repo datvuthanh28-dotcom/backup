@@ -34,8 +34,9 @@ const STOCK_OPTIONS = [
   { id: "all", label: "Tất cả", icon: "fa-layer-group" },
   { id: "attention", label: "Cần xử lý" },
   { id: "out_of_stock", label: "Hết hàng" },
-  { id: "low_stock", label: "Tồn thấp" },
-  { id: "in_stock", label: "Đủ hàng" },
+  { id: "low_stock", label: "Sắp hết" },
+  { id: "stable", label: "Ổn định" },
+  { id: "overstock", label: "Vượt mức tồn" },
 ];
 
 function normalizeGender(value) {
@@ -45,13 +46,31 @@ function normalizeGender(value) {
   return "unisex";
 }
 
+function getVariantState(variant) {
+  const stock = Number(variant.stock);
+  const min = Number(variant.lowStockThreshold ?? variant.low_stock_threshold ?? 3);
+  const max = Number(variant.maxStockThreshold ?? variant.max_stock_threshold ?? 20);
+  if (stock === 0) return { id: "out", label: "Hết hàng" };
+  if (stock <= min) return { id: "low", label: "Sắp hết" };
+  if (stock >= max) return { id: "over", label: "Vượt mức tồn" };
+  return { id: "stable", label: "Ổn định" };
+}
+
 function getVariantSummary(product) {
   const variants = Array.isArray(product.variants) ? product.variants : [];
   return {
     total: variants.length,
-    out: variants.filter((variant) => Number(variant.stock) === 0).length,
-    low: variants.filter((variant) => Number(variant.stock) > 0 && Number(variant.stock) <= 3).length,
+    out: variants.filter((variant) => getVariantState(variant).id === "out").length,
+    low: variants.filter((variant) => getVariantState(variant).id === "low").length,
+    stable: variants.filter((variant) => getVariantState(variant).id === "stable").length,
+    over: variants.filter((variant) => getVariantState(variant).id === "over").length,
   };
+}
+
+function formatVariantName(variant) {
+  const color = variant.color || "Chưa xác định màu";
+  const size = variant.size ? `Size ${variant.size}` : "Chưa xác định kích cỡ";
+  return `${color} · ${size}`;
 }
 
 function formatPrice(v) {
@@ -84,9 +103,12 @@ export default function StaffInventory() {
   const [editProduct, setEditProduct] = useState(null);
   const [selectedVariantId, setSelectedVariantId] = useState("");
   const [newStockValue, setNewStockValue] = useState("");
+  const [minStockValue, setMinStockValue] = useState("3");
+  const [maxStockValue, setMaxStockValue] = useState("20");
   const [stockNote, setStockNote] = useState("");
   const [toastMessage, setToastMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [stockAlertProduct, setStockAlertProduct] = useState(null);
 
   // Movements modal
   const [selectedProductMovements, setSelectedProductMovements] = useState(null);
@@ -110,10 +132,12 @@ export default function StaffInventory() {
     const matchesType = typeFilter === "all" || (product.productType || product.category) === typeFilter;
 
     let matchesStock = true;
-    if (stockStatusFilter === "attention") matchesStock = currentStock <= 5 || variantSummary.out > 0 || variantSummary.low > 0;
-    else if (stockStatusFilter === "out_of_stock") matchesStock = currentStock === 0 || variantSummary.out > 0;
-    else if (stockStatusFilter === "low_stock") matchesStock = (currentStock > 0 && currentStock <= 5) || variantSummary.low > 0;
-    else if (stockStatusFilter === "in_stock") matchesStock = currentStock > 5 && variantSummary.out === 0 && variantSummary.low === 0;
+    const hasVariants = variantSummary.total > 0;
+    if (stockStatusFilter === "attention") matchesStock = hasVariants ? variantSummary.out > 0 || variantSummary.low > 0 || variantSummary.over > 0 : currentStock <= 5;
+    else if (stockStatusFilter === "out_of_stock") matchesStock = hasVariants ? variantSummary.out > 0 : currentStock === 0;
+    else if (stockStatusFilter === "low_stock") matchesStock = hasVariants ? variantSummary.low > 0 : currentStock > 0 && currentStock <= 5;
+    else if (stockStatusFilter === "stable") matchesStock = hasVariants ? variantSummary.stable === variantSummary.total : currentStock > 5;
+    else if (stockStatusFilter === "overstock") matchesStock = hasVariants && variantSummary.over > 0;
 
     const term = searchTerm.trim().toLowerCase();
     const searchable = [
@@ -156,11 +180,13 @@ export default function StaffInventory() {
     setSortBy("stock_asc");
   };
 
-  const handleOpenEdit = (product) => {
-    const firstVariant = product.variants?.[0];
+  const handleOpenEdit = (product, variantId = null) => {
+    const firstVariant = product.variants?.find((variant) => String(variant.id) === String(variantId)) || product.variants?.[0];
     setEditProduct(product);
     setSelectedVariantId(firstVariant?.id || "");
     setNewStockValue(firstVariant ? String(firstVariant.stock) : String(getProductStock(product.id)));
+    setMinStockValue(String(firstVariant?.lowStockThreshold ?? firstVariant?.low_stock_threshold ?? 3));
+    setMaxStockValue(String(firstVariant?.maxStockThreshold ?? firstVariant?.max_stock_threshold ?? 20));
     setStockNote("");
   };
 
@@ -168,14 +194,22 @@ export default function StaffInventory() {
     const variant = editProduct?.variants?.find((item) => String(item.id) === String(variantId));
     setSelectedVariantId(variantId);
     setNewStockValue(variant ? String(variant.stock) : "");
+    setMinStockValue(String(variant?.lowStockThreshold ?? variant?.low_stock_threshold ?? 3));
+    setMaxStockValue(String(variant?.maxStockThreshold ?? variant?.max_stock_threshold ?? 20));
   };
 
   const handleSaveStock = async (e) => {
     e.preventDefault();
     if (!editProduct) return;
     const stockNum = parseInt(newStockValue, 10);
+    const minStockNum = parseInt(minStockValue, 10);
+    const maxStockNum = parseInt(maxStockValue, 10);
     if (isNaN(stockNum) || stockNum < 0) {
       alert("Số lượng tồn kho phải là số nguyên dương (>= 0).");
+      return;
+    }
+    if (isNaN(minStockNum) || minStockNum < 0 || isNaN(maxStockNum) || maxStockNum <= minStockNum) {
+      alert("Mức tối thiểu phải từ 0 trở lên và mức tối đa phải lớn hơn mức tối thiểu.");
       return;
     }
     if (stockNote.trim().length < 5) {
@@ -185,15 +219,15 @@ export default function StaffInventory() {
 
     setLoading(true);
     if (!selectedVariantId) {
-      alert("Sản phẩm chưa có biến thể màu/size hợp lệ để điều chỉnh.");
+      alert("Sản phẩm chưa có SKU biến thể hợp lệ để điều chỉnh.");
       return;
     }
-    const res = await updateVariantStock(editProduct.id, selectedVariantId, stockNum, stockNote);
+    const res = await updateVariantStock(editProduct.id, selectedVariantId, stockNum, minStockNum, maxStockNum, stockNote);
     setLoading(false);
 
     if (res.success) {
       const variant = editProduct.variants?.find((item) => String(item.id) === String(selectedVariantId));
-      showToast(`Đã cập nhật ${variant?.sku || "biến thể"} thành ${stockNum} sản phẩm.`);
+      showToast(`Đã cập nhật ${variant?.color || "màu"} / ${variant?.size || "size"} thành ${stockNum} sản phẩm.`);
       setEditProduct(null);
     } else {
       alert(res.error || "Không thể cập nhật tồn kho.");
@@ -224,14 +258,11 @@ export default function StaffInventory() {
             fontFamily: "'Cormorant Garamond', serif",
             fontSize: "30px",
             color: "#2B211C",
-            margin: "0 0 6px",
+            margin: 0,
           }}
         >
-          QUẢN LÝ TỒN KHO & BIẾN ĐỘNG SẢN PHẨM
+          QUẢN LÝ KHO
         </h1>
-        <p style={{ color: "#6B5A4B", fontSize: "14px", margin: 0 }}>
-          Theo dõi mức tồn kho thực tế, ghi nhận điều chỉnh và kiểm toán lịch sử xuất/nhập kho Maison Rue.
-        </p>
       </div>
 
       {toastMessage && (
@@ -299,7 +330,7 @@ export default function StaffInventory() {
           <span className="inventory-filter-label">Tìm kiếm</span>
           <span className="inventory-input-icon">
             <i className="fas fa-magnifying-glass" aria-hidden="true" />
-            <input type="search" placeholder="Tên, mã SKU, màu sắc…" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
+            <input type="search" placeholder="Tên, mã sản phẩm, màu sắc…" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
           </span>
         </label>
 
@@ -349,10 +380,15 @@ export default function StaffInventory() {
               ) : (
                 paginatedProducts.map((p, idx) => {
                   const stock = getProductStock(p.id);
-                  const isOut = stock === 0;
-                  const isLow = stock > 0 && stock <= 5;
                   const firstImg = p.images ? p.images[0] : "";
                   const variantSummary = getVariantSummary(p);
+                  const productStatus = variantSummary.out > 0
+                    ? { id: "out", label: "Hết hàng" }
+                    : variantSummary.low > 0
+                    ? { id: "low", label: "Sắp hết" }
+                    : variantSummary.over > 0
+                    ? { id: "over", label: "Vượt mức tồn" }
+                    : { id: "stable", label: "Ổn định" };
 
                   return (
                     <tr
@@ -377,13 +413,7 @@ export default function StaffInventory() {
                         <div style={{ fontSize: "12px", color: "#8A7350" }}>
                           Màu: {(p.colors || []).join(", ")}
                         </div>
-                        {variantSummary.total > 0 && (
-                          <div className="inventory-variant-summary">
-                            {variantSummary.total} biến thể
-                            {variantSummary.out > 0 && <span className="is-out"> · {variantSummary.out} SKU hết hàng</span>}
-                            {variantSummary.low > 0 && <span className="is-low"> · {variantSummary.low} SKU tồn thấp</span>}
-                          </div>
-                        )}
+                        <div className="inventory-variant-summary">Mã sản phẩm: {p.productCode || p.product_code || `MR-${String(p.id).padStart(3, "0")}`}</div>
                       </td>
 
                       <td style={{ padding: "12px 18px", textTransform: "capitalize", color: "#6B5A4B" }}>
@@ -400,53 +430,24 @@ export default function StaffInventory() {
                           style={{
                             fontSize: "16px",
                             fontWeight: "700",
-                            color: isOut ? "#D9534F" : isLow ? "#B8860B" : "#2B211C",
+                            color: productStatus.id === "out" ? "#D9534F" : productStatus.id === "low" ? "#B8860B" : productStatus.id === "over" ? "#2C6BA0" : "#2B211C",
                           }}
                         >
                           {stock}
                         </span>{" "}
-                        <span style={{ fontSize: "12px", color: "#8A7350" }}>cái</span>
+                        <span style={{ fontSize: "12px", color: "#8A7350" }}>sản phẩm</span>
                       </td>
 
                       <td style={{ padding: "12px 18px" }}>
-                        {variantSummary.out > 0 ? (
-                          <span style={{ display: "inline-block", padding: "4px 10px", borderRadius: "12px", fontSize: "11.5px", fontWeight: "700", backgroundColor: "#FFF0F0", color: "#A94442", border: "1px solid #EBC4C4" }}>
-                            Hết hàng · {variantSummary.out} SKU
-                          </span>
-                        ) : variantSummary.low > 0 ? (
-                          <span style={{ display: "inline-block", padding: "4px 10px", borderRadius: "12px", fontSize: "11.5px", fontWeight: "700", backgroundColor: "#FFF8E8", color: "#9B691E", border: "1px solid #EBD7AE" }}>
-                            Tồn thấp · {variantSummary.low} SKU
-                          </span>
-                        ) : isOut ? (
-                          <span
-                            style={{
-                              display: "inline-block",
-                              padding: "4px 10px",
-                              borderRadius: "12px",
-                              fontSize: "11.5px",
-                              fontWeight: "700",
-                              backgroundColor: "#FFF0F0",
-                              color: "#D9534F",
-                              border: "1px solid #F5C6CB",
-                            }}
+                        {productStatus.id !== "stable" ? (
+                          <button
+                            type="button"
+                            onClick={() => setStockAlertProduct(p)}
+                            className={`inventory-stock-alert is-${productStatus.id}`}
+                            aria-label={`Xem chi tiết tồn kho cần xử lý của ${p.name}`}
                           >
-                            Hết hàng
-                          </span>
-                        ) : isLow ? (
-                          <span
-                            style={{
-                              display: "inline-block",
-                              padding: "4px 10px",
-                              borderRadius: "12px",
-                              fontSize: "11.5px",
-                              fontWeight: "700",
-                              backgroundColor: "#FFF8DC",
-                              color: "#B8860B",
-                              border: "1px solid #FFE4B5",
-                            }}
-                          >
-                            Tồn thấp
-                          </span>
+                            {productStatus.label}
+                          </button>
                         ) : (
                           <span
                             style={{
@@ -460,7 +461,7 @@ export default function StaffInventory() {
                               border: "1px solid #C3E6CB",
                             }}
                           >
-                            Đủ hàng
+                            Ổn định
                           </span>
                         )}
                       </td>
@@ -509,6 +510,54 @@ export default function StaffInventory() {
         )}
       </div>
 
+      {stockAlertProduct && (
+        <div className="inventory-modal-backdrop" role="presentation" onMouseDown={() => setStockAlertProduct(null)}>
+          <section className="inventory-alert-modal" role="dialog" aria-modal="true" aria-labelledby="stock-alert-title" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="inventory-alert-modal__header">
+              <div>
+                <span>Chi tiết tồn kho cần xử lý</span>
+                <h3 id="stock-alert-title">{stockAlertProduct.name}</h3>
+              </div>
+              <button type="button" onClick={() => setStockAlertProduct(null)} aria-label="Đóng">×</button>
+            </div>
+
+            <div className="inventory-alert-list">
+              {(stockAlertProduct.variants || [])
+                .map((variant) => {
+                  const state = getVariantState(variant);
+                  const min = variant.lowStockThreshold ?? variant.low_stock_threshold ?? 3;
+                  const max = variant.maxStockThreshold ?? variant.max_stock_threshold ?? 20;
+                  return (
+                    <div className="inventory-alert-item" key={variant.id || `${variant.color}-${variant.size}`}>
+                      <div>
+                        <strong>{formatVariantName(variant)}</strong>
+                        {variant.sku && <span>SKU: {variant.sku}</span>}
+                        <span>Tối thiểu: {min} · Tối đa: {max}</span>
+                      </div>
+                      <div className="inventory-alert-item__status">
+                        <b className={`is-${state.id}`}>{state.label}</b>
+                        <span>{variant.stock} sản phẩm</span>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+
+            <div className="inventory-alert-modal__actions">
+              <button type="button" className="btn-secondary" onClick={() => setStockAlertProduct(null)}>Đóng</button>
+              <button type="button" className="btn-primary" onClick={() => {
+                const product = stockAlertProduct;
+                const firstAlertVariant = (product.variants || []).find((variant) => {
+                  return getVariantState(variant).id !== "stable";
+                });
+                setStockAlertProduct(null);
+                handleOpenEdit(product, firstAlertVariant?.id);
+              }}>Điều chỉnh tồn kho</button>
+            </div>
+          </section>
+        </div>
+      )}
+
       {/* Edit Stock Modal */}
       {editProduct && (
         <div
@@ -551,14 +600,14 @@ export default function StaffInventory() {
               <div>
                 <strong style={{ color: "#2B211C", fontSize: "15px" }}>{editProduct.name}</strong>
                 <div style={{ fontSize: "12px", color: "#8A7350" }}>
-                  Mã SP: {editProduct.id} | Giá: {formatPrice(editProduct.price)}
+                  Mã sản phẩm: {editProduct.productCode || editProduct.product_code || `MR-${String(editProduct.id).padStart(3, "0")}`} | Giá: {formatPrice(editProduct.price)}
                 </div>
               </div>
             </div>
 
             <form onSubmit={handleSaveStock}>
               <div className="form-group" style={{ marginTop: "12px" }}>
-                <label style={{ fontSize: "13px", fontWeight: "600" }}>Biến thể màu và kích thước *</label>
+                <label style={{ fontSize: "13px", fontWeight: "600" }}>Màu và kích cỡ *</label>
                 <select
                   value={selectedVariantId}
                   onChange={(event) => handleVariantChange(event.target.value)}
@@ -566,7 +615,7 @@ export default function StaffInventory() {
                 >
                   {(editProduct.variants || []).map((variant) => (
                     <option key={variant.id} value={variant.id}>
-                      {variant.color} · {variant.size} · {variant.sku} · hiện có {variant.stock}
+                      {variant.color} · {variant.size} · SKU {variant.sku} · hiện có {variant.stock}
                     </option>
                   ))}
                 </select>
@@ -593,6 +642,17 @@ export default function StaffInventory() {
                   Hiện tại: <strong>{editProduct.variants?.find((item) => String(item.id) === String(selectedVariantId))?.stock ?? "—"}</strong>
                   <span aria-hidden="true">→</span>
                   Sau điều chỉnh: <strong>{newStockValue === "" ? "—" : newStockValue}</strong>
+                </div>
+              </div>
+
+              <div className="inventory-stock-limits">
+                <div className="form-group">
+                  <label>Mức tối thiểu (Min) *</label>
+                  <input type="number" min="0" value={minStockValue} onChange={(event) => setMinStockValue(event.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label>Mức tối đa (Max) *</label>
+                  <input type="number" min="1" value={maxStockValue} onChange={(event) => setMaxStockValue(event.target.value)} />
                 </div>
               </div>
 
@@ -625,7 +685,7 @@ export default function StaffInventory() {
                 </button>
                 <button
                   type="submit"
-                  disabled={loading || !selectedVariantId || stockNote.trim().length < 5 || newStockValue === ""}
+                  disabled={loading || !selectedVariantId || stockNote.trim().length < 5 || newStockValue === "" || minStockValue === "" || maxStockValue === "" || Number(maxStockValue) <= Number(minStockValue)}
                   className="btn-primary"
                   style={{ padding: "10px 22px", fontSize: "13px" }}
                 >
@@ -669,7 +729,7 @@ export default function StaffInventory() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
               <div>
                 <span style={{ fontSize: "11px", color: "#8A7350", textTransform: "uppercase", fontWeight: "600" }}>
-                  Sổ Kiểm Toán Tồn Kho (Inventory Movements)
+                  Lịch sử điều chỉnh tồn kho
                 </span>
                 <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "24px", color: "#2B211C", margin: "2px 0 0" }}>
                   {selectedProductMovements.name}
@@ -709,6 +769,8 @@ export default function StaffInventory() {
                           ? "Trừ kho do đặt đơn"
                           : m.movement_type === "order_cancellation_restore"
                           ? "Hoàn kho do hủy đơn"
+                          : m.movement_type === "threshold_adjustment"
+                          ? "Điều chỉnh hạn mức"
                           : "Điều chỉnh thủ công"}
                         {m.note && <div style={{ fontSize: "11.5px", color: "#6B5A4B", fontWeight: "400" }}>{m.note}</div>}
                       </td>

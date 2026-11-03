@@ -275,13 +275,10 @@ export default function StaffLayout() {
             borderBottom: "1px solid #D8CEC1",
             padding: "14px 35px",
             display: "flex",
-            justifyContent: "space-between",
+            justifyContent: "flex-end",
             alignItems: "center",
           }}
         >
-          <div style={{ fontSize: "13px", color: "#6B5A4B" }}>
-            Hệ thống quản lý phân quyền • <strong>Cổng Nhân Viên (Staff Workspace)</strong>
-          </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", fontSize: "12.5px" }}>
             <span style={{ color: syncError ? "#C0392B" : "#2E8B57", fontWeight: "600" }}>
               ● {syncError || "Hệ thống trực tuyến"}

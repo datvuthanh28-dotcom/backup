@@ -9,10 +9,12 @@ BEGIN
         price DECIMAL(18, 0) NOT NULL,
         stock_quantity INT NOT NULL DEFAULT 0 CHECK (stock_quantity >= 0),
         low_stock_threshold INT NOT NULL DEFAULT 3,
+        max_stock_threshold INT NOT NULL DEFAULT 20,
         is_active BIT NOT NULL DEFAULT 1,
         created_at DATETIME2 NOT NULL DEFAULT GETDATE(),
         updated_at DATETIME2 NOT NULL DEFAULT GETDATE(),
-        CONSTRAINT UQ_ProductVariants_Selection UNIQUE(product_id, color_name, size_name)
+        CONSTRAINT UQ_ProductVariants_Selection UNIQUE(product_id, color_name, size_name),
+        CONSTRAINT CK_ProductVariants_StockLevels CHECK (low_stock_threshold >= 0 AND max_stock_threshold > low_stock_threshold)
     );
     CREATE INDEX IX_ProductVariants_Product ON ProductVariants(product_id);
 END

@@ -27,6 +27,7 @@ IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Products')
 BEGIN
     CREATE TABLE Products (
         id INT PRIMARY KEY,
+        product_code NVARCHAR(30) NOT NULL UNIQUE,
         name NVARCHAR(150) NOT NULL,
         price DECIMAL(18, 0) NOT NULL,
         category NVARCHAR(50) NOT NULL,

@@ -106,6 +106,7 @@ export async function runSeed() {
       await pool
         .request()
         .input("id", p.id)
+        .input("product_code", `MR-${String(p.id).padStart(3, "0")}`)
         .input("name", p.name)
         .input("price", p.price)
         .input("category", p.category)
@@ -117,8 +118,8 @@ export async function runSeed() {
         .input("stock", stock)
         .input("min_alert", 5)
         .query(`
-          INSERT INTO Products (id, name, price, category, gender, images_json, colors_json, color_images_json, description, stock, min_alert, created_at, updated_at)
-          VALUES (@id, @name, @price, @category, @gender, @images_json, @colors_json, @color_images_json, @description, @stock, @min_alert, GETDATE(), GETDATE())
+          INSERT INTO Products (id, product_code, name, price, category, gender, images_json, colors_json, color_images_json, description, stock, min_alert, created_at, updated_at)
+          VALUES (@id, @product_code, @name, @price, @category, @gender, @images_json, @colors_json, @color_images_json, @description, @stock, @min_alert, GETDATE(), GETDATE())
         `);
       console.log(`[Seed] Seeded product: ${p.name} (ID: ${p.id}, Stock: ${stock})`);
     }

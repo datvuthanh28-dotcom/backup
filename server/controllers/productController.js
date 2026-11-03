@@ -53,15 +53,21 @@ export async function updateStock(req, res) {
 
 export async function updateVariantStock(req, res) {
   try {
-    const { stock, note } = req.body;
+    const { stock, minStock, maxStock, note } = req.body;
     if (!Number.isInteger(Number(stock)) || Number(stock) < 0) {
       return res.status(400).json({ success: false, error: "Số lượng biến thể phải là số nguyên không âm." });
+    }
+    if (!Number.isInteger(Number(minStock)) || Number(minStock) < 0) {
+      return res.status(400).json({ success: false, error: "Mức tồn tối thiểu phải là số nguyên không âm." });
+    }
+    if (!Number.isInteger(Number(maxStock)) || Number(maxStock) <= Number(minStock)) {
+      return res.status(400).json({ success: false, error: "Mức tồn tối đa phải là số nguyên và lớn hơn mức tối thiểu." });
     }
     if (!note || note.trim().length < 5) {
       return res.status(400).json({ success: false, error: "Vui lòng nhập lý do điều chỉnh tối thiểu 5 ký tự." });
     }
     const performedBy = `${req.user.name} (${req.user.role.toUpperCase()})`;
-    const result = await db.updateVariantStock(req.params.id, req.params.variantId, Number(stock), performedBy, note.trim());
+    const result = await db.updateVariantStock(req.params.id, req.params.variantId, Number(stock), Number(minStock), Number(maxStock), performedBy, note.trim());
     return res.json({ success: true, message: "Cập nhật tồn kho biến thể thành công.", ...result });
   } catch (err) {
     console.error("[Update Variant Stock] Error:", err);

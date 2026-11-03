@@ -105,9 +105,9 @@ export function StoreProvider({ children }) {
     }
   };
 
-  const updateVariantStock = async (productId, variantId, newStock, note = "") => {
+  const updateVariantStock = async (productId, variantId, newStock, minStock, maxStock, note = "") => {
     try {
-      const res = await productsAPI.updateVariantStock(productId, variantId, newStock, note);
+      const res = await productsAPI.updateVariantStock(productId, variantId, newStock, minStock, maxStock, note);
       if (res.success) {
         await refreshProducts();
         return { success: true, stock: res.stock, totalStock: res.totalStock };

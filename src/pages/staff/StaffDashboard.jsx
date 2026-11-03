@@ -11,7 +11,16 @@ const variantSummary = (product) => {
   const variants = Array.isArray(product.variants) ? product.variants : [];
   return {
     out: variants.filter((variant) => Number(variant.stock) === 0).length,
-    low: variants.filter((variant) => Number(variant.stock) > 0 && Number(variant.stock) <= 3).length,
+    low: variants.filter((variant) => {
+      const stock = Number(variant.stock);
+      const threshold = Number(variant.lowStockThreshold ?? variant.low_stock_threshold ?? 3);
+      return stock > 0 && stock <= threshold;
+    }).length,
+    over: variants.filter((variant) => {
+      const stock = Number(variant.stock);
+      const threshold = Number(variant.maxStockThreshold ?? variant.max_stock_threshold ?? 20);
+      return stock >= threshold;
+    }).length,
   };
 };
 
@@ -29,40 +38,41 @@ export default function StaffDashboard() {
   const outOfStock = productList.filter((product) => getProductStock(product.id) === 0 || variantSummary(product).out > 0);
   const lowStock = productList.filter((product) => {
     const summary = variantSummary(product);
-    return !outOfStock.includes(product) && ((getProductStock(product.id) > 0 && getProductStock(product.id) <= 5) || summary.low > 0);
+    return !outOfStock.includes(product) && summary.low > 0;
+  });
+  const overStock = productList.filter((product) => {
+    const summary = variantSummary(product);
+    return !outOfStock.includes(product) && !lowStock.includes(product) && summary.over > 0;
   });
   const workQueue = [...pending, ...confirmed, ...processing, ...shipping].sort((a, b) => new Date(a.created_at || a.createdAt) - new Date(b.created_at || b.createdAt));
   const metrics = [
-    ["pending", "Chờ xác nhận", pending.length, "Cần kiểm tra ngay", "#B8860B", "fa-clock"],
-    ["confirmed", "Đã xác nhận", confirmed.length, "Chờ chuyển kho", "#1E6FA8", "fa-check-double"],
-    ["processing", "Đang chuẩn bị", processing.length, "Kiểm định & đóng gói", "#7B4FA3", "fa-box-open"],
-    ["shipping", "Đang vận chuyển", shipping.length, "Theo dõi giao hàng", "#C05A22", "fa-shipping-fast"],
+    ["pending", "Chờ xác nhận", pending.length, "#B8860B", "fa-clock"],
+    ["confirmed", "Đã xác nhận", confirmed.length, "#1E6FA8", "fa-check-double"],
+    ["processing", "Đang chuẩn bị", processing.length, "#7B4FA3", "fa-box-open"],
+    ["shipping", "Đang vận chuyển", shipping.length, "#C05A22", "fa-shipping-fast"],
   ];
 
   return <div>
     <div style={{ marginBottom: 25 }}>
-      <div style={{ fontSize: 11, color: "#8A7350", fontWeight: 700, letterSpacing: 1.4, marginBottom: 5 }}>HÀNG ĐỢI CÔNG VIỆC</div>
-      <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 32, color: "#2B211C", margin: "0 0 6px" }}>Tổng Quan Vận Hành</h1>
-      <p style={{ color: "#6B5A4B", fontSize: 14, margin: 0 }}>Chọn nhóm công việc để mở đúng danh sách cần xử lý. Đơn cũ nhất luôn được ưu tiên trước.</p>
+      <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 32, color: "#2B211C", margin: 0 }}>TỔNG QUAN VẬN HÀNH</h1>
     </div>
 
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 28 }}>
-      {metrics.map(([status, label, count, hint, color, icon]) => <Link key={status} to={`/staff/orders?status=${status}`} style={cardStyle}>
+      {metrics.map(([status, label, count, color, icon]) => <Link key={status} to={`/staff/orders?status=${status}`} style={cardStyle}>
         <div style={{ display: "flex", justifyContent: "space-between", color, marginBottom: 8 }}><span style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase" }}>{label}</span><i className={`fas ${icon}`} /></div>
         <div style={{ fontSize: 32, fontWeight: 700, color: "#2B211C" }}>{count}</div>
-        <div style={{ fontSize: 12, color: "#8A7350", marginTop: 4 }}>{hint} →</div>
       </Link>)}
       <Link to="/staff/inventory?stock=attention" style={{ ...cardStyle, backgroundColor: "#FFF8F0", borderColor: "#F0CFAD" }}>
         <div style={{ display: "flex", justifyContent: "space-between", color: "#C05621", marginBottom: 8 }}><span style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase" }}>Cảnh báo kho</span><i className="fas fa-exclamation-triangle" /></div>
-        <div style={{ fontSize: 32, fontWeight: 700, color: "#C05621" }}>{outOfStock.length + lowStock.length}</div>
-        <div style={{ fontSize: 12, color: "#9C4221", marginTop: 4 }}>{outOfStock.length} có SKU hết hàng · {lowStock.length} có SKU tồn thấp →</div>
+        <div style={{ fontSize: 32, fontWeight: 700, color: "#C05621" }}>{outOfStock.length + lowStock.length + overStock.length}</div>
+        <div style={{ fontSize: 12, color: "#9C4221", marginTop: 4 }}>{outOfStock.length + lowStock.length + overStock.length} sản phẩm cần xử lý kho →</div>
       </Link>
     </div>
 
     <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.5fr) minmax(280px,1fr)", gap: 22 }}>
       <section style={{ background: "#FFF", border: "1px solid #D8CEC1", borderRadius: 8, padding: 22 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #E8E1D6", paddingBottom: 12, marginBottom: 12 }}>
-          <div><h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 23, margin: 0 }}>Ưu Tiên Xử Lý</h2><div style={{ fontSize: 12, color: "#8A7350" }}>Sắp xếp theo thời gian chờ lâu nhất</div></div>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 23, margin: 0 }}>Ưu Tiên Xử Lý</h2>
           <Link to="/staff/orders" style={{ color: "#4E342E", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>Tất cả đơn →</Link>
         </div>
         {workQueue.length === 0 ? <div style={{ padding: 28, textAlign: "center", color: "#2E8B57" }}><i className="fas fa-circle-check" aria-hidden="true" /> Hiện không có đơn cần xử lý.</div> : workQueue.slice(0, 7).map((order) => {
@@ -76,7 +86,7 @@ export default function StaffDashboard() {
 
       <section style={{ background: "#FFF", border: "1px solid #D8CEC1", borderRadius: 8, padding: 22 }}>
         <div style={{ borderBottom: "1px solid #E8E1D6", paddingBottom: 12, marginBottom: 12 }}><h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 23, margin: 0 }}>Kho Cần Chú Ý</h2></div>
-        {[...outOfStock, ...lowStock].slice(0, 7).map((product) => { const stock = getProductStock(product.id); const summary = variantSummary(product); return <div key={product.id} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "10px 0", borderBottom: "1px solid #F0EAE1", fontSize: 12.5 }}><span>{product.name}</span><strong style={{ color: summary.out > 0 || stock === 0 ? "#A94442" : "#9B691E", whiteSpace: "nowrap" }}>{summary.out > 0 ? `${summary.out} SKU hết hàng` : summary.low > 0 ? `${summary.low} SKU tồn thấp` : stock === 0 ? "Hết hàng" : `Còn ${stock}`}</strong></div>; })}
+        {[...outOfStock, ...lowStock, ...overStock].slice(0, 7).map((product) => { const stock = getProductStock(product.id); const summary = variantSummary(product); const label = summary.out > 0 || stock === 0 ? "Hết hàng" : summary.low > 0 ? "Sắp hết" : "Vượt mức tồn"; const color = label === "Hết hàng" ? "#A94442" : label === "Sắp hết" ? "#9B691E" : "#2C6BA0"; return <div key={product.id} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: 12, padding: "10px 0", borderBottom: "1px solid #F0EAE1", fontSize: 12.5 }}><span>{product.name}</span><strong style={{ color, textAlign: "right" }}>{label}</strong></div>; })}
         <Link to="/staff/inventory?stock=attention" style={{ display: "block", marginTop: 16, color: "#4E342E", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>Mở quản lý tồn kho →</Link>
       </section>
     </div>
