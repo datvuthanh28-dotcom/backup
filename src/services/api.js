@@ -73,6 +73,11 @@ export const productsAPI = {
       method: "PATCH",
       body: JSON.stringify({ stock, note }),
     }),
+  updateVariantStock: (id, variantId, stock, note) =>
+    request(`/products/${id}/variants/${encodeURIComponent(variantId)}/stock`, {
+      method: "PATCH",
+      body: JSON.stringify({ stock, note }),
+    }),
   getMovements: (productId) =>
     request(`/products/inventory/movements${productId ? `?productId=${productId}` : ""}`),
 };

@@ -221,6 +221,64 @@ export const db = {
     }
   },
 
+  async updateVariantStock(productId, variantId, newStock, performedBy = "Staff", note = "Manual variant stock update") {
+    const p = await getActivePool();
+    const numProductId = Number(productId);
+    const parsedStock = Math.max(0, parseInt(newStock, 10));
+    const transaction = new sql.Transaction(p);
+    await transaction.begin();
+    try {
+      const variantRes = await transaction
+        .request()
+        .input("product_id", sql.Int, numProductId)
+        .input("variant_id", sql.NVarChar, variantId)
+        .query(`SELECT id, sku, color_name, size_name, stock_quantity
+                FROM ProductVariants WITH (UPDLOCK, ROWLOCK)
+                WHERE id=@variant_id AND product_id=@product_id AND is_active=1`);
+      const variant = variantRes.recordset[0];
+      if (!variant) throw new Error("Không tìm thấy biến thể sản phẩm đang hoạt động.");
+
+      const delta = parsedStock - Number(variant.stock_quantity);
+      await transaction
+        .request()
+        .input("variant_id", sql.NVarChar, variantId)
+        .input("stock", sql.Int, parsedStock)
+        .query("UPDATE ProductVariants SET stock_quantity=@stock, updated_at=GETDATE() WHERE id=@variant_id");
+
+      const totalRes = await transaction
+        .request()
+        .input("product_id", sql.Int, numProductId)
+        .query("SELECT COALESCE(SUM(stock_quantity), 0) AS total_stock FROM ProductVariants WHERE product_id=@product_id AND is_active=1");
+      const totalStock = Number(totalRes.recordset[0].total_stock);
+
+      await transaction
+        .request()
+        .input("product_id", sql.Int, numProductId)
+        .input("stock", sql.Int, totalStock)
+        .query("UPDATE Products SET stock=@stock, updated_at=GETDATE() WHERE id=@product_id");
+
+      await transaction
+        .request()
+        .input("product_id", sql.Int, numProductId)
+        .input("variant_id", sql.NVarChar, variantId)
+        .input("movement_type", sql.NVarChar, "manual_adjustment")
+        .input("quantity_change", sql.Int, delta)
+        .input("resulting_stock", sql.Int, totalStock)
+        .input("reference_id", sql.NVarChar, variant.sku)
+        .input("note", sql.NVarChar, `${note} | SKU ${variant.sku} | ${variant.color_name} / ${variant.size_name}`)
+        .input("performed_by", sql.NVarChar, performedBy)
+        .query(`INSERT INTO InventoryMovements
+                (product_id, variant_id, movement_type, quantity_change, resulting_stock, reference_id, note, performed_by, created_at)
+                VALUES (@product_id, @variant_id, @movement_type, @quantity_change, @resulting_stock, @reference_id, @note, @performed_by, GETDATE())`);
+
+      await transaction.commit();
+      return { success: true, stock: parsedStock, totalStock, variantId, sku: variant.sku };
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
+    }
+  },
+
   // ==========================================
   // ORDERS TABLE & ACID TRANSACTIONS
   // ==========================================

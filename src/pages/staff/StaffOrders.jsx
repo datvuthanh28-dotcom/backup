@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useStore, STATUS_LABELS, VALID_STATUS_TRANSITIONS } from "../../context/StoreContext";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
 
@@ -29,9 +30,10 @@ function formatDate(isoStr) {
 
 export default function StaffOrders() {
   useDocumentTitle("Staff Portal — Xử Lý Đơn Hàng");
-  const { orders, updateOrderStatus, confirmOrderPayment, processOrderRefund } = useStore();
+  const { orders, updateOrderStatus, confirmOrderPayment } = useStore();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [statusModalOrder, setStatusModalOrder] = useState(null);
@@ -42,7 +44,6 @@ export default function StaffOrders() {
 
   // Payment confirmation & refund modal states
   const [paymentModalOrder, setPaymentModalOrder] = useState(null);
-  const [paymentModalType, setPaymentModalType] = useState("confirm"); // "confirm" | "refund"
   const [paymentReference, setPaymentReference] = useState("");
   const [paymentModalNote, setPaymentModalNote] = useState("");
   const [loadingPayment, setLoadingPayment] = useState(false);
@@ -50,6 +51,43 @@ export default function StaffOrders() {
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(""), 4500);
+  };
+
+  useEffect(() => {
+    const status = searchParams.get("status") || "all";
+    const orderId = searchParams.get("order");
+    setStatusFilter(status);
+    if (orderId && orders.length) {
+      const order = orders.find((entry) => String(entry.id) === orderId);
+      if (order) setSelectedOrder(order);
+    }
+  }, [orders, searchParams]);
+
+  const selectStatusFilter = (status) => {
+    setStatusFilter(status);
+    const next = new URLSearchParams(searchParams);
+    if (status === "all") next.delete("status"); else next.set("status", status);
+    next.delete("order");
+    setSearchParams(next, { replace: true });
+  };
+
+  const canConfirmPaymentFor = (order) => {
+    const status = order.order_status || order.status;
+    const paymentStatus = order.payment?.payment_status || "unpaid";
+    const method = order.payment?.payment_method || order.paymentMethod || "cod";
+    if (!["unpaid", "pending_verification"].includes(paymentStatus) || status === "cancelled") return false;
+    return method === "cod" ? status === "delivered" : true;
+  };
+
+  const getNextAction = (order) => {
+    const status = order.order_status || order.status;
+    const paymentMethod = order.payment?.payment_method || order.paymentMethod || "cod";
+    if (canConfirmPaymentFor(order) && (paymentMethod === "bank_transfer" || status === "delivered")) {
+      return { type: "payment", label: paymentMethod === "cod" ? "Xác nhận đã thu COD" : "Xác minh chuyển khoản" };
+    }
+    const nextStatus = (VALID_STATUS_TRANSITIONS[status] || [])[0];
+    if (nextStatus) return { type: "status", label: `Chuyển sang: ${STATUS_LABELS[nextStatus]?.label || nextStatus}` };
+    return null;
   };
 
   // Filter orders
@@ -79,6 +117,10 @@ export default function StaffOrders() {
 
   const handleSaveStatus = async () => {
     if (!statusModalOrder || !newStatus) return;
+    if (newStatus === "cancelled" && statusNote.trim().length < 5) {
+      alert("Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự). Nội dung này sẽ được lưu vào lịch sử đơn hàng.");
+      return;
+    }
 
     setLoadingAction(true);
     const res = await updateOrderStatus(
@@ -105,52 +147,25 @@ export default function StaffOrders() {
 
   const handleOpenPaymentConfirm = (order) => {
     setPaymentModalOrder(order);
-    setPaymentModalType("confirm");
     setPaymentReference(order.payment?.payment_method === "cod" ? "TIEN-MAT-COD" : "");
     setPaymentModalNote(order.payment?.payment_method === "cod" ? "Đã thu đủ tiền mặt khi giao hàng" : "Đã đối soát số dư ngân hàng");
-  };
-
-  const handleOpenRefund = (order) => {
-    setPaymentModalOrder(order);
-    setPaymentModalType("refund");
-    setPaymentReference(`REF-${Date.now().toString().slice(-6)}`);
-    setPaymentModalNote("Hoàn tiền tài khoản do đơn hàng bị hủy");
   };
 
   const handleSavePaymentAction = async () => {
     if (!paymentModalOrder) return;
     setLoadingPayment(true);
 
-    if (paymentModalType === "confirm") {
-      const res = await confirmOrderPayment(paymentModalOrder.id, {
-        transactionReference: paymentReference.trim(),
-        note: paymentModalNote.trim(),
-      });
-      setLoadingPayment(false);
-      if (res.success) {
-        showToast(`Đã xác nhận thanh toán thành công cho đơn #${paymentModalOrder.id}.`);
-        setPaymentModalOrder(null);
-        if (selectedOrder?.id === paymentModalOrder.id) {
-          setSelectedOrder(res.order);
-        }
-      } else {
-        alert(res.error || "Không thể xác nhận thanh toán.");
-      }
+    const res = await confirmOrderPayment(paymentModalOrder.id, {
+      transactionReference: paymentReference.trim(),
+      note: paymentModalNote.trim(),
+    });
+    setLoadingPayment(false);
+    if (res.success) {
+      showToast(`Đã xác nhận thanh toán thành công cho đơn #${paymentModalOrder.id}.`);
+      setPaymentModalOrder(null);
+      if (selectedOrder?.id === paymentModalOrder.id) setSelectedOrder(res.order);
     } else {
-      const res = await processOrderRefund(paymentModalOrder.id, {
-        refundReference: paymentReference.trim(),
-        note: paymentModalNote.trim(),
-      });
-      setLoadingPayment(false);
-      if (res.success) {
-        showToast(`Đã hoàn tất thủ tục hoàn tiền cho đơn #${paymentModalOrder.id}.`);
-        setPaymentModalOrder(null);
-        if (selectedOrder?.id === paymentModalOrder.id) {
-          setSelectedOrder(res.order);
-        }
-      } else {
-        alert(res.error || "Không thể xử lý hoàn tiền.");
-      }
+      alert(res.error || "Không thể xác nhận thanh toán.");
     }
   };
 
@@ -194,6 +209,17 @@ export default function StaffOrders() {
           }}
         >
           <strong>Vòng đời chuẩn:</strong> Chờ xác nhận → Đã xác nhận → Đang chuẩn bị → Đang giao → Đã giao
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
+        <div style={{ background: "#FFF", border: "1px solid #D8CEC1", borderRadius: 7, padding: "13px 16px" }}>
+          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, color: "#4E342E", marginBottom: 5 }}>VẬN HÀNH ĐƠN HÀNG</div>
+          <div style={{ fontSize: 12.5, color: "#6B5A4B" }}>Xác nhận → chuẩn bị → giao hàng → hoàn tất. Hệ thống tự động lưu người thực hiện và thời gian của từng bước.</div>
+        </div>
+        <div style={{ background: "#F7FBF8", border: "1px solid #CFE3D5", borderRadius: 7, padding: "13px 16px" }}>
+          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, color: "#2E6B45", marginBottom: 5 }}>THANH TOÁN ĐỘC LẬP</div>
+          <div style={{ fontSize: 12.5, color: "#55705F" }}>Chuyển khoản cần mã đối soát; COD chỉ xác nhận sau khi đã giao. Hoàn tiền do Admin phê duyệt.</div>
         </div>
       </div>
 
@@ -250,7 +276,7 @@ export default function StaffOrders() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setStatusFilter(tab.id)}
+                onClick={() => selectStatusFilter(tab.id)}
                 style={{
                   padding: "8px 14px",
                   borderRadius: "20px",
@@ -325,8 +351,6 @@ export default function StaffOrders() {
                     color: "#333",
                     bg: "#eee",
                   };
-                  const allowedTransitions = VALID_STATUS_TRANSITIONS[currentStatus] || [];
-                  const canTransition = allowedTransitions.length > 0;
                   const items = order.items || [];
                   const custName = order.customer_name || order.customerName;
                   const custPhone = order.customer_phone || order.customerPhone;
@@ -341,8 +365,8 @@ export default function StaffOrders() {
                     color: "#666",
                     bg: "#f0f0f0",
                   };
-                  const canConfirmPayment = (pmtStatus === "unpaid" || pmtStatus === "pending_verification") && currentStatus !== "cancelled";
                   const canRefund = pmtStatus === "refund_pending" || (currentStatus === "cancelled" && pmtStatus === "paid");
+                  const nextAction = getNextAction(order);
 
                   return (
                     <tr
@@ -430,47 +454,11 @@ export default function StaffOrders() {
                             Chi tiết
                           </button>
 
-                          {canConfirmPayment && (
-                            <button
-                              onClick={() => handleOpenPaymentConfirm(order)}
-                              style={{
-                                padding: "5px 10px",
-                                backgroundColor: "#EAF7EE",
-                                border: "1px solid #2E8B57",
-                                borderRadius: "4px",
-                                fontSize: "11.5px",
-                                fontWeight: "700",
-                                cursor: "pointer",
-                                color: "#2E8B57",
-                              }}
-                              title="Xác nhận thu tiền"
-                            >
-                              Thu tiền ✓
-                            </button>
-                          )}
+                          {canRefund && <span style={{ padding: "5px 9px", borderRadius: 4, background: "#FDF2E9", color: "#B85C18", fontSize: 11.5, fontWeight: 700 }} title="Admin phải phê duyệt và thực hiện hoàn tiền">Chờ Admin hoàn tiền</span>}
 
-                          {canRefund && (
+                          {nextAction ? (
                             <button
-                              onClick={() => handleOpenRefund(order)}
-                              style={{
-                                padding: "5px 10px",
-                                backgroundColor: "#FDF2E9",
-                                border: "1px solid #E67E22",
-                                borderRadius: "4px",
-                                fontSize: "11.5px",
-                                fontWeight: "700",
-                                cursor: "pointer",
-                                color: "#E67E22",
-                              }}
-                              title="Xử lý hoàn tiền cho khách"
-                            >
-                              Hoàn tiền ↩
-                            </button>
-                          )}
-
-                          {canTransition ? (
-                            <button
-                              onClick={() => handleOpenStatusModal(order)}
+                              onClick={() => nextAction.type === "payment" ? handleOpenPaymentConfirm(order) : handleOpenStatusModal(order)}
                               style={{
                                 padding: "5px 10px",
                                 backgroundColor: "#2B211C",
@@ -482,7 +470,7 @@ export default function StaffOrders() {
                                 cursor: "pointer",
                               }}
                             >
-                              Đổi bước →
+                              {nextAction.label} →
                             </button>
                           ) : (
                             <span style={{ fontSize: "11px", color: "#A09384", padding: "5px 4px" }}>
@@ -558,12 +546,14 @@ export default function StaffOrders() {
             </div>
 
             <div className="form-group" style={{ marginTop: "15px" }}>
-              <label style={{ fontSize: "13px", fontWeight: "600" }}>Ghi chú xử lý (Lưu vào lịch sử đơn)</label>
+              <label style={{ fontSize: "13px", fontWeight: "600" }}>
+                {newStatus === "cancelled" ? "Lý do hủy đơn *" : "Ghi chú bổ sung (không bắt buộc)"}
+              </label>
               <input
                 type="text"
                 value={statusNote}
                 onChange={(e) => setStatusNote(e.target.value)}
-                placeholder="Ví dụ: Đã kiểm định hộp quà; Giao bưu tá..."
+                placeholder={newStatus === "cancelled" ? "Ví dụ: Khách yêu cầu hủy; không thể liên hệ người nhận..." : "Chỉ nhập khi có thông tin cần lưu ý"}
                 style={{
                   width: "100%",
                   padding: "10px",
@@ -585,7 +575,7 @@ export default function StaffOrders() {
                   marginTop: "15px",
                 }}
               >
-                ⚠️ <strong>Chính sách hoàn kho:</strong> Toàn bộ sản phẩm trong đơn sẽ tự động được hoàn trả và cộng lại vào tồn kho khả dụng.
+                <strong>Lưu ý:</strong> Toàn bộ sản phẩm trong đơn sẽ tự động được hoàn trả và cộng lại vào tồn kho khả dụng.
               </div>
             )}
 
@@ -600,7 +590,7 @@ export default function StaffOrders() {
               </button>
               <button
                 onClick={handleSaveStatus}
-                disabled={loadingAction}
+                disabled={loadingAction || (newStatus === "cancelled" && statusNote.trim().length < 5)}
                 className="btn-primary"
                 style={{ padding: "10px 24px", fontSize: "13px" }}
               >
@@ -639,7 +629,7 @@ export default function StaffOrders() {
             }}
           >
             <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "24px", color: "#2B211C", marginTop: 0 }}>
-              {paymentModalType === "confirm" ? "Xác Nhận Thu Tiền Đơn Hàng" : "Xử Lý Hoàn Tiền Đơn Hàng"} #{paymentModalOrder.id}
+              Xác Nhận Thanh Toán Đơn Hàng #{paymentModalOrder.id}
             </h3>
 
             <div style={{ backgroundColor: "#FAF6F0", padding: "14px 16px", borderRadius: "6px", marginBottom: "20px", fontSize: "13px" }}>
@@ -651,13 +641,13 @@ export default function StaffOrders() {
 
             <div className="form-group">
               <label style={{ fontSize: "13px", fontWeight: "600" }}>
-                {paymentModalType === "confirm" ? "Mã giao dịch / Mã tham chiếu ngân hàng" : "Mã giao dịch hoàn tiền / Số UNC hoàn tiền *"}
+                Mã giao dịch / Mã tham chiếu ngân hàng
               </label>
               <input
                 type="text"
                 value={paymentReference}
                 onChange={(e) => setPaymentReference(e.target.value)}
-                placeholder={paymentModalType === "confirm" ? "VD: TIEN-MAT-COD hoặc FT2603..." : "VD: REF-2026-001 hoặc UNC-9912..."}
+                placeholder="VD: TIEN-MAT-COD hoặc FT2603..."
                 style={{
                   width: "100%",
                   padding: "10px",
@@ -671,13 +661,13 @@ export default function StaffOrders() {
 
             <div className="form-group" style={{ marginTop: "15px" }}>
               <label style={{ fontSize: "13px", fontWeight: "600" }}>
-                {paymentModalType === "confirm" ? "Ghi chú thu tiền (Audit note)" : "Lý do / Ghi chú hoàn tiền *"}
+                Ghi chú xác minh thanh toán
               </label>
               <input
                 type="text"
                 value={paymentModalNote}
                 onChange={(e) => setPaymentModalNote(e.target.value)}
-                placeholder={paymentModalType === "confirm" ? "VD: Bưu tá đã nộp đủ tiền mặt" : "VD: Hoàn tiền tài khoản do khách hủy đơn"}
+                placeholder="VD: Bưu tá đã nộp đủ tiền mặt hoặc đã đối soát ngân hàng"
                 style={{
                   width: "100%",
                   padding: "10px",
@@ -705,14 +695,14 @@ export default function StaffOrders() {
                   padding: "10px 24px",
                   fontSize: "13px",
                   fontWeight: "600",
-                  backgroundColor: paymentModalType === "confirm" ? "#2E8B57" : "#E67E22",
+                  backgroundColor: "#2E8B57",
                   color: "#FFF",
                   border: "none",
                   borderRadius: "4px",
                   cursor: loadingPayment ? "not-allowed" : "pointer",
                 }}
               >
-                {loadingPayment ? "Đang xử lý..." : paymentModalType === "confirm" ? "Xác Nhận Đã Thu Tiền" : "Xác Nhận Hoàn Tiền"}
+                {loadingPayment ? "Đang xử lý..." : "Xác Nhận Đã Thu Tiền"}
               </button>
             </div>
           </div>
@@ -814,7 +804,7 @@ export default function StaffOrders() {
                 )}
               </div>
               <div style={{ marginTop: "12px", display: "flex", gap: "8px" }}>
-                {((selectedOrder.payment?.payment_status === "unpaid" || selectedOrder.payment?.payment_status === "pending_verification") && selectedOrder.order_status !== "cancelled") && (
+                {canConfirmPaymentFor(selectedOrder) && (
                   <button
                     onClick={() => {
                       const ord = selectedOrder;
@@ -835,27 +825,7 @@ export default function StaffOrders() {
                     Xác Nhận Thu Tiền Đơn Này
                   </button>
                 )}
-                {(selectedOrder.payment?.payment_status === "refund_pending" || (selectedOrder.order_status === "cancelled" && selectedOrder.payment?.payment_status === "paid")) && (
-                  <button
-                    onClick={() => {
-                      const ord = selectedOrder;
-                      setSelectedOrder(null);
-                      handleOpenRefund(ord);
-                    }}
-                    style={{
-                      padding: "6px 14px",
-                      backgroundColor: "#E67E22",
-                      color: "#FFF",
-                      border: "none",
-                      borderRadius: "4px",
-                      fontSize: "12px",
-                      fontWeight: "600",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Xử Lý Hoàn Tiền Cho Khách
-                  </button>
-                )}
+                {(selectedOrder.payment?.payment_status === "refund_pending" || (selectedOrder.order_status === "cancelled" && selectedOrder.payment?.payment_status === "paid")) && <div style={{ padding: "8px 12px", borderRadius: 5, background: "#FDF2E9", border: "1px solid #E9B98D", color: "#9A4B14", fontSize: 12 }}><strong>Đã chuyển Admin:</strong> Staff chỉ theo dõi; Admin phê duyệt và thực hiện hoàn tiền.</div>}
               </div>
             </div>
 

@@ -44,7 +44,9 @@ router.post("/", optionalAuth, createOrder);
 router.patch("/:id/status", authenticateToken, requireRole("staff", "admin"), updateOrderStatus);
 router.post("/:id/cancel", authenticateToken, cancelOrder);
 router.post("/:id/payment/confirm", authenticateToken, requireRole("staff", "admin"), confirmOrderPayment);
-router.post("/:id/payment/refund", authenticateToken, requireRole("staff", "admin"), processOrderRefund);
+// Refund execution affects cash flow and is intentionally reserved for Admin.
+// Staff can identify refund-pending orders, but cannot approve/execute the refund.
+router.post("/:id/payment/refund", authenticateToken, requireRole("admin"), processOrderRefund);
 
 export default router;
 

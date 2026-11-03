@@ -104,12 +104,23 @@ export async function updateOrderStatus(req, res) {
     if (!status) {
       return res.status(400).json({ success: false, error: "Trạng thái mới là bắt buộc." });
     }
+    const normalizedNote = String(note || "").trim();
+    if (status === "cancelled" && normalizedNote.length < 5) {
+      return res.status(400).json({ success: false, error: "Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự)." });
+    }
+
+    const automaticNotes = {
+      confirmed: "Staff đã xác nhận đơn hàng.",
+      processing: "Đơn hàng đã được chuyển sang khâu chuẩn bị.",
+      shipping: "Đơn hàng đã được bàn giao để vận chuyển.",
+      delivered: "Đơn hàng đã được xác nhận giao thành công.",
+    };
 
     const updatedBy = `${req.user.name} (${req.user.role.toUpperCase()})`;
     const updatedOrder = await db.updateOrderStatusWithValidation({
       orderId,
       newStatus: status,
-      note,
+      note: normalizedNote || automaticNotes[status] || "Staff cập nhật trạng thái đơn hàng.",
       updatedBy,
     });
 
@@ -166,6 +177,26 @@ export async function confirmOrderPayment(req, res) {
   try {
     const orderId = req.params.id;
     const { transactionReference, note } = req.body;
+
+    const order = await db.getOrderById(orderId);
+    if (!order) {
+      return res.status(404).json({ success: false, error: "Không tìm thấy đơn hàng." });
+    }
+
+    const paymentMethod = order.payment?.payment_method || "cod";
+    if (paymentMethod === "cod" && order.order_status !== "delivered") {
+      return res.status(400).json({
+        success: false,
+        error: "Thanh toán COD chỉ được xác nhận sau khi đơn hàng đã giao thành công.",
+      });
+    }
+
+    if (paymentMethod === "bank_transfer" && !transactionReference?.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: "Đơn chuyển khoản phải có mã giao dịch hoặc mã tham chiếu ngân hàng.",
+      });
+    }
 
     const confirmedBy = `${req.user.name} (${req.user.role.toUpperCase()})`;
     const updatedOrder = await db.confirmPayment({

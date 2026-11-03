@@ -46,15 +46,18 @@ export function StoreProvider({ children }) {
   const refreshOrders = useCallback(async () => {
     if (!isAuthenticated) {
       setOrders([]);
-      return;
+      return { success: false, orders: [], error: "Chưa đăng nhập." };
     }
     try {
       const res = await ordersAPI.getAll();
       if (res.success && Array.isArray(res.orders)) {
         setOrders(res.orders);
+        return { success: true, orders: res.orders };
       }
+      return { success: false, orders: [], error: res.error || "Không thể tải danh sách đơn hàng." };
     } catch (err) {
       console.warn("[Store] Orders API fetch fallback:", err.message);
+      return { success: false, orders: [], error: err.message };
     }
   }, [isAuthenticated]);
 
@@ -95,6 +98,19 @@ export function StoreProvider({ children }) {
       if (res.success) {
         await refreshProducts();
         return { success: true, stock: res.stock };
+      }
+      return { success: false, error: res.error };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updateVariantStock = async (productId, variantId, newStock, note = "") => {
+    try {
+      const res = await productsAPI.updateVariantStock(productId, variantId, newStock, note);
+      if (res.success) {
+        await refreshProducts();
+        return { success: true, stock: res.stock, totalStock: res.totalStock };
       }
       return { success: false, error: res.error };
     } catch (err) {
@@ -266,6 +282,7 @@ export function StoreProvider({ children }) {
     revenueReport,
     getProductStock,
     updateProductStock,
+    updateVariantStock,
     adjustStock,
     createOrder,
     updateOrderStatus,
