@@ -19,15 +19,17 @@ try {
         .input("images_json", JSON.stringify(product.images))
         .input("colors_json", JSON.stringify(product.colors))
         .input("color_images_json", JSON.stringify(product.colorImages))
-        .input("description", product.description);
+        .input("description", product.description)
+        .input("collection_name", product.collection)
+        .input("material", product.material);
       await req.query(`
         IF EXISTS (SELECT 1 FROM Products WHERE id=@id)
           UPDATE Products SET product_code=@product_code, name=@name, price=@price, category=@category, gender=@gender,
             images_json=@images_json, colors_json=@colors_json, color_images_json=@color_images_json,
-            description=@description, is_active=1, updated_at=GETDATE() WHERE id=@id;
+            description=@description, collection_name=@collection_name, material=@material, is_active=1, updated_at=GETDATE() WHERE id=@id;
         ELSE
-          INSERT INTO Products (id, product_code, name, price, category, gender, images_json, colors_json, color_images_json, description, stock, min_alert, is_active, created_at, updated_at)
-          VALUES (@id, @product_code, @name, @price, @category, @gender, @images_json, @colors_json, @color_images_json, @description, 0, 5, 1, GETDATE(), GETDATE());
+          INSERT INTO Products (id, product_code, name, price, category, gender, images_json, colors_json, color_images_json, description, collection_name, material, stock, min_alert, is_active, created_at, updated_at)
+          VALUES (@id, @product_code, @name, @price, @category, @gender, @images_json, @colors_json, @color_images_json, @description, @collection_name, @material, 0, 5, 1, GETDATE(), GETDATE());
       `);
       for (const variant of product.variants) {
         await tx.request()

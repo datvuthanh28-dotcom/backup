@@ -1,6 +1,24 @@
 import assortment from "./new-assortment.json" with { type: "json" };
 
 const fallbackImage = "image/hero-image/hero-image.png";
+const cashmereFallbackImage = "image/our story/cashmere.png";
+
+// This is an intentionally explicit assortment: the Heritage Cashmere page
+// must only show the products approved for this collection.
+const heritageCashmereProductIds = new Set([
+  107, 108, 109, 110, 121, 122, 141,
+  148, 150, 151, 152, 166, 167, 168, 186,
+  192, 199, 206, 207
+]);
+
+const materialByProductId = {
+  107: "Baby Cashmere", 108: "Cashmere", 109: "Cashmere", 110: "Wool + Cashmere",
+  121: "Baby Cashmere", 122: "Wool + Cashmere", 141: "Cashmere",
+  148: "Cashmere", 150: "Baby Cashmere", 151: "Cashmere", 152: "Wool + Cashmere",
+  166: "Cashmere", 167: "Baby Cashmere", 168: "Wool + Cashmere", 186: "Cashmere",
+  192: "Cashmere + Cotton", 199: "Cashmere + Cotton", 206: "Cashmere + Wool",
+  207: "Cashmere-touch finish; cashmere fibre composition to be confirmed."
+};
 
 // Product photography already present in public/image. The new assortment file
 // intentionally contains commercial data only, so media is joined here by the
@@ -67,7 +85,9 @@ const resolveProductMedia = (item) => {
   const configured = productMediaById[item.id] || {};
   const configuredColorImages = configured.colorImages || {};
   const configuredImages = configured.images || Object.values(configuredColorImages).flat();
-  const images = configuredImages.length > 0 ? [...new Set(configuredImages)] : [fallbackImage];
+  const images = configuredImages.length > 0
+    ? [...new Set(configuredImages)]
+    : [heritageCashmereProductIds.has(item.id) ? cashmereFallbackImage : fallbackImage];
   const primaryImage = images[0];
   const colorImages = Object.fromEntries(
     item.colors.map((color) => [
@@ -102,7 +122,14 @@ export const allProducts = assortment.map((item) => {
     lowStockThreshold: 3,
     maxStockThreshold: 20
   })));
-  const collection = /cashmere|wool|merino|knit/i.test(item.name) ? "Heritage Cashmere" : /suede|leather|shoe|loafer|sunglasses|bag|belt/i.test(item.name) ? "Suede Essentials" : "Riviera Linen";
+  const collection = heritageCashmereProductIds.has(item.id)
+    ? "Heritage Cashmere"
+    : /suede|leather|shoe|loafer|sunglasses|bag|belt/i.test(item.name)
+      ? "Suede Essentials"
+      : /linen/i.test(item.name)
+        ? "Riviera Linen"
+        : "Maison Rue Essentials";
+  const material = materialByProductId[item.id] || "Premium natural materials; confirm composition before sale.";
   const sizeGuide = item.productType === "Accessories"
     ? []
     : item.productType === "Footwear"
@@ -114,17 +141,17 @@ export const allProducts = assortment.map((item) => {
     category: item.productType === "Clothing" ? "clothing" : item.productType.toLowerCase(),
     collection,
     fit: "Classic fit",
-    material: "Premium natural materials; confirm composition before sale.",
+    material,
     care: "Follow the care label for this product.",
     modelInfo: item.audience === "men" ? "Model information to be confirmed." : "Fit information to be confirmed.",
-    description: `${item.name}, designed for the Maison Rue quiet luxury collection. Product details to be confirmed.`,
+    description: `${item.name}, crafted in ${material.toLowerCase()} for the Maison Rue Heritage Cashmere collection.`,
     images: media.images,
     colorImages: media.colorImages,
     colorOptions: item.colors.map((name) => ({ name, hex: colorHex[name] || "#B8A894" })),
     variants,
     stock: 0,
     slug: `${item.audience}-${slug(item.name).toLowerCase()}-${item.id}`,
-    features: ["Quiet luxury design", "Product specifications to be confirmed"],
+    features: [material, "Quiet luxury design"],
     delivery: "Complimentary delivery throughout Vietnam. Exchange eligible items within 14 days.",
     sizeGuide
   };

@@ -217,6 +217,11 @@ header nav a {
     padding-left: 25px;
     background-color: #E8E1D6;
 }
+.dropdown-categories{width:220px!important;min-width:220px!important;padding:8px 0!important}
+.category-dropdown{position:relative}
+.category-dropdown>a{display:flex!important;justify-content:space-between;align-items:center}.category-dropdown>a span{font-size:19px;line-height:12px}
+.category-submenu{position:absolute;left:100%;top:-8px;display:none;width:225px;min-width:225px;padding:8px 0;background:#F8F5F0;border:1px solid rgba(43,33,28,.12);box-shadow:0 12px 30px rgba(43,33,28,.12)}
+.category-dropdown:hover>.category-submenu,.category-dropdown:focus-within>.category-submenu{display:flex;flex-direction:column}
 
 
 /* =========================
@@ -1318,6 +1323,12 @@ header nav a {
 .filter-chips button.active { background: #3A2A22; color: #F8F5F0; border-color: #3A2A22; }
 .catalog-toolbar label { white-space: nowrap; color: #8A7350; font-size: 12px; }
 .catalog-toolbar select { margin-left: 12px; border: 0; background: transparent; color: #2B211C; font-weight: 600; }
+.cashmere-toolbar { justify-content: center; position: relative; min-height: 66px; }
+.cashmere-toolbar > label { position: absolute; right: 50px; }
+.cashmere-audience-tabs { display: grid; grid-template-columns: repeat(3, 1fr); width: min(390px, 100%); padding: 4px; border-radius: 4px; background: #eeeae4; }
+.cashmere-audience-tabs button { border: 0; border-radius: 3px; padding: 11px 18px; background: transparent; color: #28231f; cursor: pointer; font: 400 21px/1 'Cormorant Garamond', Georgia, serif; transition: background .2s ease, box-shadow .2s ease; }
+.cashmere-audience-tabs button.active { background: #fbfaf8; box-shadow: 0 1px 2px rgba(43,33,28,.04); }
+@media(max-width:700px){.cashmere-toolbar{padding:12px 20px 54px!important;align-items:center}.cashmere-toolbar>label{right:auto;bottom:15px;left:20px}.cashmere-audience-tabs button{padding:10px 8px;font-size:18px}}
 
 .product-price {
     font-size: 16px;

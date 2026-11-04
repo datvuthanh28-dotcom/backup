@@ -59,14 +59,14 @@ export default function Home() {
           <span className="home-eyebrow">OUR STORY</span>
           <h2>Made with care.<br />Worn with feeling.</h2>
           <p>Maison Rue was born from a simple idea: that what we wear should feel as good as it looks. We bring together natural fibres, thoughtful details and enduring silhouettes to create a quieter kind of luxury.</p>
-          <Link className="home-link" to="/women">THE MAISON RUE STORY <span>→</span></Link>
+          <Link className="home-link" to="/our-story">THE MAISON RUE STORY <span>→</span></Link>
         </div>
         <div className="home-craft-image"><img src="/image/our story/craft.jpg" alt="Đôi tay nghệ nhân chăm chút từng chi tiết" /></div>
       </section>
 
       <section className="home-material">
         <img src="/image/our story/cashmere.png" alt="Chất liệu cashmere tự nhiên" />
-        <div><span className="home-eyebrow">THE FEEL OF NATURE</span><h2>Fibre, feeling,<br />and the passage of time.</h2><p>Natural materials have a character all their own. We honour it in every thread, every texture, every piece made to last beyond a season.</p><Link className="home-link home-link-light" to="/women">DISCOVER OUR MATERIALS <span>→</span></Link></div>
+        <div><span className="home-eyebrow">THE FEEL OF NATURE</span><h2>Fibre, feeling,<br />and the passage of time.</h2><p>Natural materials have a character all their own. We honour it in every thread, every texture, every piece made to last beyond a season.</p><Link className="home-link home-link-light" to="/collections/heritage-cashmere">DISCOVER OUR CASHMERE SELECTION <span>→</span></Link></div>
       </section>
     </main>
   );
