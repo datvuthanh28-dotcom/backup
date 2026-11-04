@@ -81,6 +81,13 @@ export default function StaffLayout() {
           borderRight: "1px solid #4E342E",
           boxShadow: "4px 0 15px rgba(0,0,0,0.08)",
           zIndex: 20,
+          position: "sticky",
+          top: 0,
+          height: "100dvh",
+          maxHeight: "100dvh",
+          alignSelf: "flex-start",
+          overflow: "hidden",
+          boxSizing: "border-box",
         }}
       >
         {/* Brand Header */}
@@ -137,7 +144,7 @@ export default function StaffLayout() {
         </div>
 
         {/* Sidebar Navigation */}
-        <nav className="staff-sidebar-nav" style={{ padding: "20px 14px", flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
+        <nav className="staff-sidebar-nav" style={{ padding: "20px 14px", flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: "6px" }}>
           <NavLink
             to="/staff"
             end
@@ -202,7 +209,7 @@ export default function StaffLayout() {
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="staff-sidebar-footer" style={{ padding: "18px", borderTop: "1px solid rgba(232, 225, 214, 0.1)" }}>
+        <div className="staff-sidebar-footer" style={{ padding: "18px", flexShrink: 0, borderTop: "1px solid rgba(232, 225, 214, 0.1)" }}>
           <button
             onClick={handleLogout}
             style={{

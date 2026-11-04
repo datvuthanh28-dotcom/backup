@@ -92,6 +92,18 @@ export async function authenticateToken(req, res, next) {
   }
 }
 
+export async function optionalAuthenticateToken(req, res, next) {
+  let token = req.cookies?.maison_rue_token;
+  if (!token && req.headers.authorization?.startsWith("Bearer ")) token = req.headers.authorization.split(" ")[1];
+  if (!token) return next();
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await db.findUserById(decoded.id);
+    if (user?.is_active !== false) req.user = { id: user.id, name: user.name, email: user.email, role: user.role, phone: user.phone };
+  } catch { /* A preview remains available as guest when an optional session is invalid. */ }
+  next();
+}
+
 // Server-side role authorization middleware
 export function requireRole(...allowedRoles) {
   return (req, res, next) => {

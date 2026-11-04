@@ -13,6 +13,8 @@
     "db:seed": "node server/db/seed.js",
     "db:replace-catalog": "node server/db/replace-catalog.js",
     "db:engagement": "node server/db/apply-engagement-migration.js",
+    "db:seed-metrics": "node server/db/seed-demo-metrics.js",
+    "db:promotions": "node server/db/apply-promotion-migration.js",
     "test": "node server/test-rbac-workflow.js"
   },
   "dependencies": {

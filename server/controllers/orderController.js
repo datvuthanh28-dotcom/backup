@@ -1,4 +1,5 @@
 import { db } from "../config/db.js";
+import { calculatePromotions } from "../services/promotionService.js";
 
 export async function getAllOrders(req, res) {
   try {
@@ -38,7 +39,7 @@ export async function getOrderById(req, res) {
 
 export async function createOrder(req, res) {
   try {
-    const { name, email, phone, address, paymentMethod, items, notes } = req.body;
+    const { name, email, phone, address, paymentMethod, items, notes, promotionCode } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ success: false, error: "Giỏ hàng không có sản phẩm để tạo đơn." });
@@ -67,9 +68,14 @@ export async function createOrder(req, res) {
         selectedSize: variant?.size ?? item.selectedSize,
         sku: variant?.sku ?? item.sku,
         image: product.colorImages?.[variant?.color ?? item.selectedColor]?.[0] || product.images?.[0] || null,
+        category: product.category,
+        productType: product.productType,
+        subcategory: product.subcategory,
+        audience: product.audience,
+        gender: product.gender,
       });
     }
-    const totalAmount = normalizedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const pricing = await calculatePromotions({ items: normalizedItems, code: promotionCode, customerId: req.user?.role === "customer" ? req.user.id : null, shippingFee: 0 });
 
     const orderData = {
       id: orderId,
@@ -78,15 +84,23 @@ export async function createOrder(req, res) {
       customer_email: email.trim().toLowerCase(),
       customer_phone: phone.trim(),
       shipping_address: address.trim(),
-      shipping_fee: 0, // Free luxury shipping
-      total_amount: totalAmount,
+      shipping_fee: pricing.shippingFeeOriginal - pricing.shippingDiscountTotal,
+      total_amount: pricing.finalTotal,
+      original_subtotal: pricing.originalSubtotal,
+      product_discount_total: pricing.productDiscountTotal,
+      code_discount_total: pricing.codeDiscountTotal,
+      shipping_fee_original: pricing.shippingFeeOriginal,
+      shipping_discount_total: pricing.shippingDiscountTotal,
+      promotion_code: pricing.code,
+      promotion_snapshot_json: JSON.stringify({ code: pricing.code, automaticPromotions: pricing.automaticPromotions.map((promotion) => ({ id: promotion.id, name: promotion.name, type: promotion.discount_type, value: promotion.discount_value })), codePromotion: pricing.codePromotion ? { id: pricing.codePromotion.id, name: pricing.codePromotion.name, type: pricing.codePromotion.discount_type, value: pricing.codePromotion.discount_value } : null }),
       notes: (notes || "").trim(),
     };
 
     const newOrder = await db.createOrderWithTransaction({
       orderData,
-      items: normalizedItems,
+      items: pricing.items,
       paymentData: { method: paymentMethod || "cod" },
+      promotionData: pricing,
     });
 
     return res.status(201).json({ success: true, order: newOrder });
@@ -183,7 +197,14 @@ export async function confirmOrderPayment(req, res) {
       return res.status(404).json({ success: false, error: "Không tìm thấy đơn hàng." });
     }
 
-    const paymentMethod = order.payment?.payment_method || "cod";
+    if (!order.payment) {
+      return res.status(409).json({
+        success: false,
+        error: "Đơn hàng chưa có hồ sơ thanh toán. Vui lòng kiểm tra dữ liệu trước khi xác nhận thu tiền.",
+      });
+    }
+
+    const paymentMethod = order.payment.payment_method;
     if (paymentMethod === "cod" && order.order_status !== "delivered") {
       return res.status(400).json({
         success: false,
@@ -199,10 +220,14 @@ export async function confirmOrderPayment(req, res) {
     }
 
     const confirmedBy = `${req.user.name} (${req.user.role.toUpperCase()})`;
+    const normalizedReference = paymentMethod === "cod"
+      ? `COD-${orderId}`
+      : transactionReference.trim();
+    const normalizedNote = note?.trim() || (paymentMethod === "cod" ? "Đã thu đủ tiền COD khi giao hàng" : "Đã đối soát giao dịch chuyển khoản");
     const updatedOrder = await db.confirmPayment({
       orderId,
-      transactionReference,
-      note,
+      transactionReference: normalizedReference,
+      note: normalizedNote,
       confirmedBy,
     });
 

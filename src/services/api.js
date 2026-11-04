@@ -69,6 +69,17 @@ export const engagementAPI = {
   getReviews: (productId) => request(`/engagement/products/${productId}/reviews`),
 };
 
+export const promotionAPI = {
+  preview: (items, code = "", shippingFee = 0) => request("/promotions/preview", { method: "POST", body: JSON.stringify({ items, code, shippingFee }) }),
+  getCatalogPrices: () => request("/promotions/catalog-prices"),
+  getAll: () => request("/promotions/admin"),
+  create: (payload) => request("/promotions/admin", { method: "POST", body: JSON.stringify(payload) }),
+  update: (id, payload) => request(`/promotions/admin/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
+  setStatus: (id, status) => request(`/promotions/admin/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+  archive: (id) => request(`/promotions/admin/${id}`, { method: "DELETE" }),
+  report: () => request("/promotions/admin-report"),
+};
+
 export const productsAPI = {
   getAll: () => request("/products"),
   getById: (id) => request(`/products/${id}`),

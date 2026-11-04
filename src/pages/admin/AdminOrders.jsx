@@ -451,6 +451,7 @@ export default function AdminOrders() {
               <div><strong>Email:</strong> {selectedOrder.customer_email || selectedOrder.customerEmail}</div>
               <div><strong>Địa chỉ:</strong> {selectedOrder.shipping_address || selectedOrder.shippingAddress}</div>
               <div><strong>Tổng tiền:</strong> {formatPrice(selectedOrder.total_amount || selectedOrder.totalAmount)}</div>
+              {Number(selectedOrder.product_discount_total || 0) + Number(selectedOrder.code_discount_total || 0) > 0 && <div className="order-promotion-breakdown"><div><strong>Giá trị hàng ban đầu:</strong> {formatPrice(selectedOrder.original_subtotal)}</div><div><strong>Giảm trực tiếp:</strong> −{formatPrice(selectedOrder.product_discount_total)}</div><div><strong>Mã {selectedOrder.promotion_code || "—"}:</strong> −{formatPrice(selectedOrder.code_discount_total)}</div></div>}
             </div>
 
             {/* Payment Audit Box */}

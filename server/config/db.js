@@ -330,7 +330,7 @@ export const db = {
     return all.find((o) => o.id === id) || null;
   },
 
-  async createOrderWithTransaction({ orderData, items, paymentData }) {
+  async createOrderWithTransaction({ orderData, items, paymentData, promotionData = null }) {
     const p = await getActivePool();
     const transaction = new sql.Transaction(p);
     await transaction.begin();
@@ -368,12 +368,19 @@ export const db = {
         .input("shipping_address", sql.NVarChar, orderData.shipping_address)
         .input("shipping_fee", sql.Decimal(18, 0), orderData.shipping_fee || 0)
         .input("total_amount", sql.Decimal(18, 0), orderData.total_amount)
+        .input("original_subtotal", sql.Decimal(18, 0), orderData.original_subtotal ?? orderData.total_amount)
+        .input("product_discount_total", sql.Decimal(18, 0), orderData.product_discount_total || 0)
+        .input("code_discount_total", sql.Decimal(18, 0), orderData.code_discount_total || 0)
+        .input("shipping_fee_original", sql.Decimal(18, 0), orderData.shipping_fee_original || orderData.shipping_fee || 0)
+        .input("shipping_discount_total", sql.Decimal(18, 0), orderData.shipping_discount_total || 0)
+        .input("promotion_code", sql.NVarChar, orderData.promotion_code || null)
+        .input("promotion_snapshot_json", sql.NVarChar, orderData.promotion_snapshot_json || null)
         .input("order_status", sql.NVarChar, "pending")
         .input("stock_deducted", sql.Bit, 1)
         .input("notes", sql.NVarChar, orderData.notes || null)
         .query(`
-          INSERT INTO Orders (id, customer_id, customer_name, customer_email, customer_phone, shipping_address, shipping_fee, total_amount, order_status, stock_deducted, notes, created_at, updated_at)
-          VALUES (@id, @customer_id, @customer_name, @customer_email, @customer_phone, @shipping_address, @shipping_fee, @total_amount, @order_status, @stock_deducted, @notes, GETDATE(), GETDATE())
+          INSERT INTO Orders (id, customer_id, customer_name, customer_email, customer_phone, shipping_address, shipping_fee, total_amount,original_subtotal,product_discount_total,code_discount_total,shipping_fee_original,shipping_discount_total,promotion_code,promotion_snapshot_json, order_status, stock_deducted, notes, created_at, updated_at)
+          VALUES (@id, @customer_id, @customer_name, @customer_email, @customer_phone, @shipping_address, @shipping_fee, @total_amount,@original_subtotal,@product_discount_total,@code_discount_total,@shipping_fee_original,@shipping_discount_total,@promotion_code,@promotion_snapshot_json, @order_status, @stock_deducted, @notes, GETDATE(), GETDATE())
         `);
 
       // 3. Insert OrderItems & Deduct stock & Record movements
@@ -390,10 +397,15 @@ export const db = {
           .input("quantity", sql.Int, item.quantity)
           .input("unit_price", sql.Decimal(18, 0), item.price)
           .input("total_price", sql.Decimal(18, 0), item.price * item.quantity)
+          .input("original_unit_price", sql.Decimal(18, 0), item.originalUnitPrice ?? item.price)
+          .input("automatic_discount_total", sql.Decimal(18, 0), item.automaticDiscount || 0)
+          .input("order_discount_allocated", sql.Decimal(18, 0), item.orderDiscountAllocated || 0)
+          .input("final_line_total", sql.Decimal(18, 0), item.finalLineTotal ?? item.price * item.quantity)
+          .input("promotion_snapshot_json", sql.NVarChar, item.automaticPromotion ? JSON.stringify({ id: item.automaticPromotion.id, name: item.automaticPromotion.name, type: item.automaticPromotion.discount_type, value: item.automaticPromotion.discount_value }) : null)
           .input("image_url", sql.NVarChar, item.image || null)
           .query(`
-            INSERT INTO OrderItems (order_id, product_id, product_name, selected_color, selected_size, variant_id, variant_sku, quantity, unit_price, total_price, image_url, created_at)
-            VALUES (@order_id, @product_id, @product_name, @selected_color, @selected_size, @variant_id, @variant_sku, @quantity, @unit_price, @total_price, @image_url, GETDATE())
+            INSERT INTO OrderItems (order_id, product_id, product_name, selected_color, selected_size, variant_id, variant_sku, quantity, unit_price, total_price, image_url,original_unit_price,automatic_discount_total,order_discount_allocated,final_line_total,promotion_snapshot_json, created_at)
+            VALUES (@order_id, @product_id, @product_name, @selected_color, @selected_size, @variant_id, @variant_sku, @quantity, @unit_price, @final_line_total, @image_url,@original_unit_price,@automatic_discount_total,@order_discount_allocated,@final_line_total,@promotion_snapshot_json, GETDATE())
           `);
 
         if (item.variantId) {
@@ -422,6 +434,28 @@ export const db = {
             INSERT INTO InventoryMovements (product_id, variant_id, movement_type, quantity_change, resulting_stock, reference_id, note, performed_by, created_at)
             VALUES (@product_id, @variant_id, @movement_type, @quantity_change, @resulting_stock, @reference_id, @note, @performed_by, GETDATE())
           `);
+      }
+
+      if (promotionData) {
+        const appliedMap = new Map(promotionData.automaticPromotions.map((promotion) => [promotion.id, { promotion, code: null }]));
+        if (promotionData.codePromotion) appliedMap.set(promotionData.codePromotion.id, { promotion: promotionData.codePromotion, code: promotionData.codePromotion });
+        const applied = [...appliedMap.values()];
+        for (const entry of applied) {
+          const locked = await transaction.request().input("id", sql.Int, entry.promotion.id).query("SELECT id,usage_limit_total,usage_limit_per_customer,used_count FROM Promotions WITH (UPDLOCK,HOLDLOCK) WHERE id=@id AND status='active' AND is_archived=0 AND start_at<=GETDATE() AND (end_at IS NULL OR end_at>GETDATE())");
+          if (!locked.recordset.length || (locked.recordset[0].usage_limit_total && locked.recordset[0].used_count >= locked.recordset[0].usage_limit_total)) throw new Error("Chương trình khuyến mãi vừa hết hiệu lực hoặc hết lượt sử dụng.");
+          if (locked.recordset[0].usage_limit_per_customer && orderData.customer_id) {
+            const usedByCustomer = await transaction.request().input("promotion_id", sql.Int, entry.promotion.id).input("customer_id", sql.NVarChar, orderData.customer_id).query("SELECT COUNT(*) total FROM PromotionUsages WITH (UPDLOCK,HOLDLOCK) WHERE promotion_id=@promotion_id AND customer_id=@customer_id AND status='consumed'");
+            if (usedByCustomer.recordset[0].total >= locked.recordset[0].usage_limit_per_customer) throw new Error("Bạn vừa đạt giới hạn sử dụng của chương trình này.");
+          }
+          if (entry.code) {
+            const codeLock = await transaction.request().input("id", sql.Int, entry.code.promotion_code_id).query("SELECT id,usage_limit,used_count FROM PromotionCodes WITH (UPDLOCK,HOLDLOCK) WHERE id=@id AND is_active=1");
+            if (!codeLock.recordset.length || (codeLock.recordset[0].usage_limit && codeLock.recordset[0].used_count >= codeLock.recordset[0].usage_limit)) throw new Error("Mã giảm giá vừa hết lượt sử dụng.");
+            await transaction.request().input("id", sql.Int, entry.code.promotion_code_id).query("UPDATE PromotionCodes SET used_count=used_count+1,updated_at=GETDATE() WHERE id=@id");
+          }
+          await transaction.request().input("id", sql.Int, entry.promotion.id).query("UPDATE Promotions SET used_count=used_count+1,updated_at=GETDATE() WHERE id=@id");
+          const itemDiscount = promotionData.items.filter((item) => item.automaticPromotion?.id === entry.promotion.id).reduce((sum, item) => sum + item.automaticDiscount, 0);
+          await transaction.request().input("promotion_id", sql.Int, entry.promotion.id).input("code_id", sql.Int, entry.code?.promotion_code_id || null).input("order_id", sql.NVarChar, orderData.id).input("customer_id", sql.NVarChar, orderData.customer_id).input("discount", sql.Decimal(18,0), entry.code ? promotionData.codeDiscountTotal : itemDiscount).input("shipping", sql.Decimal(18,0), entry.code ? promotionData.shippingDiscountTotal : 0).query("INSERT INTO PromotionUsages(promotion_id,promotion_code_id,order_id,customer_id,discount_amount,shipping_discount,status) VALUES(@promotion_id,@code_id,@order_id,@customer_id,@discount,@shipping,'consumed')");
+        }
       }
 
       // 4. Initial Status History
@@ -518,6 +552,15 @@ export const db = {
             `);
         }
         stockDeducted = false;
+      }
+
+      if (newStatus === "cancelled") {
+        const usages = await transaction.request().input("order_id", sql.NVarChar, orderId).query("SELECT id,promotion_id,promotion_code_id FROM PromotionUsages WITH (UPDLOCK,HOLDLOCK) WHERE order_id=@order_id AND status='consumed'");
+        for (const usage of usages.recordset) {
+          await transaction.request().input("id", sql.BigInt, usage.id).input("released_by", sql.NVarChar, updatedBy).query("UPDATE PromotionUsages SET status='released',released_at=GETDATE(),released_by=@released_by,release_reason=N'Đơn hàng bị hủy trước khi giao' WHERE id=@id");
+          await transaction.request().input("id", sql.Int, usage.promotion_id).query("UPDATE Promotions SET used_count=CASE WHEN used_count>0 THEN used_count-1 ELSE 0 END,updated_at=GETDATE() WHERE id=@id");
+          if (usage.promotion_code_id) await transaction.request().input("id", sql.Int, usage.promotion_code_id).query("UPDATE PromotionCodes SET used_count=CASE WHEN used_count>0 THEN used_count-1 ELSE 0 END,updated_at=GETDATE() WHERE id=@id");
+        }
       }
 
       await transaction
@@ -755,6 +798,10 @@ export const db = {
     let refundPendingRevenue = 0;
     let refundedRevenue = 0;
     let unpaidRevenue = 0;
+    let grossMerchandiseValue = 0;
+    let productDiscountTotal = 0;
+    let codeDiscountTotal = 0;
+    let shippingDiscountTotal = 0;
 
     const categorySales = { men: 0, women: 0, kids: 0 };
     const productSalesMap = {};
@@ -765,6 +812,10 @@ export const db = {
 
       if (status === "paid") {
         actualCollectedRevenue += order.total_amount;
+        grossMerchandiseValue += Number(order.original_subtotal || order.total_amount);
+        productDiscountTotal += Number(order.product_discount_total || 0);
+        codeDiscountTotal += Number(order.code_discount_total || 0);
+        shippingDiscountTotal += Number(order.shipping_discount_total || 0);
         order.items.forEach((item) => {
           const catalogProduct = catalogProducts.find((product) => product.id === Number(item.product_id));
           const cat = ["men", "women", "kids"].includes(catalogProduct?.audience)
@@ -800,6 +851,10 @@ export const db = {
 
     return {
       actualCollectedRevenue,
+      grossMerchandiseValue,
+      productDiscountTotal,
+      codeDiscountTotal,
+      shippingDiscountTotal,
       pendingVerificationRevenue,
       refundPendingRevenue,
       unpaidRevenue,

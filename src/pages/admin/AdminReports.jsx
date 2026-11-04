@@ -50,7 +50,7 @@ export default function AdminReports() {
 
   // CSV Export Function
   const exportCSV = () => {
-    const headers = ["Order ID", "Customer Name", "Customer Email", "Date", "Order Status", "Payment Method", "Payment Status", "Total (VND)"];
+    const headers = ["Order ID", "Customer Name", "Customer Email", "Date", "Order Status", "Payment Method", "Payment Status", "Original Subtotal", "Product Discount", "Code Discount", "Promotion Code", "Total (VND)"];
     const rows = orders.map((o) => [
       `"${o.id}"`,
       `"${o.customer_name || o.customerName || "Khách vãng lai"}"`,
@@ -59,6 +59,10 @@ export default function AdminReports() {
       `"${getOrderStatus(o)}"`,
       `"${o.payment?.payment_method || o.payment_method || o.paymentMethod || "COD"}"`,
       `"${o.payment?.payment_status || "unpaid"}"`,
+      Number(o.original_subtotal || o.total_amount || 0),
+      Number(o.product_discount_total || 0),
+      Number(o.code_discount_total || 0),
+      `"${o.promotion_code || ""}"`,
       getOrderAmount(o),
     ]);
 
@@ -155,6 +159,12 @@ export default function AdminReports() {
           <div style={{ fontSize: "12px", color: "#6B5A4B", marginTop: "5px" }}>
             Từ {paidOrders.length} đơn có xác nhận thanh toán thực tế
           </div>
+        </div>
+
+        <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #D8CEC1", borderRadius: "8px", padding: "22px", boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
+          <div style={{ fontSize: "12px", fontWeight: "600", textTransform: "uppercase", color: "#A07832", marginBottom: "8px" }}>Chi Phí Khuyến Mãi Trên Đơn Đã Thu</div>
+          <div style={{ fontSize: "28px", fontWeight: "700", color: "#A07832" }}>{formatPrice(Number(revenueReport?.productDiscountTotal || 0) + Number(revenueReport?.codeDiscountTotal || 0) + Number(revenueReport?.shippingDiscountTotal || 0))}</div>
+          <div style={{ fontSize: "12px", color: "#6B5A4B", marginTop: "5px" }}>Giá trị hàng trước giảm: {formatPrice(revenueReport?.grossMerchandiseValue || actualCollected)}</div>
         </div>
 
         <div

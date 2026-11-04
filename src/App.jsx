@@ -39,6 +39,7 @@ import AdminEmployees from "./pages/admin/AdminEmployees";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminProductInsights from "./pages/admin/AdminProductInsights";
+import AdminPromotions from "./pages/admin/AdminPromotions";
 
 function App() {
   return (
@@ -110,6 +111,7 @@ function App() {
                 <Route path="reports" element={<AdminReports />} />
                 <Route path="orders" element={<AdminOrders />} />
                 <Route path="product-insights" element={<AdminProductInsights />} />
+                <Route path="promotions" element={<AdminPromotions />} />
               </Route>
 
               {/* Catch-all fallback */}
