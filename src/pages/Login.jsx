@@ -16,7 +16,11 @@ export default function CustomerLogin() {
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const destination = location.state?.from?.pathname || "/account/orders";
+  const requestedDestination = new URLSearchParams(location.search).get("returnTo");
+  const safeRequestedDestination = requestedDestination?.startsWith("/") && !requestedDestination.startsWith("//")
+    ? requestedDestination
+    : null;
+  const destination = safeRequestedDestination || location.state?.from?.pathname || "/account/orders";
 
   const handleLogin = async (e) => {
     e.preventDefault();

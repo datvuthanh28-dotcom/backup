@@ -341,7 +341,54 @@ async function runTests() {
     assert(dupPmtRes.status === 400, "Duplicate payment confirmation rejected (HTTP 400)");
 
     // ----------------------------------------------------
-    // TEST 6: Unpaid Cancellation vs Paid Cancellation & Refund Lifecycle
+    // TEST 6: Favorites, Verified Reviews & Admin Product Insights
+    // ----------------------------------------------------
+    console.log("\n--- Testing Product Engagement Workflow ---");
+
+    const engagementTestUser = await pool.request().query("SELECT id FROM Users WHERE email='customer@gmail.com'");
+    const engagementUserId = engagementTestUser.recordset[0].id;
+    await pool.request().input("user_id", sql.NVarChar, engagementUserId).input("product_id", sql.Int, 109).query("DELETE FROM ProductFavoriteEvents WHERE user_id=@user_id AND product_id=@product_id; DELETE FROM ProductFavorites WHERE user_id=@user_id AND product_id=@product_id; DELETE FROM ProductReviews WHERE user_id=@user_id AND product_id=@product_id;");
+
+    const favoriteAdd = await makeRequest("PUT", "/api/customer/favorites/109", { active: true }, custCookie);
+    assert(favoriteAdd.status === 200 && favoriteAdd.body.active === true, "Customer added product to favorites");
+    const favoriteAddAgain = await makeRequest("PUT", "/api/customer/favorites/109", { active: true }, custCookie);
+    assert(favoriteAddAgain.status === 200 && favoriteAddAgain.body.changed === false, "Repeated favorite request is idempotent");
+    const favoriteList = await makeRequest("GET", "/api/customer/favorites", null, custCookie);
+    assert(favoriteList.status === 200 && favoriteList.body.productIds.includes(109), "Customer favorite list is persisted in MSSQL");
+    const favoriteEventCount = await pool.request().query("SELECT COUNT(*) total FROM ProductFavoriteEvents WHERE product_id=109 AND event_type='added'");
+    assert(favoriteEventCount.recordset[0].total === 1, "Duplicate favorite requests do not inflate analytics events");
+
+    const reviewSave = await makeRequest("PUT", "/api/customer/reviews/109", { rating: 5, title: "Chất liệu rất tốt", content: "Sản phẩm hoàn thiện đẹp, mặc thoải mái và đúng kích cỡ." }, custCookie);
+    assert(reviewSave.status === 200 && reviewSave.body.review?.is_verified_purchase, "Delivered customer created a verified-purchase review");
+    const reviewId = reviewSave.body.review.id;
+    const publicReviews = await makeRequest("GET", "/api/engagement/products/109/reviews");
+    assert(publicReviews.status === 200 && publicReviews.body.reviews.some((review) => review.id === reviewId), "Published review appears on product detail API");
+
+    const staffInsights = await makeRequest("GET", "/api/admin/reports/product-insights", null, staffCookie);
+    assert(staffInsights.status === 403, "Staff cannot access admin product engagement insights");
+    const adminInsights = await makeRequest("GET", "/api/admin/reports/product-insights", null, adminCookie);
+    assert(adminInsights.status === 200 && adminInsights.body.insights.some((item) => item.product_id === 109), "Admin can view product engagement insights");
+
+    const hideReview = await makeRequest("PATCH", `/api/admin/reports/reviews/${reviewId}`, { status: "hidden", note: "Kiểm tra cơ chế ẩn mềm" }, adminCookie);
+    assert(hideReview.status === 200, "Admin hid a review without deleting its record");
+    const hiddenPublicReviews = await makeRequest("GET", "/api/engagement/products/109/reviews");
+    assert(!hiddenPublicReviews.body.reviews.some((review) => review.id === reviewId), "Hidden review no longer appears publicly");
+    const hiddenRecord = await pool.request().input("id", sql.Int, reviewId).query("SELECT status FROM ProductReviews WHERE id=@id");
+    assert(hiddenRecord.recordset[0].status === "hidden", "Hidden review remains stored for audit");
+
+    await makeRequest("PATCH", `/api/admin/reports/reviews/${reviewId}`, { status: "published", note: "" }, adminCookie);
+    const softDeleteReview = await makeRequest("DELETE", "/api/customer/reviews/109", null, custCookie);
+    assert(softDeleteReview.status === 200, "Customer soft-deleted their review");
+    const deletedRecord = await pool.request().input("id", sql.Int, reviewId).query("SELECT status FROM ProductReviews WHERE id=@id");
+    assert(deletedRecord.recordset[0].status === "deleted", "Soft-deleted review remains in MSSQL with deleted status");
+
+    const favoriteRemove = await makeRequest("PUT", "/api/customer/favorites/109", { active: false }, custCookie);
+    assert(favoriteRemove.status === 200 && favoriteRemove.body.active === false, "Customer removed product from favorites through soft state change");
+    const favoriteRecord = await pool.request().query("SELECT is_active FROM ProductFavorites WHERE product_id=109");
+    assert(favoriteRecord.recordset[0].is_active === false, "Removed favorite remains in MSSQL as inactive");
+
+    // ----------------------------------------------------
+    // TEST 7: Unpaid Cancellation vs Paid Cancellation & Refund Lifecycle
     // ----------------------------------------------------
     console.log("\n--- Testing Unpaid Cancellation vs Paid Cancellation Refund Lifecycle ---");
 

@@ -63,7 +63,11 @@ export const authAPI = {
 
   getMe: () => request("/auth/me"),
 };
-export const customerAPI = { getAccount: () => request("/customer/account"), addAddress: (address, isDefault = false) => request("/customer/addresses", { method: "POST", body: JSON.stringify({ address, isDefault }) }), updateAddress: (id, address, isDefault = false) => request(`/customer/addresses/${id}`, { method: "PATCH", body: JSON.stringify({ address, isDefault }) }), deleteAddress: (id) => request(`/customer/addresses/${id}`, { method: "DELETE" }), updatePreferences: (marketingEmail) => request("/customer/preferences", { method: "PATCH", body: JSON.stringify({ marketingEmail }) }), updateProfile: (payload) => request("/customer/profile", { method: "PATCH", body: JSON.stringify(payload) }) };
+export const customerAPI = { getAccount: () => request("/customer/account"), addAddress: (address, isDefault = false) => request("/customer/addresses", { method: "POST", body: JSON.stringify({ address, isDefault }) }), updateAddress: (id, address, isDefault = false) => request(`/customer/addresses/${id}`, { method: "PATCH", body: JSON.stringify({ address, isDefault }) }), deleteAddress: (id) => request(`/customer/addresses/${id}`, { method: "DELETE" }), updatePreferences: (marketingEmail) => request("/customer/preferences", { method: "PATCH", body: JSON.stringify({ marketingEmail }) }), updateProfile: (payload) => request("/customer/profile", { method: "PATCH", body: JSON.stringify(payload) }), getFavorites: () => request("/customer/favorites"), setFavorite: (productId, active) => request(`/customer/favorites/${productId}`, { method: "PUT", body: JSON.stringify({ active }) }), getReviewEligibility: (productId) => request(`/customer/reviews/${productId}/eligibility`), saveReview: (productId, payload) => request(`/customer/reviews/${productId}`, { method: "PUT", body: JSON.stringify(payload) }), deleteReview: (productId) => request(`/customer/reviews/${productId}`, { method: "DELETE" }) };
+
+export const engagementAPI = {
+  getReviews: (productId) => request(`/engagement/products/${productId}/reviews`),
+};
 
 export const productsAPI = {
   getAll: () => request("/products"),
@@ -132,5 +136,8 @@ export const employeeAPI = {
 
 export const reportAPI = {
   getRevenue: () => request("/admin/reports/revenue"),
+  getProductInsights: () => request("/admin/reports/product-insights"),
+  getReviews: () => request("/admin/reports/reviews"),
+  moderateReview: (id, payload) => request(`/admin/reports/reviews/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
 };
 

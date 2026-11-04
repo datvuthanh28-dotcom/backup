@@ -41,8 +41,14 @@ export default function ProductListPage({ gender, audience, collection, productT
               <button key={item} className={cashmereAudience === item ? "active" : ""} onClick={() => setCashmereAudience(item)}>{item[0].toUpperCase() + item.slice(1)}</button>
             ))}
           </div>
-        ) : <div className="filter-chips"><button className={type === "all" ? "active" : ""} onClick={() => setType("all")}>All pieces</button>{types.map((item) => <button key={item} className={type === item ? "active" : ""} onClick={() => setType(item)}>{item}</button>)}</div>}
-        <label>{items.length} pieces<select value={sort} onChange={(e) => setSort(e.target.value)}><option value="featured">Featured</option><option value="price-low">Price: Low to high</option><option value="price-high">Price: High to low</option></select></label>
+        ) : (
+          <div className="filter-chips"><button className={type === "all" ? "active" : ""} onClick={() => setType("all")}>All pieces</button>{types.map((item) => <button key={item} className={type === item ? "active" : ""} onClick={() => setType(item)}>{item}</button>)}</div>
+        )}
+        <div className="catalog-toolbar__summary">
+          <span className="catalog-count"><strong>{items.length}</strong> pieces</span>
+          <label className="catalog-sort"><span>Sort by</span><select aria-label="Sort products" value={sort} onChange={(e) => setSort(e.target.value)}><option value="featured">Featured</option><option value="price-low">Price: Low to high</option><option value="price-high">Price: High to low</option></select></label>
+        </div>
+      </div>
       </div>
       <div id="products-grid">
         {items.map((p) => (
