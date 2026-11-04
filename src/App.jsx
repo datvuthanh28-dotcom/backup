@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { StoreProvider } from "./context/StoreContext";
 import { CartProvider } from "./context/CartContext";
+import { FavoritesProvider } from "./context/FavoritesContext";
 
 // Layouts & Protected Route
 import StorefrontLayout from "./components/layout/StorefrontLayout";
@@ -18,6 +19,7 @@ import Checkout from "./pages/Checkout";
 import Login from "./pages/Login"; // Customer Login (/login)
 import CustomerOrders from "./pages/customer/CustomerOrders";
 import CustomerAccount from "./pages/customer/CustomerAccount";
+import CustomerFavorites from "./pages/customer/CustomerFavorites";
 import AccessDenied from "./pages/AccessDenied";
 import SearchResultsPage from "./pages/SearchResultsPage";
 
@@ -35,12 +37,14 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminEmployees from "./pages/admin/AdminEmployees";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminOrders from "./pages/admin/AdminOrders";
+import AdminProductInsights from "./pages/admin/AdminProductInsights";
 
 function App() {
   return (
     <AuthProvider>
       <StoreProvider>
-        <CartProvider>
+        <FavoritesProvider>
+          <CartProvider>
           <BrowserRouter>
             <Routes>
               {/* 1. CUSTOMER PORTAL & STOREFRONT */}
@@ -71,6 +75,7 @@ function App() {
                   }
                 />
                 <Route path="/account/profile" element={<ProtectedRoute allowedRoles={["customer"]} loginRedirect="/login"><CustomerAccount /></ProtectedRoute>} />
+                <Route path="/account/favorites" element={<ProtectedRoute allowedRoles={["customer"]} loginRedirect="/login"><CustomerFavorites /></ProtectedRoute>} />
               </Route>
 
               {/* 2. STAFF PORTAL (Dedicated Login & Workspace) */}
@@ -102,13 +107,15 @@ function App() {
                 <Route path="employees" element={<AdminEmployees />} />
                 <Route path="reports" element={<AdminReports />} />
                 <Route path="orders" element={<AdminOrders />} />
+                <Route path="product-insights" element={<AdminProductInsights />} />
               </Route>
 
               {/* Catch-all fallback */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </BrowserRouter>
-        </CartProvider>
+          </CartProvider>
+        </FavoritesProvider>
       </StoreProvider>
     </AuthProvider>
   );
