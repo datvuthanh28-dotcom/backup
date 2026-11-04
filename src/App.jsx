@@ -48,6 +48,7 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/men" element={<ProductListPage gender="nam" title="Men" />} />
                 <Route path="/women" element={<ProductListPage gender="nữ" title="Women" />} />
+                <Route path="/kids" element={<ProductListPage audience="kids" title="Kids" />} />
                 <Route path="/unisex" element={<ProductListPage gender="unisex" title="Unisex" />} />
                 <Route path="/accessories" element={<ProductListPage gender="unisex" title="Accessories" />} />
                 <Route path="/collections/riviera-linen" element={<ProductListPage collection="Riviera Linen" title="Riviera Linen" />} />

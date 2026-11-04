@@ -72,7 +72,7 @@ export default function ProductDetail() {
 
   return (
     <main id="product-detail-container">
-      <div className="product-breadcrumb"><Link to={`/${product.gender === "nam" ? "men" : product.gender === "nữ" ? "women" : "unisex"}`}>{product.gender}</Link><span>/</span><span>{product.subcategory}</span><span>/</span><span>{product.name}</span></div>
+          <div className="product-breadcrumb"><Link to={`/${product.audience === "kids" ? "kids" : product.gender === "nam" ? "men" : product.gender === "nữ" ? "women" : "unisex"}`}>{product.audience === "kids" ? "Kids" : product.gender}</Link><span>/</span><span>{product.subcategory}</span><span>/</span><span>{product.name}</span></div>
       <div className="product-detail">
           <div className="product-gallery">
             <div className="gallery-color-label" aria-live="polite"><span>Viewing colour</span><strong>{selectedColor}</strong></div>

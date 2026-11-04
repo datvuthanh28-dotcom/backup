@@ -145,7 +145,7 @@ export const db = {
   // ==========================================
   async getAllProducts() {
     const p = await getActivePool();
-    const res = await p.request().query("SELECT * FROM Products ORDER BY id ASC");
+    const res = await p.request().query("SELECT * FROM Products WHERE is_active = 1 ORDER BY id ASC");
     const variantRes = await p.request().query("SELECT * FROM ProductVariants WHERE is_active = 1 ORDER BY product_id, color_name, size_name");
     return res.recordset.map((r) => {
       const catalog = catalogProducts.find((product) => product.id === r.id) || {};
@@ -161,7 +161,7 @@ export const db = {
     const res = await p
       .request()
       .input("id", sql.Int, numId)
-      .query("SELECT * FROM Products WHERE id = @id");
+      .query("SELECT * FROM Products WHERE id = @id AND is_active = 1");
     const r = res.recordset[0];
     if (!r) return null;
     const catalog = catalogProducts.find((product) => product.id === r.id) || {};

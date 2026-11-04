@@ -3,16 +3,16 @@ import useDocumentTitle from "../hooks/useDocumentTitle";
 import { useMemo, useState } from "react";
 import { useStore } from "../hooks/useStore";
 
-export default function ProductListPage({ gender, collection, title }) {
+export default function ProductListPage({ gender, audience, collection, title }) {
   useDocumentTitle(title);
   const { products } = useStore();
   const [type, setType] = useState("all");
   const [sort, setSort] = useState("featured");
-  const types = [...new Set(products.filter((p) => !gender || (gender === "unisex" ? p.gender === "unisex" : p.gender === gender)).map((p) => p.subcategory))];
+  const types = [...new Set(products.filter((p) => (!gender || (gender === "unisex" ? p.gender === "unisex" : p.gender === gender)) && (!audience || p.audience === audience)).map((p) => p.subcategory))];
   const items = useMemo(() => {
-    const filtered = products.filter((p) => (!gender || p.gender === gender) && (!collection || p.collection === collection) && (type === "all" || p.subcategory === type));
+    const filtered = products.filter((p) => (!gender || p.gender === gender) && (!audience || p.audience === audience) && (!collection || p.collection === collection) && (type === "all" || p.subcategory === type));
     return [...filtered].sort((a, b) => sort === "price-low" ? a.price - b.price : sort === "price-high" ? b.price - a.price : a.id - b.id);
-  }, [products, gender, collection, type, sort]);
+  }, [products, gender, audience, collection, type, sort]);
 
   return (
     <main className="collection-page">
