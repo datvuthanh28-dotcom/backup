@@ -108,7 +108,7 @@ export default function Header() {
         </Link>
       </div>
       <nav className="head-left">
-        <Link to="/collections/new-arrivals" className="nav-main nav-highlight">NEW ARRIVALS</Link>
+        <Link to="/collections/fall-winter-2026-2027" className="nav-main nav-highlight">FALL/WINTER 2026–2027</Link>
         <Link to="/collections/heritage-cashmere" className="nav-main nav-highlight">THE CASHMERE EDIT</Link>
         <AudienceDropdown audience="men" />
         <AudienceDropdown audience="women" />

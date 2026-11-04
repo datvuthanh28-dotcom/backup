@@ -2,10 +2,28 @@ import { Link } from "react-router-dom";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import products from "../data/products";
 
+function FavoriteRow({ label, items }) {
+  return (
+    <div className="home-favorites-group">
+      <h3>— {label} —</h3>
+      <div className="home-favorites-grid">
+        {items.map((p) => (
+          <Link to={`/product/${p.id}`} key={p.id} className="home-product">
+            <div className="home-product-image"><img src={`/${p.images[0]}`} alt={p.name} /></div>
+            <p>{p.name}</p>
+            <p>{p.price.toLocaleString("vi-VN")}đ</p>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   useDocumentTitle("Maison Rue — The Art of Quiet Luxury");
 
-  const bestSellers = [...products.men.slice(0, 2), ...products.women.slice(0, 2)];
+  const mostLovedMen = [109, 113, 117, 127].map((id) => products.men.find((p) => p.id === id)).filter(Boolean);
+  const mostLovedWomen = [150, 155, 158, 174].map((id) => products.women.find((p) => p.id === id)).filter(Boolean);
 
   return (
     <main className="home-page">
@@ -14,10 +32,13 @@ export default function Home() {
       <section className="home-hero">
         <img src="/image/hero-image/hero-image.png" alt="Bộ sưu tập Maison Rue giữa khung cảnh thiên nhiên" />
         <div className="home-hero-copy">
-          <span className="home-eyebrow">THE NEW SEASON</span>
-          <h1>Quietly<br />exceptional.</h1>
-          <p>Timeless pieces, shaped by nature and made to accompany you for years to come.</p>
-          <Link className="home-link home-link-light" to="/women">DISCOVER THE COLLECTION <span>→</span></Link>
+          <span className="home-eyebrow">FALL/WINTER 2026–2027</span>
+          <h1>The Saigon<br />Tailoring Edit.</h1>
+          <p>A refined wardrobe of cashmere, linen, silk and suede for the season ahead.</p>
+          <div className="home-hero-links">
+            <Link className="home-link home-link-light" to="/collections/fall-winter-2026-2027?audience=men">FOR MEN <span>→</span></Link>
+            <Link className="home-link home-link-light" to="/collections/fall-winter-2026-2027?audience=women">FOR WOMEN <span>→</span></Link>
+          </div>
         </div>
         <div className="home-hero-caption">MAISON RUE — SPRING / SUMMER</div>
       </section>
@@ -42,16 +63,8 @@ export default function Home() {
 
       <section className="best-sellers home-best-sellers">
         <div className="bs-head"><span className="home-eyebrow">FAVOURITES, REVISITED</span><h2>Most loved</h2></div>
-        <div className="bs-cards">
-          {bestSellers.map((p) => (
-            <Link to={`/product/${p.id}`} key={p.id} className="home-product">
-              <div className="home-product-image"><img src={`/${p.images[0]}`} alt={p.name} /></div>
-              <p>{p.name}</p>
-              <p>{p.price.toLocaleString("vi-VN")}đ</p>
-            </Link>
-          ))}
-        </div>
-        <Link className="home-link home-link-center" to="/men">VIEW THE COLLECTION <span>→</span></Link>
+        <FavoriteRow label="Women" items={mostLovedWomen} />
+        <FavoriteRow label="Men" items={mostLovedMen} />
       </section>
 
       <section className="home-craft">

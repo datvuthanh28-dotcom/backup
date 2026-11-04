@@ -103,6 +103,7 @@ export async function runSeed() {
       .input("color_images_json", JSON.stringify(p.colorImages))
       .input("description", p.description)
       .input("collection_name", p.collection)
+      .input("collections_json", JSON.stringify(p.collections))
       .input("material", p.material)
       .input("stock", stock)
       .input("min_alert", 3)
@@ -111,10 +112,10 @@ export async function runSeed() {
         USING (SELECT @id AS id) AS source ON target.id=source.id
         WHEN MATCHED THEN UPDATE SET product_code=@product_code, name=@name, price=@price, category=@category,
           gender=@gender, images_json=@images_json, colors_json=@colors_json, color_images_json=@color_images_json,
-          description=@description, collection_name=@collection_name, material=@material, stock=@stock, min_alert=@min_alert, is_active=1, updated_at=GETDATE()
+          description=@description, collection_name=@collection_name, collections_json=@collections_json, material=@material, stock=@stock, min_alert=@min_alert, is_active=1, updated_at=GETDATE()
         WHEN NOT MATCHED THEN INSERT
-          (id, product_code, name, price, category, gender, images_json, colors_json, color_images_json, description, collection_name, material, stock, min_alert, is_active, created_at, updated_at)
-          VALUES (@id, @product_code, @name, @price, @category, @gender, @images_json, @colors_json, @color_images_json, @description, @collection_name, @material, @stock, @min_alert, 1, GETDATE(), GETDATE());
+          (id, product_code, name, price, category, gender, images_json, colors_json, color_images_json, description, collection_name, collections_json, material, stock, min_alert, is_active, created_at, updated_at)
+          VALUES (@id, @product_code, @name, @price, @category, @gender, @images_json, @colors_json, @color_images_json, @description, @collection_name, @collections_json, @material, @stock, @min_alert, 1, GETDATE(), GETDATE());
       `);
 
     for (const [variantIndex, variant] of p.variants.entries()) {

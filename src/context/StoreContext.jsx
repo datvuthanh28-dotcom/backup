@@ -49,6 +49,9 @@ export function StoreProvider({ children }) {
               gender: catalogProduct.gender,
               productType: catalogProduct.productType,
               subcategory: catalogProduct.subcategory,
+              collection: catalogProduct.collection,
+              collections: catalogProduct.collections,
+              material: catalogProduct.material,
             };
           })
           .filter(Boolean);

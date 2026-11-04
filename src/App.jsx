@@ -59,6 +59,7 @@ function App() {
                 <Route path="/collections/riviera-linen" element={<ProductListPage collection="Riviera Linen" title="Riviera Linen" />} />
                 <Route path="/collections/heritage-cashmere" element={<ProductListPage collection="Heritage Cashmere" title="Heritage Cashmere" />} />
                 <Route path="/collections/suede-essentials" element={<ProductListPage collection="Suede Essentials" title="Suede Essentials" />} />
+                <Route path="/collections/fall-winter-2026-2027" element={<ProductListPage collection="Fall/Winter 2026–2027" title="Fall/Winter 2026–2027" eyebrow="THE SAIGON TAILORING EDIT" intro="A composed wardrobe for cooler days, pairing soft cashmere, tailored linen, silk and suede across ten essential looks for men and women." />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
                 <Route path="/search" element={<SearchResultsPage />} />
                 <Route path="/cart" element={<Cart />} />

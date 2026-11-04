@@ -10,6 +10,8 @@ const heritageCashmereProductIds = new Set([
   148, 150, 151, 152, 166, 167, 168, 186,
   192, 199, 206, 207
 ]);
+const fallWinter2026ProductIds = new Set([121, 113, 108, 117, 127, 167, 154, 150, 158, 172]);
+const fallWinter2026Collection = "Fall/Winter 2026–2027";
 
 const materialByProductId = {
   107: "Baby Cashmere", 108: "Cashmere", 109: "Cashmere", 110: "Wool + Cashmere",
@@ -140,6 +142,7 @@ export const allProducts = assortment.map((item) => {
     productCode,
     category: item.productType === "Clothing" ? "clothing" : item.productType.toLowerCase(),
     collection,
+    collections: [collection, ...(fallWinter2026ProductIds.has(item.id) ? [fallWinter2026Collection] : [])],
     fit: "Classic fit",
     material,
     care: "Follow the care label for this product.",

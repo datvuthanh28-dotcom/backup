@@ -1334,6 +1334,7 @@ header nav a {
 .cashmere-toolbar { justify-content: center; position: relative; min-height: 66px; }
 .cashmere-toolbar > .catalog-toolbar__summary { position: absolute; right: 50px; }
 .cashmere-audience-tabs { display: grid; grid-template-columns: repeat(3, 1fr); width: min(390px, 100%); padding: 4px; border-radius: 4px; background: #eeeae4; }
+.cashmere-audience-tabs.is-two-tabs { grid-template-columns: repeat(2, 1fr); width: min(270px, 100%); }
 .cashmere-audience-tabs button { border: 0; border-radius: 3px; padding: 11px 18px; background: transparent; color: #28231f; cursor: pointer; font: 400 21px/1 'Cormorant Garamond', Georgia, serif; transition: background .2s ease, box-shadow .2s ease; }
 .cashmere-audience-tabs button.active { background: #fbfaf8; box-shadow: 0 1px 2px rgba(43,33,28,.04); }
 @media(max-width:700px){.cashmere-toolbar{padding:12px 20px 54px!important;align-items:center}.cashmere-toolbar>.catalog-toolbar__summary{right:auto;bottom:15px;left:20px}.cashmere-audience-tabs button{padding:10px 8px;font-size:18px}}
@@ -2488,6 +2489,7 @@ header.store-header.is-hidden{transform:translateY(-100%)}
 .home-link span{font-size:15px;transition:transform .2s}.home-link:hover span{transform:translateX(4px)}
 .home-link-light{color:white;border-color:rgba(255,255,255,.7)}
 .home-hero-caption{position:absolute;right:4%;bottom:24px;z-index:1;color:#fff;font:9px Inter,sans-serif;letter-spacing:.17em}
+.home-hero-links{display:flex;gap:26px;flex-wrap:wrap}
 .home-intro{text-align:center;padding:108px 22px 112px}
 .home-intro h2{font-size:clamp(38px,4.2vw,56px);margin:23px 0 18px}
 .home-intro p{max-width:530px;margin:auto;color:#746b5f}
@@ -2507,6 +2509,7 @@ header.store-header.is-hidden{transform:translateY(-100%)}
 .home-product:hover .home-product-image img{transform:scale(1.035)}
 .home-best-sellers .bs-cards .home-product p{font-size:12px;line-height:1.5;margin:0 0 4px}
 .home-best-sellers .bs-cards .home-product p:last-child{color:#766c5d;font-size:11px}
+.home-favorites-group{margin-top:42px}.home-favorites-group h3{text-align:center;margin:0 0 22px;color:#aa6859;font:400 21px 'Cormorant Garamond',Georgia,serif}.home-favorites-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}.home-favorites-grid .home-product p{font-size:12px;line-height:1.5;margin:0 0 4px}.home-favorites-grid .home-product p:last-child{color:#766c5d;font-size:11px}
 .home-link-center{display:flex;width:max-content;margin:45px auto 0}
 .home-craft{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:8%;padding:85px 9%;background:#eeece6}
 .home-craft-copy h2{font-size:clamp(40px,4.7vw,60px)}
@@ -2516,7 +2519,7 @@ header.store-header.is-hidden{transform:translateY(-100%)}
 .home-material>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .home-material>div{position:relative;z-index:1;padding:70px 10%;max-width:700px}
 .home-material .home-eyebrow{color:#e2d8c6}.home-material h2{font-size:clamp(40px,5vw,62px);margin:22px 0}.home-material p{color:rgba(255,255,255,.88)}
-@media(max-width:700px){.home-note{font-size:8px}.home-hero{height:610px;min-height:0}.home-hero>img{object-position:60% center}.home-hero-copy{left:8%;right:8%;top:auto;bottom:70px;transform:none}.home-hero-copy h1{font-size:56px}.home-hero-caption{font-size:7px;right:5%;bottom:18px}.home-intro{padding:74px 24px}.home-edit,.home-craft{grid-template-columns:1fr}.home-edit-image{min-height:350px;height:100vw}.home-edit-copy{padding:52px 9% 60px}.home-best-sellers{padding:68px 18px!important}.home-best-sellers .bs-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 12px}.home-best-sellers .bs-head h2{font-size:38px}.home-craft{gap:34px;padding:64px 8%}.home-craft-image{height:360px}.home-material{min-height:470px}.home-material>div{padding:65px 8%}}
+@media(max-width:700px){.home-note{font-size:8px}.home-hero{height:610px;min-height:0}.home-hero>img{object-position:60% center}.home-hero-copy{left:8%;right:8%;top:auto;bottom:70px;transform:none}.home-hero-copy h1{font-size:56px}.home-hero-caption{font-size:7px;right:5%;bottom:18px}.home-intro{padding:74px 24px}.home-edit,.home-craft{grid-template-columns:1fr}.home-edit-image{min-height:350px;height:100vw}.home-edit-copy{padding:52px 9% 60px}.home-best-sellers{padding:68px 18px!important}.home-favorites-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 12px}.home-favorites-group h3{font-size:18px}.home-best-sellers .bs-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 12px}.home-best-sellers .bs-head h2{font-size:38px}.home-craft{gap:34px;padding:64px 8%}.home-craft-image{height:360px}.home-material{min-height:470px}.home-material>div{padding:65px 8%}}
 
 /* Our Story: separate brand and material narratives */
 .our-story-page{background:#f6f4ef;color:#2c2822}.story-brand,.story-material-story{overflow:hidden}.story-kicker{display:block;color:#8a7658;font:500 10px/1.4 Inter,sans-serif;letter-spacing:.2em;text-transform:uppercase}.story-hero{height:min(680px,65vw);min-height:470px;position:relative;overflow:hidden;color:#fff;background:#777}
