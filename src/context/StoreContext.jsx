@@ -52,6 +52,9 @@ export function StoreProvider({ children }) {
               promotionPrice: promotionPrices.prices?.[Number(product.id)]?.salePrice ?? Number(product.price),
               promotionDiscount: promotionPrices.prices?.[Number(product.id)]?.discount || 0,
               promotionName: promotionPrices.prices?.[Number(product.id)]?.promotionName || null,
+              collection: catalogProduct.collection,
+              collections: catalogProduct.collections,
+              material: catalogProduct.material,
             };
           })
           .filter(Boolean);

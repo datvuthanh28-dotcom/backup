@@ -4,6 +4,55 @@ import { useCart } from "../hooks/useCart";
 import { useAuth } from "../context/AuthContext";
 import { useStore } from "../hooks/useStore";
 
+const audienceMenus = {
+  men: {
+    label: "MEN",
+    clothing: ["Knitwear", "Shirts", "Trousers", "Outerwear"]
+  },
+  women: {
+    label: "WOMEN",
+    clothing: ["Knitwear", "Tops & Shirts", "Trousers & Skirts", "Dresses", "Outerwear"]
+  },
+  kids: {
+    label: "KIDS",
+    clothing: ["Baby Clothing", "Boys Clothing", "Girls Clothing"],
+    accessories: ["Bags", "Scarves", "Toys"]
+  }
+};
+
+function AudienceDropdown({ audience }) {
+  const menu = audienceMenus[audience];
+  const basePath = `/${audience}`;
+  const productTypePath = (type) => `${basePath}?type=${encodeURIComponent(type)}`;
+  const subcategoryPath = (subcategory) => `${basePath}?type=Clothing&subcategory=${encodeURIComponent(subcategory)}`;
+
+  return (
+    <div className="nav-dropdown audience-dropdown">
+      <Link to={basePath} className="nav-main">{menu.label}</Link>
+      <div className="dropdown-menu dropdown-categories">
+        <Link to={basePath}>ALL PRODUCTS</Link>
+        <div className="category-dropdown">
+          <Link to={productTypePath("Clothing")}>CLOTHING <span>›</span></Link>
+          <div className="category-submenu">
+            <Link to={productTypePath("Clothing")}>ALL CLOTHING</Link>
+            {menu.clothing.map((subcategory) => <Link key={subcategory} to={subcategoryPath(subcategory)}>{subcategory.toUpperCase()}</Link>)}
+          </div>
+        </div>
+        <Link to={productTypePath("Footwear")}>SHOES</Link>
+        {menu.accessories ? (
+          <div className="category-dropdown">
+            <Link to={productTypePath("Accessories")}>ACCESSORIES <span>›</span></Link>
+            <div className="category-submenu">
+              <Link to={productTypePath("Accessories")}>ALL ACCESSORIES</Link>
+              {menu.accessories.map((subcategory) => <Link key={subcategory} to={`${basePath}?type=Accessories&subcategory=${encodeURIComponent(subcategory)}`}>{subcategory.toUpperCase()}</Link>)}
+            </div>
+          </div>
+        ) : <Link to={productTypePath("Accessories")}>ACCESSORIES</Link>}
+      </div>
+    </div>
+  );
+}
+
 export default function Header() {
   const { cartCount } = useCart();
   const { products } = useStore();
@@ -59,27 +108,11 @@ export default function Header() {
         </Link>
       </div>
       <nav className="head-left">
-        <Link to="/collections/new-arrivals" className="nav-main nav-highlight">NEW ARRIVALS</Link>
+        <Link to="/collections/fall-winter-2026-2027" className="nav-main nav-highlight">FALL/WINTER 2026–2027</Link>
         <Link to="/collections/heritage-cashmere" className="nav-main nav-highlight">THE CASHMERE EDIT</Link>
-        <div className="nav-dropdown">
-          <Link to="/men" className="nav-main">MEN</Link>
-          <div className="dropdown-menu">
-            <Link to="/men">All pieces</Link>
-            <Link to="/men">Shirts & Trousers</Link>
-            <Link to="/collections/heritage-cashmere">Heritage Cashmere</Link>
-            <Link to="/collections/suede-essentials">Suede Essentials</Link>
-          </div>
-        </div>
-        <div className="nav-dropdown">
-          <Link to="/women" className="nav-main">WOMEN</Link>
-          <div className="dropdown-menu">
-            <Link to="/women">All pieces</Link>
-            <Link to="/women">Shirts & Trousers</Link>
-            <Link to="/collections/riviera-linen">Riviera Linen</Link>
-            <Link to="/collections/heritage-cashmere">Heritage Cashmere</Link>
-          </div>
-        </div>
-        <Link to="/kids" className="nav-main">KIDS</Link>
+        <AudienceDropdown audience="men" />
+        <AudienceDropdown audience="women" />
+        <AudienceDropdown audience="kids" />
         <Link to="/our-story" className="nav-main">OUR STORY</Link>
       </nav>
 

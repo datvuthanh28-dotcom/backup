@@ -151,7 +151,7 @@ export const db = {
       const catalog = catalogProducts.find((product) => product.id === r.id) || {};
       const variants = variantRes.recordset.filter((variant) => variant.product_id === r.id).map((variant) => ({ id: variant.id, sku: variant.sku, color: variant.color_name, size: variant.size_name, price: Number(variant.price), stock: variant.stock_quantity, lowStockThreshold: variant.low_stock_threshold, maxStockThreshold: variant.max_stock_threshold }))
         .sort((a, b) => (catalog.colors?.indexOf(a.color) ?? 0) - (catalog.colors?.indexOf(b.color) ?? 0) || (catalog.sizes?.indexOf(a.size) ?? 0) - (catalog.sizes?.indexOf(b.size) ?? 0));
-      return { ...catalog, ...r, productCode: r.product_code, stock: variants.reduce((sum, variant) => sum + variant.stock, 0), variants, images: JSON.parse(r.images_json), colors: JSON.parse(r.colors_json), colorImages: JSON.parse(r.color_images_json) };
+      return { ...catalog, ...r, productCode: r.product_code, collection: r.collection_name || catalog.collection, collections: r.collections_json ? JSON.parse(r.collections_json) : catalog.collections, material: r.material || catalog.material, stock: variants.reduce((sum, variant) => sum + variant.stock, 0), variants, images: JSON.parse(r.images_json), colors: JSON.parse(r.colors_json), colorImages: JSON.parse(r.color_images_json) };
     });
   },
 
@@ -171,6 +171,9 @@ export const db = {
     return {
       ...catalog, ...r,
       productCode: r.product_code,
+      collection: r.collection_name || catalog.collection,
+      collections: r.collections_json ? JSON.parse(r.collections_json) : catalog.collections,
+      material: r.material || catalog.material,
       stock: variants.reduce((sum, variant) => sum + variant.stock, 0),
       variants,
       images: JSON.parse(r.images_json),

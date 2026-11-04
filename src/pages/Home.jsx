@@ -2,10 +2,28 @@ import { Link } from "react-router-dom";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import products from "../data/products";
 
+function FavoriteRow({ label, items }) {
+  return (
+    <div className="home-favorites-group">
+      <h3>— {label} —</h3>
+      <div className="home-favorites-grid">
+        {items.map((p) => (
+          <Link to={`/product/${p.id}`} key={p.id} className="home-product">
+            <div className="home-product-image"><img src={`/${p.images[0]}`} alt={p.name} /></div>
+            <p>{p.name}</p>
+            <p>{p.price.toLocaleString("vi-VN")}đ</p>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   useDocumentTitle("Maison Rue — The Art of Quiet Luxury");
 
-  const bestSellers = [...products.men.slice(0, 2), ...products.women.slice(0, 2)];
+  const mostLovedMen = [109, 113, 117, 127].map((id) => products.men.find((p) => p.id === id)).filter(Boolean);
+  const mostLovedWomen = [150, 155, 158, 174].map((id) => products.women.find((p) => p.id === id)).filter(Boolean);
 
   return (
     <main className="home-page">
@@ -14,10 +32,13 @@ export default function Home() {
       <section className="home-hero">
         <img src="/image/hero-image/hero-image.png" alt="Bộ sưu tập Maison Rue giữa khung cảnh thiên nhiên" />
         <div className="home-hero-copy">
-          <span className="home-eyebrow">THE NEW SEASON</span>
-          <h1>Quietly<br />exceptional.</h1>
-          <p>Timeless pieces, shaped by nature and made to accompany you for years to come.</p>
-          <Link className="home-link home-link-light" to="/women">DISCOVER THE COLLECTION <span>→</span></Link>
+          <span className="home-eyebrow">FALL/WINTER 2026–2027</span>
+          <h1>The Saigon<br />Tailoring Edit.</h1>
+          <p>A refined wardrobe of cashmere, linen, silk and suede for the season ahead.</p>
+          <div className="home-hero-links">
+            <Link className="home-link home-link-light" to="/collections/fall-winter-2026-2027?audience=men">FOR MEN <span>→</span></Link>
+            <Link className="home-link home-link-light" to="/collections/fall-winter-2026-2027?audience=women">FOR WOMEN <span>→</span></Link>
+          </div>
         </div>
         <div className="home-hero-caption">MAISON RUE — SPRING / SUMMER</div>
       </section>
@@ -42,16 +63,8 @@ export default function Home() {
 
       <section className="best-sellers home-best-sellers">
         <div className="bs-head"><span className="home-eyebrow">FAVOURITES, REVISITED</span><h2>Most loved</h2></div>
-        <div className="bs-cards">
-          {bestSellers.map((p) => (
-            <Link to={`/product/${p.id}`} key={p.id} className="home-product">
-              <div className="home-product-image"><img src={`/${p.images[0]}`} alt={p.name} /></div>
-              <p>{p.name}</p>
-              <p>{p.price.toLocaleString("vi-VN")}đ</p>
-            </Link>
-          ))}
-        </div>
-        <Link className="home-link home-link-center" to="/men">VIEW THE COLLECTION <span>→</span></Link>
+        <FavoriteRow label="Women" items={mostLovedWomen} />
+        <FavoriteRow label="Men" items={mostLovedMen} />
       </section>
 
       <section className="home-craft">
@@ -59,14 +72,14 @@ export default function Home() {
           <span className="home-eyebrow">OUR STORY</span>
           <h2>Made with care.<br />Worn with feeling.</h2>
           <p>Maison Rue was born from a simple idea: that what we wear should feel as good as it looks. We bring together natural fibres, thoughtful details and enduring silhouettes to create a quieter kind of luxury.</p>
-          <Link className="home-link" to="/women">THE MAISON RUE STORY <span>→</span></Link>
+          <Link className="home-link" to="/our-story">THE MAISON RUE STORY <span>→</span></Link>
         </div>
         <div className="home-craft-image"><img src="/image/our story/craft.jpg" alt="Đôi tay nghệ nhân chăm chút từng chi tiết" /></div>
       </section>
 
       <section className="home-material">
         <img src="/image/our story/cashmere.png" alt="Chất liệu cashmere tự nhiên" />
-        <div><span className="home-eyebrow">THE FEEL OF NATURE</span><h2>Fibre, feeling,<br />and the passage of time.</h2><p>Natural materials have a character all their own. We honour it in every thread, every texture, every piece made to last beyond a season.</p><Link className="home-link home-link-light" to="/women">DISCOVER OUR MATERIALS <span>→</span></Link></div>
+        <div><span className="home-eyebrow">THE FEEL OF NATURE</span><h2>Fibre, feeling,<br />and the passage of time.</h2><p>Natural materials have a character all their own. We honour it in every thread, every texture, every piece made to last beyond a season.</p><Link className="home-link home-link-light" to="/collections/heritage-cashmere">DISCOVER OUR CASHMERE SELECTION <span>→</span></Link></div>
       </section>
     </main>
   );
