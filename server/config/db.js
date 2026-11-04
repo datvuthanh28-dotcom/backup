@@ -149,7 +149,7 @@ export const db = {
     const variantRes = await p.request().query("SELECT * FROM ProductVariants WHERE is_active = 1 ORDER BY product_id, color_name, size_name");
     return res.recordset.map((r) => {
       const catalog = catalogProducts.find((product) => product.id === r.id) || {};
-      const variants = variantRes.recordset.filter((variant) => variant.product_id === r.id).map((variant) => ({ id: variant.id, sku: variant.sku, color: variant.color_name, size: variant.size_name, price: Number(variant.price), stock: variant.stock_quantity, lowStockThreshold: variant.low_stock_threshold, maxStockThreshold: variant.max_stock_threshold }))
+      const variants = variantRes.recordset.filter((variant) => variant.product_id === r.id).map((variant) => ({ id: variant.id, sku: variant.sku, color: variant.color_name, size: variant.size_name, price: Number(variant.price), costPrice: Number(variant.cost_price || 0), floorPrice: Number(variant.floor_price || 0), stock: variant.stock_quantity, lowStockThreshold: variant.low_stock_threshold, maxStockThreshold: variant.max_stock_threshold }))
         .sort((a, b) => (catalog.colors?.indexOf(a.color) ?? 0) - (catalog.colors?.indexOf(b.color) ?? 0) || (catalog.sizes?.indexOf(a.size) ?? 0) - (catalog.sizes?.indexOf(b.size) ?? 0));
       return { ...catalog, ...r, productCode: r.product_code, collection: r.collection_name || catalog.collection, collections: r.collections_json ? JSON.parse(r.collections_json) : catalog.collections, material: r.material || catalog.material, stock: variants.reduce((sum, variant) => sum + variant.stock, 0), variants, images: JSON.parse(r.images_json), colors: JSON.parse(r.colors_json), colorImages: JSON.parse(r.color_images_json) };
     });
@@ -166,7 +166,7 @@ export const db = {
     if (!r) return null;
     const catalog = catalogProducts.find((product) => product.id === r.id) || {};
     const variantRes = await p.request().input("product_id", sql.Int, numId).query("SELECT * FROM ProductVariants WHERE product_id=@product_id AND is_active=1 ORDER BY color_name, size_name");
-    const variants = variantRes.recordset.map((variant) => ({ id: variant.id, sku: variant.sku, color: variant.color_name, size: variant.size_name, price: Number(variant.price), stock: variant.stock_quantity, lowStockThreshold: variant.low_stock_threshold, maxStockThreshold: variant.max_stock_threshold }))
+    const variants = variantRes.recordset.map((variant) => ({ id: variant.id, sku: variant.sku, color: variant.color_name, size: variant.size_name, price: Number(variant.price), costPrice: Number(variant.cost_price || 0), floorPrice: Number(variant.floor_price || 0), stock: variant.stock_quantity, lowStockThreshold: variant.low_stock_threshold, maxStockThreshold: variant.max_stock_threshold }))
       .sort((a, b) => (catalog.colors?.indexOf(a.color) ?? 0) - (catalog.colors?.indexOf(b.color) ?? 0) || (catalog.sizes?.indexOf(a.size) ?? 0) - (catalog.sizes?.indexOf(b.size) ?? 0));
     return {
       ...catalog, ...r,
@@ -287,6 +287,16 @@ export const db = {
     }
   },
 
+  async updateVariantPricing(productId, variantId, costPrice, floorPrice) {
+    const p = await getActivePool();
+    const result = await p.request().input("product_id", sql.Int, Number(productId)).input("variant_id", sql.NVarChar, variantId).query("SELECT id,price FROM ProductVariants WHERE id=@variant_id AND product_id=@product_id AND is_active=1");
+    if (!result.recordset.length) throw new Error("Không tìm thấy SKU cần cập nhật.");
+    const sellingPrice = Number(result.recordset[0].price);
+    if (costPrice < 0 || floorPrice < costPrice || floorPrice > sellingPrice) throw new Error("Giá phải thỏa mãn: 0 ≤ giá vốn ≤ giá sàn ≤ giá bán.");
+    await p.request().input("product_id", sql.Int, Number(productId)).input("variant_id", sql.NVarChar, variantId).input("cost", sql.Decimal(18,0), costPrice).input("floor", sql.Decimal(18,0), floorPrice).query("UPDATE ProductVariants SET cost_price=@cost,floor_price=@floor,updated_at=GETDATE() WHERE id=@variant_id AND product_id=@product_id");
+    return { costPrice, floorPrice, sellingPrice };
+  },
+
   // ==========================================
   // ORDERS TABLE & ACID TRANSACTIONS
   // ==========================================
@@ -401,14 +411,15 @@ export const db = {
           .input("unit_price", sql.Decimal(18, 0), item.price)
           .input("total_price", sql.Decimal(18, 0), item.price * item.quantity)
           .input("original_unit_price", sql.Decimal(18, 0), item.originalUnitPrice ?? item.price)
+          .input("unit_cost_snapshot", sql.Decimal(18, 0), item.costPrice || null)
           .input("automatic_discount_total", sql.Decimal(18, 0), item.automaticDiscount || 0)
           .input("order_discount_allocated", sql.Decimal(18, 0), item.orderDiscountAllocated || 0)
           .input("final_line_total", sql.Decimal(18, 0), item.finalLineTotal ?? item.price * item.quantity)
           .input("promotion_snapshot_json", sql.NVarChar, item.automaticPromotion ? JSON.stringify({ id: item.automaticPromotion.id, name: item.automaticPromotion.name, type: item.automaticPromotion.discount_type, value: item.automaticPromotion.discount_value }) : null)
           .input("image_url", sql.NVarChar, item.image || null)
           .query(`
-            INSERT INTO OrderItems (order_id, product_id, product_name, selected_color, selected_size, variant_id, variant_sku, quantity, unit_price, total_price, image_url,original_unit_price,automatic_discount_total,order_discount_allocated,final_line_total,promotion_snapshot_json, created_at)
-            VALUES (@order_id, @product_id, @product_name, @selected_color, @selected_size, @variant_id, @variant_sku, @quantity, @unit_price, @final_line_total, @image_url,@original_unit_price,@automatic_discount_total,@order_discount_allocated,@final_line_total,@promotion_snapshot_json, GETDATE())
+            INSERT INTO OrderItems (order_id, product_id, product_name, selected_color, selected_size, variant_id, variant_sku, quantity, unit_price, total_price, image_url,original_unit_price,unit_cost_snapshot,automatic_discount_total,order_discount_allocated,final_line_total,promotion_snapshot_json, created_at)
+            VALUES (@order_id, @product_id, @product_name, @selected_color, @selected_size, @variant_id, @variant_sku, @quantity, @unit_price, @final_line_total, @image_url,@original_unit_price,@unit_cost_snapshot,@automatic_discount_total,@order_discount_allocated,@final_line_total,@promotion_snapshot_json, GETDATE())
           `);
 
         if (item.variantId) {
@@ -444,7 +455,7 @@ export const db = {
         if (promotionData.codePromotion) appliedMap.set(promotionData.codePromotion.id, { promotion: promotionData.codePromotion, code: promotionData.codePromotion });
         const applied = [...appliedMap.values()];
         for (const entry of applied) {
-          const locked = await transaction.request().input("id", sql.Int, entry.promotion.id).query("SELECT id,usage_limit_total,usage_limit_per_customer,used_count FROM Promotions WITH (UPDLOCK,HOLDLOCK) WHERE id=@id AND status='active' AND is_archived=0 AND start_at<=GETDATE() AND (end_at IS NULL OR end_at>GETDATE())");
+          const locked = await transaction.request().input("id", sql.Int, entry.promotion.id).query("SELECT id,usage_limit_total,usage_limit_per_customer,used_count,budget_total,budget_reserved,budget_spent,approval_status FROM Promotions WITH (UPDLOCK,HOLDLOCK) WHERE id=@id AND status='active' AND approval_status='approved' AND is_archived=0 AND start_at<=GETDATE() AND (end_at IS NULL OR end_at>GETDATE())");
           if (!locked.recordset.length || (locked.recordset[0].usage_limit_total && locked.recordset[0].used_count >= locked.recordset[0].usage_limit_total)) throw new Error("Chương trình khuyến mãi vừa hết hiệu lực hoặc hết lượt sử dụng.");
           if (locked.recordset[0].usage_limit_per_customer && orderData.customer_id) {
             const usedByCustomer = await transaction.request().input("promotion_id", sql.Int, entry.promotion.id).input("customer_id", sql.NVarChar, orderData.customer_id).query("SELECT COUNT(*) total FROM PromotionUsages WITH (UPDLOCK,HOLDLOCK) WHERE promotion_id=@promotion_id AND customer_id=@customer_id AND status='consumed'");
@@ -455,9 +466,15 @@ export const db = {
             if (!codeLock.recordset.length || (codeLock.recordset[0].usage_limit && codeLock.recordset[0].used_count >= codeLock.recordset[0].usage_limit)) throw new Error("Mã giảm giá vừa hết lượt sử dụng.");
             await transaction.request().input("id", sql.Int, entry.code.promotion_code_id).query("UPDATE PromotionCodes SET used_count=used_count+1,updated_at=GETDATE() WHERE id=@id");
           }
-          await transaction.request().input("id", sql.Int, entry.promotion.id).query("UPDATE Promotions SET used_count=used_count+1,updated_at=GETDATE() WHERE id=@id");
           const itemDiscount = promotionData.items.filter((item) => item.automaticPromotion?.id === entry.promotion.id).reduce((sum, item) => sum + item.automaticDiscount, 0);
-          await transaction.request().input("promotion_id", sql.Int, entry.promotion.id).input("code_id", sql.Int, entry.code?.promotion_code_id || null).input("order_id", sql.NVarChar, orderData.id).input("customer_id", sql.NVarChar, orderData.customer_id).input("discount", sql.Decimal(18,0), entry.code ? promotionData.codeDiscountTotal : itemDiscount).input("shipping", sql.Decimal(18,0), entry.code ? promotionData.shippingDiscountTotal : 0).query("INSERT INTO PromotionUsages(promotion_id,promotion_code_id,order_id,customer_id,discount_amount,shipping_discount,status) VALUES(@promotion_id,@code_id,@order_id,@customer_id,@discount,@shipping,'consumed')");
+          const discountAmount = entry.code ? promotionData.codeDiscountTotal : itemDiscount;
+          const shippingAmount = entry.code ? promotionData.shippingDiscountTotal : 0;
+          const budgetAmount = Number(discountAmount || 0) + Number(shippingAmount || 0);
+          const budgetTotal = Number(locked.recordset[0].budget_total || 0);
+          const budgetUsed = Number(locked.recordset[0].budget_reserved || 0) + Number(locked.recordset[0].budget_spent || 0);
+          if (budgetTotal && budgetUsed + budgetAmount > budgetTotal) throw new Error("Ngân sách chương trình không còn đủ cho đơn hàng này.");
+          await transaction.request().input("id", sql.Int, entry.promotion.id).input("budget", sql.Decimal(18,0), budgetAmount).query("UPDATE Promotions SET used_count=used_count+1,budget_reserved=budget_reserved+@budget,updated_at=GETDATE() WHERE id=@id");
+          await transaction.request().input("promotion_id", sql.Int, entry.promotion.id).input("code_id", sql.Int, entry.code?.promotion_code_id || null).input("order_id", sql.NVarChar, orderData.id).input("customer_id", sql.NVarChar, orderData.customer_id).input("discount", sql.Decimal(18,0), discountAmount).input("shipping", sql.Decimal(18,0), shippingAmount).input("budget", sql.Decimal(18,0), budgetAmount).query("INSERT INTO PromotionUsages(promotion_id,promotion_code_id,order_id,customer_id,discount_amount,shipping_discount,status,budget_status,budget_amount) VALUES(@promotion_id,@code_id,@order_id,@customer_id,@discount,@shipping,'consumed','reserved',@budget)");
         }
       }
 
@@ -558,11 +575,21 @@ export const db = {
       }
 
       if (newStatus === "cancelled") {
-        const usages = await transaction.request().input("order_id", sql.NVarChar, orderId).query("SELECT id,promotion_id,promotion_code_id FROM PromotionUsages WITH (UPDLOCK,HOLDLOCK) WHERE order_id=@order_id AND status='consumed'");
+        const usages = await transaction.request().input("order_id", sql.NVarChar, orderId).query("SELECT id,promotion_id,promotion_code_id,budget_amount,budget_status FROM PromotionUsages WITH (UPDLOCK,HOLDLOCK) WHERE order_id=@order_id AND status='consumed'");
         for (const usage of usages.recordset) {
           await transaction.request().input("id", sql.BigInt, usage.id).input("released_by", sql.NVarChar, updatedBy).query("UPDATE PromotionUsages SET status='released',released_at=GETDATE(),released_by=@released_by,release_reason=N'Đơn hàng bị hủy trước khi giao' WHERE id=@id");
-          await transaction.request().input("id", sql.Int, usage.promotion_id).query("UPDATE Promotions SET used_count=CASE WHEN used_count>0 THEN used_count-1 ELSE 0 END,updated_at=GETDATE() WHERE id=@id");
+          await transaction.request().input("id", sql.Int, usage.promotion_id).input("budget", sql.Decimal(18,0), usage.budget_amount || 0).query(`UPDATE Promotions SET used_count=CASE WHEN used_count>0 THEN used_count-1 ELSE 0 END,
+            budget_reserved=CASE WHEN @budget<=budget_reserved THEN budget_reserved-@budget ELSE 0 END,
+            budget_spent=CASE WHEN '${usage.budget_status}'='spent' AND @budget<=budget_spent THEN budget_spent-@budget ELSE budget_spent END,updated_at=GETDATE() WHERE id=@id`);
           if (usage.promotion_code_id) await transaction.request().input("id", sql.Int, usage.promotion_code_id).query("UPDATE PromotionCodes SET used_count=CASE WHEN used_count>0 THEN used_count-1 ELSE 0 END,updated_at=GETDATE() WHERE id=@id");
+        }
+      }
+
+      if (newStatus === "delivered") {
+        const usages = await transaction.request().input("order_id", sql.NVarChar, orderId).query("SELECT id,promotion_id,budget_amount FROM PromotionUsages WITH (UPDLOCK,HOLDLOCK) WHERE order_id=@order_id AND status='consumed' AND budget_status='reserved'");
+        for (const usage of usages.recordset) {
+          await transaction.request().input("id", sql.Int, usage.promotion_id).input("budget", sql.Decimal(18,0), usage.budget_amount || 0).query("UPDATE Promotions SET budget_reserved=CASE WHEN @budget<=budget_reserved THEN budget_reserved-@budget ELSE 0 END,budget_spent=budget_spent+@budget,updated_at=GETDATE() WHERE id=@id");
+          await transaction.request().input("id", sql.BigInt, usage.id).query("UPDATE PromotionUsages SET budget_status='spent' WHERE id=@id");
         }
       }
 
@@ -571,7 +598,15 @@ export const db = {
         .input("id", sql.NVarChar, orderId)
         .input("order_status", sql.NVarChar, newStatus)
         .input("stock_deducted", sql.Bit, stockDeducted ? 1 : 0)
-        .query("UPDATE Orders SET order_status = @order_status, stock_deducted = @stock_deducted, updated_at = GETDATE() WHERE id = @id");
+        .query(`UPDATE Orders
+          SET order_status = @order_status,
+              stock_deducted = @stock_deducted,
+              delivered_at = CASE WHEN @order_status='delivered' THEN GETDATE() ELSE delivered_at END,
+              recognized_at = CASE WHEN @order_status='delivered'
+                AND EXISTS (SELECT 1 FROM Payments WHERE order_id=@id AND payment_status='paid')
+                THEN GETDATE() ELSE recognized_at END,
+              updated_at = GETDATE()
+          WHERE id = @id`);
 
       // Order status and payment status are strictly independent.
       // Moving to 'delivered' DOES NOT automatically mark payment as 'paid'.
@@ -675,6 +710,13 @@ export const db = {
               updated_at = GETDATE() 
           WHERE order_id = @order_id
         `);
+
+      if (order.order_status === "delivered") {
+        await transaction.request().input("order_id", sql.NVarChar, orderId).query(`
+          UPDATE Orders SET recognized_at=COALESCE(recognized_at,GETDATE()), updated_at=GETDATE()
+          WHERE id=@order_id
+        `);
+      }
 
       const auditNote = note 
         ? `Xác nhận thanh toán thành công: ${note}` 
@@ -789,92 +831,147 @@ export const db = {
     return res.recordset;
   },
 
-  // ==========================================
-  // REVENUE & AUDIT REPORTING (Strictly Verified Payments)
-  // ==========================================
-  async getRevenueReport() {
+  // Revenue uses four independent dates: order creation, payment verification,
+  // recognition (delivered + paid), and refund. This prevents one mutable status
+  // from silently rewriting historical business performance.
+  async getRevenueReport({ from = null, to = null, previousFrom = null, previousTo = null } = {}) {
     const allOrders = await this.getAllOrders();
-
-    // ONLY orders with verified payment (payment.payment_status === 'paid') contribute to actual collected revenue
-    let actualCollectedRevenue = 0;
-    let pendingVerificationRevenue = 0;
-    let refundPendingRevenue = 0;
-    let refundedRevenue = 0;
-    let unpaidRevenue = 0;
-    let grossMerchandiseValue = 0;
-    let productDiscountTotal = 0;
-    let codeDiscountTotal = 0;
-    let shippingDiscountTotal = 0;
-
-    const categorySales = { men: 0, women: 0, kids: 0 };
-    const productSalesMap = {};
-
-    allOrders.forEach((order) => {
-      const pmt = order.payment;
-      const status = pmt ? pmt.payment_status : "unpaid";
-
-      if (status === "paid") {
-        actualCollectedRevenue += order.total_amount;
-        grossMerchandiseValue += Number(order.original_subtotal || order.total_amount);
-        productDiscountTotal += Number(order.product_discount_total || 0);
-        codeDiscountTotal += Number(order.code_discount_total || 0);
-        shippingDiscountTotal += Number(order.shipping_discount_total || 0);
-        order.items.forEach((item) => {
-          const catalogProduct = catalogProducts.find((product) => product.id === Number(item.product_id));
-          const cat = ["men", "women", "kids"].includes(catalogProduct?.audience)
-            ? catalogProduct.audience
-            : "kids";
-          categorySales[cat] = (categorySales[cat] || 0) + item.total_price;
-
-          if (!productSalesMap[item.product_id]) {
-            productSalesMap[item.product_id] = {
-              id: item.product_id,
-              name: item.product_name,
-              total_quantity: 0,
-              total_revenue: 0,
-              image_url: item.image_url,
-            };
-          }
-          productSalesMap[item.product_id].total_quantity += item.quantity;
-          productSalesMap[item.product_id].total_revenue += item.total_price;
-        });
-      } else if (status === "pending_verification") {
-        pendingVerificationRevenue += order.total_amount;
-      } else if (status === "refund_pending") {
-        refundPendingRevenue += order.total_amount;
-      } else if (status === "refunded") {
-        refundedRevenue += order.total_amount;
-      } else {
-        unpaidRevenue += order.total_amount;
-      }
-    });
-
-    const topSellingProducts = Object.values(productSalesMap).sort((a, b) => b.total_revenue - a.total_revenue);
-    const paidOrdersCount = allOrders.filter((o) => o.payment?.payment_status === "paid").length;
-
-    return {
-      actualCollectedRevenue,
-      grossMerchandiseValue,
-      productDiscountTotal,
-      codeDiscountTotal,
-      shippingDiscountTotal,
-      pendingVerificationRevenue,
-      refundPendingRevenue,
-      unpaidRevenue,
-      refundedRevenue,
-      totalOrders: allOrders.length,
-      paidOrdersCount,
-      averageOrderValue: paidOrdersCount > 0 ? Math.round(actualCollectedRevenue / paidOrdersCount) : 0,
-      categorySales,
-      topSellingProducts,
-      ordersByStatus: {
-        pending: allOrders.filter((o) => o.order_status === "pending").length,
-        confirmed: allOrders.filter((o) => o.order_status === "confirmed").length,
-        processing: allOrders.filter((o) => o.order_status === "processing").length,
-        shipping: allOrders.filter((o) => o.order_status === "shipping").length,
-        delivered: allOrders.filter((o) => o.order_status === "delivered").length,
-        cancelled: allOrders.filter((o) => o.order_status === "cancelled").length,
-      },
+    const amount = (value) => Number(value || 0);
+    const inRange = (value, start, end) => {
+      if (!value) return false;
+      const time = new Date(value).getTime();
+      return (!start || time >= start.getTime()) && (!end || time < end.getTime());
     };
+    const recognizedDate = (order) => order.recognized_at || null;
+
+    const summarize = (start, end, includeDetails = false) => {
+      const createdOrders = allOrders.filter((order) => inRange(order.created_at, start, end));
+      const recognizedOrders = allOrders.filter((order) => inRange(recognizedDate(order), start, end));
+      const collectedOrders = allOrders.filter((order) => inRange(order.payment?.verified_at, start, end));
+      const refundedOrders = allOrders.filter((order) => inRange(order.payment?.refunded_at, start, end));
+
+      const grossMerchandiseValue = createdOrders
+        .filter((order) => order.order_status !== "cancelled")
+        .reduce((sum, order) => sum + amount(order.original_subtotal || order.total_amount), 0);
+      const recognizedRevenue = recognizedOrders.reduce((sum, order) => sum + amount(order.total_amount), 0);
+      const actualCollectedRevenue = collectedOrders.reduce((sum, order) => sum + amount(order.payment?.amount || order.total_amount), 0);
+      const refundedRevenue = refundedOrders.reduce((sum, order) => sum + amount(order.payment?.amount || order.total_amount), 0);
+      const netRevenue = recognizedRevenue - refundedRevenue;
+      const productDiscountTotal = recognizedOrders.reduce((sum, order) => sum + amount(order.product_discount_total), 0);
+      const codeDiscountTotal = recognizedOrders.reduce((sum, order) => sum + amount(order.code_discount_total), 0);
+      const shippingDiscountTotal = recognizedOrders.reduce((sum, order) => sum + amount(order.shipping_discount_total), 0);
+      const shippingRevenue = recognizedOrders.reduce((sum, order) => sum + amount(order.shipping_fee), 0);
+      const allRecognizedItems = recognizedOrders.flatMap((order) => order.items || []);
+      const itemsWithCost = allRecognizedItems.filter((item) => item.unit_cost_snapshot != null);
+      const costOfGoodsSold = itemsWithCost.reduce((sum, item) => sum + amount(item.unit_cost_snapshot) * amount(item.quantity), 0);
+      const merchandiseRevenue = recognizedOrders.reduce((sum, order) => sum + amount(order.total_amount) - amount(order.shipping_fee), 0);
+      const grossProfit = itemsWithCost.length === allRecognizedItems.length && allRecognizedItems.length > 0
+        ? merchandiseRevenue - costOfGoodsSold
+        : null;
+
+      const summary = {
+        grossMerchandiseValue,
+        recognizedRevenue,
+        actualCollectedRevenue,
+        refundedRevenue,
+        netRevenue,
+        productDiscountTotal,
+        codeDiscountTotal,
+        shippingDiscountTotal,
+        shippingRevenue,
+        costOfGoodsSold,
+        grossProfit,
+        grossMargin: grossProfit == null || merchandiseRevenue <= 0 ? null : grossProfit / merchandiseRevenue * 100,
+        costCoverage: allRecognizedItems.length ? itemsWithCost.length / allRecognizedItems.length * 100 : 0,
+        totalOrders: createdOrders.length,
+        recognizedOrdersCount: recognizedOrders.length,
+        paidOrdersCount: collectedOrders.length,
+        refundedOrdersCount: refundedOrders.length,
+        averageOrderValue: recognizedOrders.length ? Math.round(recognizedRevenue / recognizedOrders.length) : 0,
+      };
+      if (!includeDetails) return summary;
+
+      const currentOrders = createdOrders;
+      summary.pendingVerificationRevenue = currentOrders.filter((order) => order.payment?.payment_status === "pending_verification").reduce((sum, order) => sum + amount(order.total_amount), 0);
+      summary.refundPendingRevenue = allOrders.filter((order) => order.payment?.payment_status === "refund_pending").reduce((sum, order) => sum + amount(order.total_amount), 0);
+      summary.unpaidRevenue = currentOrders.filter((order) => ["unpaid", null, undefined].includes(order.payment?.payment_status)).reduce((sum, order) => sum + amount(order.total_amount), 0);
+      summary.ordersByStatus = Object.fromEntries(["pending", "confirmed", "processing", "shipping", "delivered", "cancelled"].map((status) => [status, currentOrders.filter((order) => order.order_status === status).length]));
+
+      const categorySales = { men: 0, women: 0, kids: 0, unknown: 0 };
+      const productSalesMap = new Map();
+      const promotionMap = new Map();
+      const trendMap = new Map();
+      for (const order of recognizedOrders) {
+        const day = new Date(recognizedDate(order)).toISOString().slice(0, 10);
+        const trend = trendMap.get(day) || { date: day, revenue: 0, orders: 0, units: 0, refunds: 0 };
+        trend.revenue += amount(order.total_amount);
+        trend.orders += 1;
+        trend.units += (order.items || []).reduce((sum, item) => sum + amount(item.quantity), 0);
+        trendMap.set(day, trend);
+
+        for (const item of order.items || []) {
+          const catalogProduct = catalogProducts.find((product) => product.id === Number(item.product_id));
+          const category = ["men", "women", "kids"].includes(catalogProduct?.audience) ? catalogProduct.audience : "unknown";
+          categorySales[category] += amount(item.total_price);
+          const key = item.variant_sku || `product-${item.product_id}`;
+          const product = productSalesMap.get(key) || { id: item.product_id, sku: item.variant_sku || "Chưa có SKU", name: item.product_name, total_quantity: 0, total_revenue: 0, total_cost: 0, cost_complete: true, image_url: item.image_url };
+          product.total_quantity += amount(item.quantity);
+          product.total_revenue += amount(item.total_price);
+          if (item.unit_cost_snapshot == null) product.cost_complete = false;
+          else product.total_cost += amount(item.unit_cost_snapshot) * amount(item.quantity);
+          productSalesMap.set(key, product);
+        }
+
+        const discount = amount(order.product_discount_total) + amount(order.code_discount_total) + amount(order.shipping_discount_total);
+        if (discount > 0) {
+          let names = [];
+          try {
+            const snapshot = JSON.parse(order.promotion_snapshot_json || "{}");
+            names = [...(snapshot.automaticPromotions || []).map((promotion) => promotion.name), snapshot.codePromotion?.name].filter(Boolean);
+          } catch { /* Invalid legacy snapshot: use the fallback label below. */ }
+          if (!names.length) names = [order.promotion_code || "Khuyến mãi tự động"];
+          for (const name of new Set(names)) {
+            const promotion = promotionMap.get(name) || { name, orders: 0, attributedRevenue: 0, discountCost: 0 };
+            promotion.orders += 1;
+            promotion.attributedRevenue += amount(order.total_amount) / names.length;
+            promotion.discountCost += discount / names.length;
+            promotionMap.set(name, promotion);
+          }
+        }
+      }
+      for (const order of refundedOrders) {
+        const day = new Date(order.payment.refunded_at).toISOString().slice(0, 10);
+        const trend = trendMap.get(day) || { date: day, revenue: 0, orders: 0, units: 0, refunds: 0 };
+        trend.refunds += amount(order.payment?.amount || order.total_amount);
+        trendMap.set(day, trend);
+      }
+
+      summary.categorySales = categorySales;
+      summary.topSellingProducts = [...productSalesMap.values()].map((product) => ({ ...product, gross_profit: product.cost_complete ? product.total_revenue - product.total_cost : null })).sort((a, b) => b.total_revenue - a.total_revenue);
+      summary.promotionPerformance = [...promotionMap.values()].sort((a, b) => b.attributedRevenue - a.attributedRevenue);
+      summary.trend = [...trendMap.values()].sort((a, b) => a.date.localeCompare(b.date));
+      summary.auditOrders = recognizedOrders.map((order) => ({
+        id: order.id, customer_name: order.customer_name, customer_email: order.customer_email,
+        created_at: order.created_at, delivered_at: order.delivered_at, recognized_at: order.recognized_at,
+        verified_at: order.payment?.verified_at, payment_method: order.payment?.payment_method,
+        transaction_reference: order.payment?.transaction_reference, original_subtotal: amount(order.original_subtotal),
+        discounts: amount(order.product_discount_total) + amount(order.code_discount_total) + amount(order.shipping_discount_total),
+        shipping_fee: amount(order.shipping_fee), total_amount: amount(order.total_amount), items: order.items,
+      })).sort((a, b) => new Date(b.recognized_at) - new Date(a.recognized_at));
+      return summary;
+    };
+
+    const report = summarize(from, to, true);
+    const previous = previousFrom && previousTo ? summarize(previousFrom, previousTo, false) : null;
+    const change = (current, old) => old ? (current - old) / old * 100 : null;
+    report.comparison = previous ? {
+      recognizedRevenue: change(report.recognizedRevenue, previous.recognizedRevenue),
+      netRevenue: change(report.netRevenue, previous.netRevenue),
+      orderCount: change(report.recognizedOrdersCount, previous.recognizedOrdersCount),
+      averageOrderValue: change(report.averageOrderValue, previous.averageOrderValue),
+      previous,
+    } : null;
+    report.period = { from: from?.toISOString() || null, to: to?.toISOString() || null };
+    return report;
   },
 };

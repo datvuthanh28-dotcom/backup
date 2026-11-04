@@ -50,12 +50,13 @@ export default function AdminDashboard() {
   const totalDeliveredRevenue = metrics.totalDeliveredRevenue;
 
   // Category sales breakdown percentages
-  const catSales = metrics.categorySales || { men: 0, women: 0, kids: 0 };
-  const totalCatSales = (catSales.men || 0) + (catSales.women || 0) + (catSales.kids || 0);
+  const catSales = metrics.categorySales || { men: 0, women: 0, kids: 0, unknown: 0 };
+  const totalCatSales = (catSales.men || 0) + (catSales.women || 0) + (catSales.kids || 0) + (catSales.unknown || 0);
 
   const menPct = totalCatSales ? Math.round(((catSales.men || 0) / totalCatSales) * 100) : 0;
   const womenPct = totalCatSales ? Math.round(((catSales.women || 0) / totalCatSales) * 100) : 0;
   const kidsPct = totalCatSales ? Math.round(((catSales.kids || 0) / totalCatSales) * 100) : 0;
+  const unknownPct = totalCatSales ? Math.round(((catSales.unknown || 0) / totalCatSales) * 100) : 0;
 
   return (
     <div>
@@ -222,6 +223,15 @@ export default function AdminDashboard() {
                 <div style={{ width: `${kidsPct}%`, height: "100%", backgroundColor: "#8A5A36", borderRadius: "5px" }} />
               </div>
             </div>
+            {catSales.unknown > 0 && <div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13.5px", marginBottom: "6px" }}>
+                <span><strong>Chưa phân loại:</strong> {formatPrice(catSales.unknown)}</span>
+                <span style={{ fontWeight: "600", color: "#7B6D63" }}>{unknownPct}%</span>
+              </div>
+              <div style={{ height: "10px", backgroundColor: "#F0EAE1", borderRadius: "5px", overflow: "hidden" }}>
+                <div style={{ width: `${unknownPct}%`, height: "100%", backgroundColor: "#7B6D63", borderRadius: "5px" }} />
+              </div>
+            </div>}
           </div>
 
           <div

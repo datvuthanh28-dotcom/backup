@@ -4,6 +4,7 @@ import {
   getProductById,
   updateStock,
   updateVariantStock,
+  updateVariantPricing,
   getInventoryMovements,
 } from "../controllers/productController.js";
 import { authenticateToken, requireRole } from "../middleware/auth.js";
@@ -15,6 +16,7 @@ router.get("/inventory/movements", authenticateToken, requireRole("staff", "admi
 router.get("/:id", getProductById);
 router.patch("/:id/stock", authenticateToken, requireRole("staff", "admin"), updateStock);
 router.patch("/:id/variants/:variantId/stock", authenticateToken, requireRole("staff", "admin"), updateVariantStock);
+router.patch("/:id/variants/:variantId/pricing", authenticateToken, requireRole("admin"), updateVariantPricing);
 
 export default router;
 

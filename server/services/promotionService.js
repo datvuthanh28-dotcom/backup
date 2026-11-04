@@ -10,7 +10,7 @@ const targetMatches = (promotion, item) => {
   const excluded = targets.filter((target) => target.is_excluded);
   const matches = (target) => target.target_type === "store" ||
     (target.target_type === "product" && String(item.id) === target.target_value) ||
-    (target.target_type === "variant" && String(item.variantId || "") === target.target_value) ||
+    (target.target_type === "variant" && [String(item.variantId || ""), String(item.variantSku || item.sku || "")].includes(target.target_value)) ||
     (target.target_type === "category" && [item.category, item.productType, item.subcategory].includes(target.target_value)) ||
     (target.target_type === "audience" && [item.audience, item.gender].includes(target.target_value));
   return (included.length === 0 || included.some(matches)) && !excluded.some(matches);
@@ -32,8 +32,9 @@ export async function loadPromotion(poolOrTransaction, normalizedCode = "") {
   const result = await request.query(`
     SELECT DISTINCT p.*,pc.id promotion_code_id,pc.code,pc.usage_limit code_usage_limit,pc.used_count code_used_count,pc.is_active code_is_active
     FROM Promotions p LEFT JOIN PromotionCodes pc ON pc.promotion_id=p.id AND pc.normalized_code=@code
-    WHERE p.is_archived=0 AND p.status='active' AND p.start_at<=GETDATE() AND (p.end_at IS NULL OR p.end_at>GETDATE())
+    WHERE p.is_archived=0 AND p.status='active' AND p.approval_status='approved' AND p.start_at<=GETDATE() AND (p.end_at IS NULL OR p.end_at>GETDATE())
       AND (p.usage_limit_total IS NULL OR p.used_count<p.usage_limit_total)
+      AND (p.budget_total IS NULL OR p.budget_reserved+p.budget_spent<p.budget_total)
       AND (p.is_automatic=1 OR pc.id IS NOT NULL)`);
   const promotions = result.recordset;
   if (!promotions.length) return [];
@@ -57,7 +58,13 @@ export async function calculatePromotions({ items, code = "", customerId = null,
 
   const pricedItems = items.map((item) => {
     const originalLineTotal = roundMoney(item.price * item.quantity);
-    const candidates = automatic.filter((promotion) => targetMatches(promotion, item) && ["percentage", "fixed_amount"].includes(promotion.discount_type)).map((promotion) => ({ promotion, discount: productDiscount(promotion, item) }));
+    const candidates = automatic.filter((promotion) => targetMatches(promotion, item) && ["percentage", "fixed_amount"].includes(promotion.discount_type)).map((promotion) => {
+      let discount = productDiscount(promotion, item);
+      if (promotion.max_discount_per_order) discount = Math.min(discount, Number(promotion.max_discount_per_order));
+      const floor = Number(item.floorPrice || 0);
+      if (floor > 0) discount = Math.min(discount, Math.max(0, originalLineTotal - floor * item.quantity));
+      return { promotion, discount };
+    });
     candidates.sort((a, b) => b.discount - a.discount || b.promotion.priority - a.promotion.priority || a.promotion.id - b.promotion.id);
     const winner = candidates[0] || null;
     return { ...item, originalUnitPrice: item.price, originalLineTotal, automaticDiscount: winner?.discount || 0, automaticPromotion: winner?.promotion || null, orderDiscountAllocated: 0 };
@@ -81,6 +88,9 @@ export async function calculatePromotions({ items, code = "", customerId = null,
       if (!eligibleTotal) throw new Error("Mã này không áp dụng cho sản phẩm trong giỏ hàng.");
       codeDiscountTotal = codePromotion.discount_type === "percentage" ? roundMoney(eligibleTotal * Number(codePromotion.discount_value) / 100) : Math.min(eligibleTotal, roundMoney(codePromotion.discount_value));
       if (codePromotion.maximum_discount) codeDiscountTotal = Math.min(codeDiscountTotal, Number(codePromotion.maximum_discount));
+      if (codePromotion.max_discount_per_order) codeDiscountTotal = Math.min(codeDiscountTotal, Number(codePromotion.max_discount_per_order));
+      const floorHeadroom = eligible.reduce((sum, item) => sum + Math.max(0, item.originalLineTotal - item.automaticDiscount - Number(item.floorPrice || 0) * item.quantity), 0);
+      if (eligible.some((item) => Number(item.floorPrice || 0) > 0)) codeDiscountTotal = Math.min(codeDiscountTotal, floorHeadroom);
       let allocated = 0;
       eligible.forEach((item, index) => {
         const base = item.originalLineTotal - item.automaticDiscount;

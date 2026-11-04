@@ -85,10 +85,10 @@ export function StoreProvider({ children }) {
   }, [isAuthenticated]);
 
   // Fetch Revenue Report from Backend (Admin only)
-  const refreshRevenueReport = useCallback(async () => {
+  const refreshRevenueReport = useCallback(async (filters = {}) => {
     if (currentUser?.role !== "admin") return;
     try {
-      const res = await reportAPI.getRevenue();
+      const res = await reportAPI.getRevenue(filters);
       if (res.success) {
         setRevenueReport(res.report);
       }
@@ -270,7 +270,7 @@ export function StoreProvider({ children }) {
           (revenueReport.ordersByStatus?.processing || 0) +
           (revenueReport.ordersByStatus?.shipping || 0),
         cancelledOrdersCount: revenueReport.ordersByStatus?.cancelled || 0,
-        totalDeliveredRevenue: revenueReport.actualCollectedRevenue || 0,
+        totalDeliveredRevenue: revenueReport.recognizedRevenue || 0,
         inFlightRevenue: revenueReport.pendingVerificationRevenue + revenueReport.unpaidRevenue || 0,
         cancelledAmount: revenueReport.refundedRevenue || 0,
         averageOrderValue: revenueReport.averageOrderValue || 0,
