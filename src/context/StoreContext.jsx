@@ -266,7 +266,7 @@ export function StoreProvider({ children }) {
         inFlightRevenue: revenueReport.pendingVerificationRevenue + revenueReport.unpaidRevenue || 0,
         cancelledAmount: revenueReport.refundedRevenue || 0,
         averageOrderValue: revenueReport.averageOrderValue || 0,
-        categorySales: revenueReport.categorySales || { men: 0, women: 0, accessories: 0 },
+        categorySales: revenueReport.categorySales || { men: 0, women: 0, kids: 0 },
         topSellingProducts: revenueReport.topSellingProducts || [],
       };
     }
@@ -288,7 +288,7 @@ export function StoreProvider({ children }) {
         .filter((o) => o.payment?.payment_status === "refunded")
         .reduce((sum, o) => sum + (o.total_amount || o.totalAmount || 0), 0),
       averageOrderValue: paidOrders.length > 0 ? Math.round(actualRevenue / paidOrders.length) : 0,
-      categorySales: { men: 0, women: 0, accessories: 0 },
+      categorySales: { men: 0, women: 0, kids: 0 },
       topSellingProducts: [],
     };
   };

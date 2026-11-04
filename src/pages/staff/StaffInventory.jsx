@@ -27,7 +27,7 @@ const GENDER_OPTIONS = [
   { id: "all", label: "Tất cả" },
   { id: "nam", label: "Nam" },
   { id: "nữ", label: "Nữ" },
-  { id: "unisex", label: "Unisex" },
+  { id: "kids", label: "Trẻ em" },
 ];
 
 const STOCK_OPTIONS = [
@@ -43,7 +43,8 @@ function normalizeGender(value) {
   const gender = String(value || "").toLowerCase();
   if (["men", "male", "nam"].includes(gender)) return "nam";
   if (["women", "female", "nữ", "nu"].includes(gender)) return "nữ";
-  return "unisex";
+  if (["kids", "kid", "children", "trẻ em", "tre em"].includes(gender)) return "kids";
+  return "";
 }
 
 function getVariantState(variant) {
@@ -418,7 +419,7 @@ export default function StaffInventory() {
 
                       <td style={{ padding: "12px 18px", textTransform: "capitalize", color: "#6B5A4B" }}>
                         {TYPE_LABELS[p.productType] || TYPE_LABELS[p.category] || p.productType || p.category}
-                        <div style={{ marginTop: 3, fontSize: 11.5, color: "#8A7350" }}>{normalizeGender(p.gender) === "nam" ? "Nam" : normalizeGender(p.gender) === "nữ" ? "Nữ" : "Unisex"}</div>
+                        <div style={{ marginTop: 3, fontSize: 11.5, color: "#8A7350" }}>{normalizeGender(p.gender) === "nam" ? "Nam" : normalizeGender(p.gender) === "nữ" ? "Nữ" : "Trẻ em"}</div>
                       </td>
 
                       <td style={{ padding: "12px 18px", fontWeight: "600", color: "#B89B5E" }}>

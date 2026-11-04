@@ -1,38 +1,36 @@
 # MAISON RUE — PRODUCT DATA CONTRACT
 
-Phiên bản: 1.0  
+Phiên bản: 2.0 — đồng bộ catalog 103 sản phẩm  
 Mục đích: Đây là khung bắt buộc để tạo mới hoặc thay thế catalog Maison Rue mà không phải sửa lại frontend, Staff Portal, checkout và nghiệp vụ kho.
 
 ## 1. Nguyên tắc không được thay đổi
 
 1. `Sản phẩm` là mẫu hàng chung, không phải đơn vị tồn kho.
-2. Mỗi sản phẩm có đúng một `product_code`, ví dụ `MR-006`.
-3. Mỗi tổ hợp màu và kích cỡ là một SKU bán được độc lập, ví dụ `MR-006-IVORY-M`.
+2. Mỗi sản phẩm có đúng một `product_code`, ví dụ `MR-106`.
+3. Mỗi tổ hợp màu và kích cỡ là một SKU bán được độc lập, ví dụ `MR-106-BROWN-M`.
 4. Tồn kho, Min và Max chỉ được quản lý tại SKU.
 5. Tổng tồn của sản phẩm luôn bằng tổng `stock_quantity` của các SKU đang hoạt động; không nhập tổng tồn thủ công.
 6. Không tạo SKU cha hoặc SKU con. Cấp cha là `product_code`; cấp bán hàng là `sku`.
 7. Không lưu trạng thái kho thành cột dữ liệu. Trạng thái phải được tính từ tồn kho, Min và Max.
 8. Mã sản phẩm, SKU và slug không được tái sử dụng cho một sản phẩm khác.
 
-## 2. Danh mục chuẩn
+## 2. Phân nhóm chuẩn của catalog hiện tại
 
 Chỉ sử dụng các mã danh mục dưới đây nếu chưa có quyết định thay đổi taxonomy toàn hệ thống.
 
-| `category` | `productType` hiển thị | Ý nghĩa |
+| `productType` | `category` dẫn xuất | Ý nghĩa |
 |---|---|---|
-| `shirts` | `Shirts` | Áo sơ mi |
-| `knitwear` | `Knitwear` | Đồ dệt kim |
-| `outerwear` | `Outerwear` | Áo khoác |
-| `trousers` | `Trousers` | Quần |
-| `one-piece-&-sets` | `One-Piece & Sets` | Đồ liền thân và bộ |
-| `footwear` | `Footwear` | Giày dép |
-| `accessories` | `Accessories` | Phụ kiện |
+| `Clothing` | `clothing` | Trang phục |
+| `Footwear` | `footwear` | Giày dép |
+| `Accessories` | `accessories` | Phụ kiện |
+
+`subcategory` mô tả nhóm nhỏ như `Knitwear`, `Shirts`, `Outerwear`, `Shoes`, `Bags`, `Hats`, `Toys` và được dùng cho bộ lọc danh mục.
 
 Đối tượng hợp lệ:
 
-- `nam`
-- `nữ`
-- `unisex`
+- `nam` với `audience: "men"`
+- `nữ` với `audience: "women"`
+- `kids` với `audience: "kids"`
 
 Không dùng đồng thời các giá trị như `men`, `male`, `women`, `female` trong dữ liệu nguồn.
 
@@ -42,15 +40,16 @@ Mỗi sản phẩm trong catalog nguồn phải có đầy đủ cấu trúc sau
 
 ```js
 {
-  id: 6,
-  productCode: "MR-006",
-  name: "Men's Riviera Linen Shirt",
-  slug: "nam-riviera-linen-shirt",
-  price: 2390000,
+  id: 106,
+  productCode: "MR-106",
+  name: "Merino Wool Knitted Polo",
+  slug: "men-merino-wool-knitted-polo-106",
+  price: 4890000,
 
-  category: "shirts",
-  productType: "Shirts",
-  subcategory: "Shirts",
+  audience: "men",
+  category: "clothing",
+  productType: "Clothing",
+  subcategory: "Knitwear",
   gender: "nam",
   collection: "Riviera Linen",
 
@@ -87,11 +86,11 @@ Mỗi sản phẩm trong catalog nguồn phải có đầy đủ cấu trúc sau
 
   variants: [
     {
-      id: "v-6-ivory-white-m",
-      sku: "MR-006-IVORY-WHITE-M",
-      color: "IVORY WHITE",
+      id: "v-106-brown-m",
+      sku: "MR-106-BROWN-M",
+      color: "Brown",
       size: "M",
-      price: 2390000,
+      price: 4890000,
       stock: 8,
       minStock: 3,
       maxStock: 20
@@ -117,7 +116,7 @@ MR-{ID gồm ít nhất 3 chữ số}
 Ví dụ:
 
 ```text
-ID 6   → MR-006
+ID 106 → MR-106
 ID 105 → MR-105
 ```
 
@@ -132,8 +131,8 @@ ID 105 → MR-105
 Ví dụ:
 
 ```text
-MR-006-IVORY-WHITE-M
-MR-006-NAVY-BLUE-L
+MR-106-BROWN-M
+MR-106-BEIGE-L
 MR-042-DARK-CHOCOLATE-ONE-SIZE
 ```
 
@@ -217,7 +216,7 @@ maxStock = 20
 | `name` | `product.name` | Not Null |
 | `price` | `product.price` | `> 0` |
 | `category` | `product.category` | Mã danh mục chuẩn |
-| `gender` | `product.gender` | `nam`, `nữ`, `unisex` |
+| `gender` | `product.gender` | `nam`, `nữ`, `kids` |
 | `images_json` | `product.images` | JSON hợp lệ |
 | `colors_json` | `product.colors` | JSON hợp lệ |
 | `color_images_json` | `product.colorImages` | JSON hợp lệ |

@@ -50,12 +50,12 @@ export default function AdminDashboard() {
   const totalDeliveredRevenue = metrics.totalDeliveredRevenue;
 
   // Category sales breakdown percentages
-  const catSales = metrics.categorySales || { men: 0, women: 0, accessories: 0 };
-  const totalCatSales = (catSales.men || 0) + (catSales.women || 0) + (catSales.accessories || 0);
+  const catSales = metrics.categorySales || { men: 0, women: 0, kids: 0 };
+  const totalCatSales = (catSales.men || 0) + (catSales.women || 0) + (catSales.kids || 0);
 
   const menPct = totalCatSales ? Math.round(((catSales.men || 0) / totalCatSales) * 100) : 0;
   const womenPct = totalCatSales ? Math.round(((catSales.women || 0) / totalCatSales) * 100) : 0;
-  const accPct = totalCatSales ? Math.round(((catSales.accessories || 0) / totalCatSales) * 100) : 0;
+  const kidsPct = totalCatSales ? Math.round(((catSales.kids || 0) / totalCatSales) * 100) : 0;
 
   return (
     <div>
@@ -215,11 +215,11 @@ export default function AdminDashboard() {
 
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13.5px", marginBottom: "6px" }}>
-                <span><strong>Phụ kiện thời trang (Accessories):</strong> {formatPrice(catSales.accessories)}</span>
-                <span style={{ fontWeight: "600", color: "#8A5A36" }}>{accPct}%</span>
+                <span><strong>Trẻ em (Kids):</strong> {formatPrice(catSales.kids)}</span>
+                <span style={{ fontWeight: "600", color: "#8A5A36" }}>{kidsPct}%</span>
               </div>
               <div style={{ height: "10px", backgroundColor: "#F0EAE1", borderRadius: "5px", overflow: "hidden" }}>
-                <div style={{ width: `${accPct}%`, height: "100%", backgroundColor: "#8A5A36", borderRadius: "5px" }} />
+                <div style={{ width: `${kidsPct}%`, height: "100%", backgroundColor: "#8A5A36", borderRadius: "5px" }} />
               </div>
             </div>
           </div>

@@ -16,7 +16,7 @@ export default function ProductListPage({ gender, audience, collection, productT
     return !gender || product.gender === gender;
   };
   const matchesProduct = (product) => matchesAudience(product) && (!productType || product.productType === productType);
-  const types = [...new Set(products.filter(matchesProduct).map((p) => p.subcategory))];
+  const types = [...new Set(products.filter((p) => matchesProduct(p) && (!collection || p.collection === collection)).map((p) => p.subcategory))];
   const items = useMemo(() => {
     const filtered = products.filter((p) => matchesProduct(p) && (!collection || p.collection === collection) && (type === "all" || p.subcategory === type));
     return [...filtered].sort((a, b) => sort === "price-low" ? a.price - b.price : sort === "price-high" ? b.price - a.price : a.id - b.id);
