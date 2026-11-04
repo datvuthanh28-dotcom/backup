@@ -91,11 +91,23 @@ async function startServer() {
   // Connect to Microsoft SQL Server exclusively
   await connectDB();
 
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`[Server] Express API listening on http://localhost:${PORT}`);
     console.log(`[Server] Configured client origins: ${[...allowedOrigins].join(", ")}`);
     console.log(`[Server] Three role portals ready: Customer (/login), Staff (/staff/login), Admin (/admin/login)`);
     console.log(`[Server] Database: Microsoft SQL Server (MaisonRueDB)`);
+  });
+
+  server.on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(
+        `[Server] Port ${PORT} is already in use. Stop the existing backend process or set PORT to a free port in .env.`
+      );
+      process.exit(1);
+      return;
+    }
+    console.error("[Server] Failed to listen:", err);
+    process.exit(1);
   });
 }
 

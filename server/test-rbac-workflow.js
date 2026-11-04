@@ -190,14 +190,56 @@ async function runTests() {
     assert(adminGetRev.status === 200 && adminGetRev.body.report, "Admin successfully accesses /api/admin/reports/revenue");
 
     // ----------------------------------------------------
+    // TEST 4.1: Variant-level inventory adjustment and audit trail
+    // ----------------------------------------------------
+    console.log("\n--- Testing Variant-Level Inventory Adjustment ---");
+    const productTwoBefore = await pool.request().query("SELECT stock FROM Products WHERE id = 107");
+    const productTwoOriginalStock = productTwoBefore.recordset[0].stock;
+    let variantBeforeRes = await pool.request().query("SELECT TOP 1 id, product_id, stock_quantity, low_stock_threshold, max_stock_threshold FROM ProductVariants WHERE product_id = 107 AND is_active = 1 ORDER BY id");
+    let createdVariantFixture = false;
+    if (!variantBeforeRes.recordset.length) {
+      await pool.request().query(`INSERT INTO ProductVariants
+        (id, product_id, sku, color_name, size_name, price, stock_quantity, low_stock_threshold, is_active)
+        VALUES ('TEST-MR107-BROWN-S', 107, 'TEST-MR107-BROWN-S', 'Brown', 'S', 4890000, 4, 3, 1)`);
+      createdVariantFixture = true;
+      variantBeforeRes = await pool.request().query("SELECT id, product_id, stock_quantity, low_stock_threshold, max_stock_threshold FROM ProductVariants WHERE id='TEST-MR107-BROWN-S'");
+    }
+    const testVariant = variantBeforeRes.recordset[0];
+    const variantAdjust = await makeRequest(
+      "PATCH",
+      `/api/products/${testVariant.product_id}/variants/${encodeURIComponent(testVariant.id)}/stock`,
+      { stock: testVariant.stock_quantity + 1, minStock: testVariant.low_stock_threshold, maxStock: testVariant.max_stock_threshold, note: "Kiểm thử nhập bổ sung một sản phẩm" },
+      staffCookie
+    );
+    assert(variantAdjust.status === 200, "Staff adjusted stock for one exact SKU variant");
+    assert(variantAdjust.body.stock === testVariant.stock_quantity + 1, "Variant endpoint returned the updated SKU stock");
+
+    const variantAudit = await pool.request().input("variant_id", sql.NVarChar, testVariant.id)
+      .query("SELECT TOP 1 variant_id, quantity_change FROM InventoryMovements WHERE variant_id=@variant_id ORDER BY id DESC");
+    assert(variantAudit.recordset[0]?.quantity_change === 1, "Variant adjustment created an auditable inventory movement");
+
+    const variantRestore = await makeRequest(
+      "PATCH",
+      `/api/products/${testVariant.product_id}/variants/${encodeURIComponent(testVariant.id)}/stock`,
+      { stock: testVariant.stock_quantity, minStock: testVariant.low_stock_threshold, maxStock: testVariant.max_stock_threshold, note: "Khôi phục tồn kho sau kiểm thử tự động" },
+      staffCookie
+    );
+    assert(variantRestore.status === 200, "Variant stock restored after isolated test");
+    if (createdVariantFixture) {
+      await pool.request().input("variant_id", sql.NVarChar, testVariant.id).query("DELETE FROM InventoryMovements WHERE variant_id=@variant_id");
+      await pool.request().input("variant_id", sql.NVarChar, testVariant.id).query("DELETE FROM ProductVariants WHERE id=@variant_id");
+      await pool.request().input("stock", sql.Int, productTwoOriginalStock).query("UPDATE Products SET stock=@stock WHERE id=107");
+    }
+
+    // ----------------------------------------------------
     // TEST 5: Complete Business Workflow & Payment Decoupling
     // ----------------------------------------------------
     console.log("\n--- Testing End-to-End Business Workflow & Payment Decoupling ---");
 
-    // 5.1 Check initial stock of product 1
-    const prodBefore = await pool.request().query("SELECT stock FROM Products WHERE id = 1");
+    // 5.1 Check initial stock of a product from the current catalog
+    const prodBefore = await pool.request().query("SELECT stock FROM Products WHERE id = 109");
     const initialStock = prodBefore.recordset[0].stock;
-    console.log(`Initial stock for Product 1: ${initialStock}`);
+    console.log(`Initial stock for Product MR-109: ${initialStock}`);
 
     // 5.2 Customer places order for 2 items
     const orderPayload = {
@@ -208,11 +250,14 @@ async function runTests() {
       paymentMethod: "cod",
       items: [
         {
-          id: 1,
-          name: "Cashmere Cardigan",
-          price: 6490000,
+          id: 109,
+          name: "Cashmere Button Cardigan",
+          price: 4890000,
           quantity: 2,
-          selectedColor: "BEIGE",
+          selectedColor: "Beige",
+          selectedSize: "S",
+          variantId: "v-109-beige-s",
+          sku: "MR-109-BEIGE-S",
           image: "image/Cashmere Cardigan - Men/BEIGE/1.png",
         },
       ],
@@ -225,9 +270,9 @@ async function runTests() {
     console.log(`Created Order ID: ${orderId}`);
 
     // 5.3 Stock deducted in Products table
-    const prodAfterDeduct = await pool.request().query("SELECT stock FROM Products WHERE id = 1");
+    const prodAfterDeduct = await pool.request().query("SELECT stock FROM Products WHERE id = 109");
     const deductedStock = prodAfterDeduct.recordset[0].stock;
-    assert(deductedStock === initialStock - 2, `Product 1 stock correctly deducted (${initialStock} -> ${deductedStock})`);
+    assert(deductedStock === initialStock - 2, `Product MR-109 stock correctly deducted (${initialStock} -> ${deductedStock})`);
 
     // 5.4 Initial payment is unpaid
     const pmtInitial = await pool
@@ -237,8 +282,11 @@ async function runTests() {
     assert(pmtInitial.recordset[0].payment_status === "unpaid", "Initial payment_status is 'unpaid'");
 
     // 5.5 Staff updates order through lifecycle: confirmed -> processing -> shipping -> delivered
-    const s1 = await makeRequest("PATCH", `/api/orders/${orderId}/status`, { status: "confirmed", note: "Staff confirmed" }, staffCookie);
+    const s1 = await makeRequest("PATCH", `/api/orders/${orderId}/status`, { status: "confirmed", note: "" }, staffCookie);
     assert(s1.status === 200, "Staff updated status to 'confirmed'");
+    assert(s1.body.order.history?.some((entry) => entry.note === "Staff đã xác nhận đơn hàng."), "Normal status transition generated an automatic audit note");
+    const cancelWithoutReason = await makeRequest("PATCH", `/api/orders/${orderId}/status`, { status: "cancelled", note: "" }, staffCookie);
+    assert(cancelWithoutReason.status === 400, "Staff cancellation without a reason was rejected");
 
     const s2 = await makeRequest("PATCH", `/api/orders/${orderId}/status`, { status: "processing", note: "Preparing giftbox" }, staffCookie);
     assert(s2.status === 200, "Staff updated status to 'processing'");
@@ -307,7 +355,7 @@ async function runTests() {
         phone: "0912345678",
         address: "45 Lê Lợi, Q.1",
         paymentMethod: "cod",
-        items: [{ id: 1, name: "Cashmere Cardigan", price: 6490000, quantity: 1, selectedColor: "BEIGE" }],
+        items: [{ id: 109, name: "Cashmere Button Cardigan", price: 4890000, quantity: 1, selectedColor: "Beige", selectedSize: "S", variantId: "v-109-beige-s", sku: "MR-109-BEIGE-S" }],
       },
       custCookie
     );
@@ -335,7 +383,7 @@ async function runTests() {
         phone: "0912345678",
         address: "45 Lê Lợi, Q.1",
         paymentMethod: "bank_transfer",
-        items: [{ id: 1, name: "Cashmere Cardigan", price: 6490000, quantity: 1, selectedColor: "BEIGE" }],
+        items: [{ id: 109, name: "Cashmere Button Cardigan", price: 4890000, quantity: 1, selectedColor: "Beige", selectedSize: "S", variantId: "v-109-beige-s", sku: "MR-109-BEIGE-S" }],
       },
       custCookie
     );
@@ -362,7 +410,29 @@ async function runTests() {
       "CRITICAL: Cancelling PAID order placed payment into 'refund_pending' (Refund Workflow Initiated)"
     );
 
-    // 6.3 Staff/Admin processes refund
+    // 6.3 Staff can monitor refund-pending orders, but only Admin may execute refunds
+    const staffRefundAttempt = await makeRequest(
+      "POST",
+      `/api/orders/${paidOrderId}/payment/refund`,
+      {
+        refundReference: "STAFF-NOT-ALLOWED",
+        note: "Staff must not be allowed to execute refunds",
+      },
+      staffCookie
+    );
+    assert(staffRefundAttempt.status === 403, "Staff refund attempt rejected (HTTP 403)");
+
+    const pmtAfterStaffAttempt = await pool
+      .request()
+      .input("order_id", sql.NVarChar, paidOrderId)
+      .query("SELECT payment_status, refund_reference FROM Payments WHERE order_id = @order_id");
+    assert(
+      pmtAfterStaffAttempt.recordset[0].payment_status === "refund_pending" &&
+        !pmtAfterStaffAttempt.recordset[0].refund_reference,
+      "Rejected Staff refund did not mutate payment data"
+    );
+
+    // 6.4 Admin processes refund
     const refundRes = await makeRequest(
       "POST",
       `/api/orders/${paidOrderId}/payment/refund`,
@@ -383,7 +453,7 @@ async function runTests() {
     assert(!!pmtRefunded.recordset[0].refunded_by, "Payment refunded_by recorded");
     assert(pmtRefunded.recordset[0].refund_reference === "UNC-HOANTIEN-2026", "Payment refund_reference recorded");
 
-    // 6.4 Duplicate refund rejection
+    // 6.5 Duplicate refund rejection
     const dupRefundRes = await makeRequest(
       "POST",
       `/api/orders/${paidOrderId}/payment/refund`,

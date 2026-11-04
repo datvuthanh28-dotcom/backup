@@ -145,13 +145,13 @@ export const db = {
   // ==========================================
   async getAllProducts() {
     const p = await getActivePool();
-    const res = await p.request().query("SELECT * FROM Products ORDER BY id ASC");
+    const res = await p.request().query("SELECT * FROM Products WHERE is_active = 1 ORDER BY id ASC");
     const variantRes = await p.request().query("SELECT * FROM ProductVariants WHERE is_active = 1 ORDER BY product_id, color_name, size_name");
     return res.recordset.map((r) => {
       const catalog = catalogProducts.find((product) => product.id === r.id) || {};
-      const variants = variantRes.recordset.filter((variant) => variant.product_id === r.id).map((variant) => ({ id: variant.id, sku: variant.sku, color: variant.color_name, size: variant.size_name, price: Number(variant.price), stock: variant.stock_quantity }))
+      const variants = variantRes.recordset.filter((variant) => variant.product_id === r.id).map((variant) => ({ id: variant.id, sku: variant.sku, color: variant.color_name, size: variant.size_name, price: Number(variant.price), stock: variant.stock_quantity, lowStockThreshold: variant.low_stock_threshold, maxStockThreshold: variant.max_stock_threshold }))
         .sort((a, b) => (catalog.colors?.indexOf(a.color) ?? 0) - (catalog.colors?.indexOf(b.color) ?? 0) || (catalog.sizes?.indexOf(a.size) ?? 0) - (catalog.sizes?.indexOf(b.size) ?? 0));
-      return { ...catalog, ...r, stock: variants.reduce((sum, variant) => sum + variant.stock, 0), variants, images: JSON.parse(r.images_json), colors: JSON.parse(r.colors_json), colorImages: JSON.parse(r.color_images_json) };
+      return { ...catalog, ...r, productCode: r.product_code, stock: variants.reduce((sum, variant) => sum + variant.stock, 0), variants, images: JSON.parse(r.images_json), colors: JSON.parse(r.colors_json), colorImages: JSON.parse(r.color_images_json) };
     });
   },
 
@@ -161,15 +161,16 @@ export const db = {
     const res = await p
       .request()
       .input("id", sql.Int, numId)
-      .query("SELECT * FROM Products WHERE id = @id");
+      .query("SELECT * FROM Products WHERE id = @id AND is_active = 1");
     const r = res.recordset[0];
     if (!r) return null;
     const catalog = catalogProducts.find((product) => product.id === r.id) || {};
     const variantRes = await p.request().input("product_id", sql.Int, numId).query("SELECT * FROM ProductVariants WHERE product_id=@product_id AND is_active=1 ORDER BY color_name, size_name");
-    const variants = variantRes.recordset.map((variant) => ({ id: variant.id, sku: variant.sku, color: variant.color_name, size: variant.size_name, price: Number(variant.price), stock: variant.stock_quantity }))
+    const variants = variantRes.recordset.map((variant) => ({ id: variant.id, sku: variant.sku, color: variant.color_name, size: variant.size_name, price: Number(variant.price), stock: variant.stock_quantity, lowStockThreshold: variant.low_stock_threshold, maxStockThreshold: variant.max_stock_threshold }))
       .sort((a, b) => (catalog.colors?.indexOf(a.color) ?? 0) - (catalog.colors?.indexOf(b.color) ?? 0) || (catalog.sizes?.indexOf(a.size) ?? 0) - (catalog.sizes?.indexOf(b.size) ?? 0));
     return {
       ...catalog, ...r,
+      productCode: r.product_code,
       stock: variants.reduce((sum, variant) => sum + variant.stock, 0),
       variants,
       images: JSON.parse(r.images_json),
@@ -215,6 +216,68 @@ export const db = {
 
       await transaction.commit();
       return { success: true, stock: parsedStock };
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
+    }
+  },
+
+  async updateVariantStock(productId, variantId, newStock, minStock, maxStock, performedBy = "Staff", note = "Manual variant stock update") {
+    const p = await getActivePool();
+    const numProductId = Number(productId);
+    const parsedStock = Math.max(0, parseInt(newStock, 10));
+    const parsedMinStock = Math.max(0, parseInt(minStock, 10));
+    const parsedMaxStock = Math.max(0, parseInt(maxStock, 10));
+    const transaction = new sql.Transaction(p);
+    await transaction.begin();
+    try {
+      const variantRes = await transaction
+        .request()
+        .input("product_id", sql.Int, numProductId)
+        .input("variant_id", sql.NVarChar, variantId)
+        .query(`SELECT id, sku, color_name, size_name, stock_quantity, low_stock_threshold, max_stock_threshold
+                FROM ProductVariants WITH (UPDLOCK, ROWLOCK)
+                WHERE id=@variant_id AND product_id=@product_id AND is_active=1`);
+      const variant = variantRes.recordset[0];
+      if (!variant) throw new Error("Không tìm thấy biến thể sản phẩm đang hoạt động.");
+
+      const delta = parsedStock - Number(variant.stock_quantity);
+      await transaction
+        .request()
+        .input("variant_id", sql.NVarChar, variantId)
+        .input("stock", sql.Int, parsedStock)
+        .input("min_stock", sql.Int, parsedMinStock)
+        .input("max_stock", sql.Int, parsedMaxStock)
+        .query("UPDATE ProductVariants SET stock_quantity=@stock, low_stock_threshold=@min_stock, max_stock_threshold=@max_stock, updated_at=GETDATE() WHERE id=@variant_id");
+
+      const totalRes = await transaction
+        .request()
+        .input("product_id", sql.Int, numProductId)
+        .query("SELECT COALESCE(SUM(stock_quantity), 0) AS total_stock FROM ProductVariants WHERE product_id=@product_id AND is_active=1");
+      const totalStock = Number(totalRes.recordset[0].total_stock);
+
+      await transaction
+        .request()
+        .input("product_id", sql.Int, numProductId)
+        .input("stock", sql.Int, totalStock)
+        .query("UPDATE Products SET stock=@stock, updated_at=GETDATE() WHERE id=@product_id");
+
+      await transaction
+        .request()
+        .input("product_id", sql.Int, numProductId)
+        .input("variant_id", sql.NVarChar, variantId)
+        .input("movement_type", sql.NVarChar, delta === 0 ? "threshold_adjustment" : "manual_adjustment")
+        .input("quantity_change", sql.Int, delta)
+        .input("resulting_stock", sql.Int, totalStock)
+        .input("reference_id", sql.NVarChar, variant.sku)
+        .input("note", sql.NVarChar, `${note} | SKU ${variant.sku} | ${variant.color_name} / ${variant.size_name} | Min ${variant.low_stock_threshold}→${parsedMinStock} | Max ${variant.max_stock_threshold}→${parsedMaxStock}`)
+        .input("performed_by", sql.NVarChar, performedBy)
+        .query(`INSERT INTO InventoryMovements
+                (product_id, variant_id, movement_type, quantity_change, resulting_stock, reference_id, note, performed_by, created_at)
+                VALUES (@product_id, @variant_id, @movement_type, @quantity_change, @resulting_stock, @reference_id, @note, @performed_by, GETDATE())`);
+
+      await transaction.commit();
+      return { success: true, stock: parsedStock, minStock: parsedMinStock, maxStock: parsedMaxStock, totalStock, variantId, sku: variant.sku };
     } catch (err) {
       await transaction.rollback();
       throw err;
@@ -693,7 +756,7 @@ export const db = {
     let refundedRevenue = 0;
     let unpaidRevenue = 0;
 
-    const categorySales = { men: 0, women: 0, accessories: 0 };
+    const categorySales = { men: 0, women: 0, kids: 0 };
     const productSalesMap = {};
 
     allOrders.forEach((order) => {
@@ -703,11 +766,10 @@ export const db = {
       if (status === "paid") {
         actualCollectedRevenue += order.total_amount;
         order.items.forEach((item) => {
-          const cat = (item.product_name || "").toLowerCase().includes("men")
-            ? "men"
-            : (item.product_name || "").toLowerCase().includes("women")
-            ? "women"
-            : "accessories";
+          const catalogProduct = catalogProducts.find((product) => product.id === Number(item.product_id));
+          const cat = ["men", "women", "kids"].includes(catalogProduct?.audience)
+            ? catalogProduct.audience
+            : "kids";
           categorySales[cat] = (categorySales[cat] || 0) + item.total_price;
 
           if (!productSalesMap[item.product_id]) {

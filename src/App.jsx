@@ -48,8 +48,8 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/men" element={<ProductListPage gender="nam" title="Men" />} />
                 <Route path="/women" element={<ProductListPage gender="nữ" title="Women" />} />
-                <Route path="/unisex" element={<ProductListPage gender="unisex" title="Unisex" />} />
-                <Route path="/accessories" element={<ProductListPage gender="unisex" title="Accessories" />} />
+                <Route path="/kids" element={<ProductListPage audience="kids" title="Kids" />} />
+                <Route path="/accessories" element={<ProductListPage productType="Accessories" title="Accessories" />} />
                 <Route path="/collections/riviera-linen" element={<ProductListPage collection="Riviera Linen" title="Riviera Linen" />} />
                 <Route path="/collections/heritage-cashmere" element={<ProductListPage collection="Heritage Cashmere" title="Heritage Cashmere" />} />
                 <Route path="/collections/suede-essentials" element={<ProductListPage collection="Suede Essentials" title="Suede Essentials" />} />

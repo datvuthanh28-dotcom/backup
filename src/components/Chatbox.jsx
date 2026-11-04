@@ -150,12 +150,13 @@ export default function Chatbox() {
       if (next && !greeted) {
         setGreeted(true);
         pushBot(
-          "Xin chào, Rue là trợ lý tư vấn thời trang của Maison Rue. Anh/chị đang tìm đồ cho Nam hay Nữ ạ?",
+          "Xin chào, Rue là trợ lý tư vấn thời trang của Maison Rue. Anh/chị đang tìm sản phẩm cho Nam, Nữ hay Trẻ em ạ?",
           {
             quickReplies: [
               { label: "Nam", value: "Nam" },
               { label: "Nữ", value: "Nữ" },
-              { label: "Cả hai / Chưa chắc", value: "Cả hai" },
+              { label: "Trẻ em", value: "Trẻ em" },
+              { label: "Chưa chắc", value: "Tất cả" },
             ],
           }
         );
@@ -176,7 +177,7 @@ export default function Chatbox() {
     setGender(value);
     pushUser(value);
     pushBot(
-      `Cảm ơn anh/chị! Rue sẽ ưu tiên gợi ý các mẫu dành cho ${value === "Cả hai" ? "cả nam và nữ" : value}. Anh/chị đang tìm sản phẩm nào ạ? (áo, quần, giày, phụ kiện...)`
+      `Cảm ơn anh/chị! Rue sẽ ưu tiên gợi ý các mẫu dành cho ${value === "Tất cả" ? "mọi nhóm khách hàng" : value}. Anh/chị đang tìm sản phẩm nào ạ? (áo, quần, giày, phụ kiện...)`
     );
   }
 

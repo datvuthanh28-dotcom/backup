@@ -1,0 +1,1913 @@
+[
+  {
+    "id": 106,
+    "name": "Merino Wool Knitted Polo",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Knitwear",
+    "productType": "Clothing",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Brown",
+      "Beige",
+      "Black",
+      "White"
+    ],
+    "skuCount": 12,
+    "price": 4890000
+  },
+  {
+    "id": 107,
+    "name": "Baby Cashmere Crewneck Sweater",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Knitwear",
+    "productType": "Clothing",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Brown",
+      "Beige",
+      "Black",
+      "White"
+    ],
+    "skuCount": 12,
+    "price": 4890000
+  },
+  {
+    "id": 108,
+    "name": "Cashmere Half-Zip Sweater",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Knitwear",
+    "productType": "Clothing",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Deep Teal",
+      "Navy",
+      "Black",
+      "White"
+    ],
+    "skuCount": 12,
+    "price": 4890000
+  },
+  {
+    "id": 109,
+    "name": "Cashmere Button Cardigan",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Knitwear",
+    "productType": "Clothing",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Brown",
+      "Beige",
+      "Navy",
+      "Black",
+      "White"
+    ],
+    "skuCount": 15,
+    "price": 4890000
+  },
+  {
+    "id": 110,
+    "name": "Wool-Cashmere Knitted Vest",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Knitwear",
+    "productType": "Clothing",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Brown",
+      "Beige",
+      "Black",
+      "White"
+    ],
+    "skuCount": 12,
+    "price": 4890000
+  },
+  {
+    "id": 111,
+    "name": "Cotton Oxford Short-Sleeve Shirt",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Shirts",
+    "productType": "Clothing",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Navy",
+      "Black",
+      "White"
+    ],
+    "skuCount": 9,
+    "price": 2390000
+  },
+  {
+    "id": 112,
+    "name": "Cotton Oxford Long-Sleeve Shirt",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Shirts",
+    "productType": "Clothing",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Navy",
+      "Black",
+      "White"
+    ],
+    "skuCount": 9,
+    "price": 2390000
+  },
+  {
+    "id": 113,
+    "name": "Linen Classic Long-Sleeve Shirt",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Shirts",
+    "productType": "Clothing",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Brown",
+      "Beige",
+      "White"
+    ],
+    "skuCount": 9,
+    "price": 2390000
+  },
+  {
+    "id": 114,
+    "name": "Linen Classic Short-Sleeve Shirt",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Shirts",
+    "productType": "Clothing",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Brown",
+      "Beige",
+      "White"
+    ],
+    "skuCount": 9,
+    "price": 2390000
+  },
+  {
+    "id": 115,
+    "name": "Suede Long-Sleeve Overshirt",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Shirts",
+    "productType": "Clothing",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Brown",
+      "Deep Teal",
+      "Navy"
+    ],
+    "skuCount": 9,
+    "price": 2390000
+  },
+  {
+    "id": 116,
+    "name": "Lightweight Cotton Denim Shirt",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Shirts",
+    "productType": "Clothing",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Denim Blue"
+    ],
+    "skuCount": 3,
+    "price": 2390000
+  },
+  {
+    "id": 117,
+    "name": "Linen Tailored Trousers",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Trousers",
+    "productType": "Clothing",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Beige",
+      "White"
+    ],
+    "skuCount": 6,
+    "price": 2790000
+  },
+  {
+    "id": 118,
+    "name": "Linen-Cotton Trousers",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Trousers",
+    "productType": "Clothing",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Beige",
+      "White",
+      "Black"
+    ],
+    "skuCount": 9,
+    "price": 2790000
+  },
+  {
+    "id": 119,
+    "name": "Cotton Twill Chinos",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Trousers",
+    "productType": "Clothing",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Black"
+    ],
+    "skuCount": 3,
+    "price": 2790000
+  },
+  {
+    "id": 120,
+    "name": "Linen Bermuda Shorts",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Trousers",
+    "productType": "Clothing",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Beige",
+      "White"
+    ],
+    "skuCount": 6,
+    "price": 2790000
+  },
+  {
+    "id": 121,
+    "name": "Baby Cashmere Overcoat",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Outerwear",
+    "productType": "Clothing",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Camel"
+    ],
+    "skuCount": 3,
+    "price": 6590000
+  },
+  {
+    "id": 122,
+    "name": "Wool-Cashmere Coat",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Outerwear",
+    "productType": "Clothing",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Charcoal"
+    ],
+    "skuCount": 3,
+    "price": 6590000
+  },
+  {
+    "id": 123,
+    "name": "Linen Unstructured Blazer",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Outerwear",
+    "productType": "Clothing",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Sand Beige"
+    ],
+    "skuCount": 3,
+    "price": 6590000
+  },
+  {
+    "id": 124,
+    "name": "Suede Bomber Jacket",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Outerwear",
+    "productType": "Clothing",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Dark Brown"
+    ],
+    "skuCount": 3,
+    "price": 6590000
+  },
+  {
+    "id": 125,
+    "name": "Cotton Gabardine Trench Coat",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Outerwear",
+    "productType": "Clothing",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Stone Beige"
+    ],
+    "skuCount": 3,
+    "price": 6590000
+  },
+  {
+    "id": 126,
+    "name": "Lightweight Technical Nylon Jacket",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Outerwear",
+    "productType": "Clothing",
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Navy"
+    ],
+    "skuCount": 3,
+    "price": 6590000
+  },
+  {
+    "id": 127,
+    "name": "Suede Penny Loafers",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Shoes",
+    "productType": "Footwear",
+    "sizes": [
+      "39",
+      "40",
+      "41",
+      "42",
+      "43",
+      "44"
+    ],
+    "colors": [
+      "Dark Brown"
+    ],
+    "skuCount": 6,
+    "price": 2390000
+  },
+  {
+    "id": 128,
+    "name": "Calfskin Penny Loafers",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Shoes",
+    "productType": "Footwear",
+    "sizes": [
+      "39",
+      "40",
+      "41",
+      "42",
+      "43",
+      "44"
+    ],
+    "colors": [
+      "Black"
+    ],
+    "skuCount": 6,
+    "price": 2390000
+  },
+  {
+    "id": 129,
+    "name": "Calfskin Driving Shoes",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Shoes",
+    "productType": "Footwear",
+    "sizes": [
+      "39",
+      "40",
+      "41",
+      "42",
+      "43",
+      "44"
+    ],
+    "colors": [
+      "Dark Brown"
+    ],
+    "skuCount": 6,
+    "price": 2390000
+  },
+  {
+    "id": 130,
+    "name": "Canvas-Linen Sneakers",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Shoes",
+    "productType": "Footwear",
+    "sizes": [
+      "39",
+      "40",
+      "41",
+      "42",
+      "43",
+      "44"
+    ],
+    "colors": [
+      "Natural Ecru"
+    ],
+    "skuCount": 6,
+    "price": 2390000
+  },
+  {
+    "id": 131,
+    "name": "Polished Calfskin Oxford Shoes",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Shoes",
+    "productType": "Footwear",
+    "sizes": [
+      "39",
+      "40",
+      "41",
+      "42",
+      "43",
+      "44"
+    ],
+    "colors": [
+      "Black"
+    ],
+    "skuCount": 6,
+    "price": 2390000
+  },
+  {
+    "id": 132,
+    "name": "Full-Grain Leather Slides",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Shoes",
+    "productType": "Footwear",
+    "sizes": [
+      "39",
+      "40",
+      "41",
+      "42",
+      "43",
+      "44"
+    ],
+    "colors": [
+      "Dark Brown"
+    ],
+    "skuCount": 6,
+    "price": 2390000
+  },
+  {
+    "id": 133,
+    "name": "Grained Calfskin Tote Bag",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Bags",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Dark Brown"
+    ],
+    "skuCount": 1,
+    "price": 2390000
+  },
+  {
+    "id": 134,
+    "name": "Suede Leather Crossbody Bag",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Bags",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Taupe"
+    ],
+    "skuCount": 1,
+    "price": 2390000
+  },
+  {
+    "id": 135,
+    "name": "Woven Leather Duffle Bag",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Bags",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Dark Brown"
+    ],
+    "skuCount": 1,
+    "price": 2390000
+  },
+  {
+    "id": 136,
+    "name": "Canvas & Leather Weekend Bag",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Bags",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Natural Ecru"
+    ],
+    "skuCount": 1,
+    "price": 2390000
+  },
+  {
+    "id": 137,
+    "name": "Smooth Calfskin Leather Belt",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Belts",
+    "productType": "Accessories",
+    "sizes": [
+      "85",
+      "90",
+      "95",
+      "100",
+      "105"
+    ],
+    "colors": [
+      "Dark Brown"
+    ],
+    "skuCount": 5,
+    "price": 2390000
+  },
+  {
+    "id": 138,
+    "name": "Suede Leather Belt",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Belts",
+    "productType": "Accessories",
+    "sizes": [
+      "85",
+      "90",
+      "95",
+      "100",
+      "105"
+    ],
+    "colors": [
+      "Taupe"
+    ],
+    "skuCount": 5,
+    "price": 2390000
+  },
+  {
+    "id": 139,
+    "name": "Suede Baseball Cap",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Hats",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Dark Brown"
+    ],
+    "skuCount": 1,
+    "price": 2390000
+  },
+  {
+    "id": 140,
+    "name": "Cotton Twill Baseball Cap",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Hats",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Navy"
+    ],
+    "skuCount": 1,
+    "price": 2390000
+  },
+  {
+    "id": 141,
+    "name": "Cashmere Ribbed Beanie",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Hats",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Charcoal"
+    ],
+    "skuCount": 1,
+    "price": 4890000
+  },
+  {
+    "id": 142,
+    "name": "Acetate Square Sunglasses",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Eyewear",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Dark Havana"
+    ],
+    "skuCount": 1,
+    "price": 2390000
+  },
+  {
+    "id": 143,
+    "name": "Acetate Round Sunglasses",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Eyewear",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Black"
+    ],
+    "skuCount": 1,
+    "price": 2390000
+  },
+  {
+    "id": 144,
+    "name": "Titanium Aviator Sunglasses",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Eyewear",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Brushed Silver"
+    ],
+    "skuCount": 1,
+    "price": 2390000
+  },
+  {
+    "id": 145,
+    "name": "Acetate Rectangular Sunglasses",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Eyewear",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Dark Brown"
+    ],
+    "skuCount": 1,
+    "price": 2390000
+  },
+  {
+    "id": 146,
+    "name": "Smooth Calfskin Bifold Wallet",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Wallets & Small Leather Goods",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Black"
+    ],
+    "skuCount": 1,
+    "price": 2390000
+  },
+  {
+    "id": 147,
+    "name": "Grained Calfskin Card Holder",
+    "audience": "men",
+    "gender": "nam",
+    "subcategory": "Wallets & Small Leather Goods",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Dark Brown"
+    ],
+    "skuCount": 1,
+    "price": 2390000
+  },
+  {
+    "id": 148,
+    "name": "Cashmere Crewneck Sweater",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Knitwear",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Brown",
+      "Beige",
+      "Black"
+    ],
+    "skuCount": 12,
+    "price": 4890000
+  },
+  {
+    "id": 149,
+    "name": "Merino Wool Knitted Polo",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Knitwear",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Brown",
+      "Navy",
+      "White"
+    ],
+    "skuCount": 12,
+    "price": 4890000
+  },
+  {
+    "id": 150,
+    "name": "Baby Cashmere Cardigan",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Knitwear",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Beige",
+      "Black"
+    ],
+    "skuCount": 8,
+    "price": 4890000
+  },
+  {
+    "id": 151,
+    "name": "Cashmere V-Neck Sweater",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Knitwear",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Brown",
+      "White"
+    ],
+    "skuCount": 8,
+    "price": 4890000
+  },
+  {
+    "id": 152,
+    "name": "Wool-Cashmere Sleeveless Knit Top",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Knitwear",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Black",
+      "Beige"
+    ],
+    "skuCount": 8,
+    "price": 4890000
+  },
+  {
+    "id": 153,
+    "name": "Cotton Poplin Classic Shirt",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Tops & Shirts",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "White",
+      "Blue"
+    ],
+    "skuCount": 8,
+    "price": 2390000
+  },
+  {
+    "id": 154,
+    "name": "Silk Blend Button-Down Shirt",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Tops & Shirts",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Ivory",
+      "Black"
+    ],
+    "skuCount": 8,
+    "price": 2390000
+  },
+  {
+    "id": 155,
+    "name": "Linen Relaxed-Fit Shirt",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Tops & Shirts",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Beige",
+      "White"
+    ],
+    "skuCount": 8,
+    "price": 2390000
+  },
+  {
+    "id": 156,
+    "name": "Cotton Ribbed Tank Top",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Tops & Shirts",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "White",
+      "Black"
+    ],
+    "skuCount": 8,
+    "price": 2390000
+  },
+  {
+    "id": 157,
+    "name": "Silk Sleeveless Blouse",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Tops & Shirts",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Champagne"
+    ],
+    "skuCount": 4,
+    "price": 2390000
+  },
+  {
+    "id": 158,
+    "name": "Linen Tailored Trousers",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Trousers & Skirts",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Beige",
+      "White"
+    ],
+    "skuCount": 8,
+    "price": 2790000
+  },
+  {
+    "id": 159,
+    "name": "High-Waisted Wool Trousers",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Trousers & Skirts",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Black",
+      "Charcoal"
+    ],
+    "skuCount": 8,
+    "price": 2790000
+  },
+  {
+    "id": 160,
+    "name": "Cotton Twill Straight-Leg Pants",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Trousers & Skirts",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Beige",
+      "Black"
+    ],
+    "skuCount": 8,
+    "price": 2790000
+  },
+  {
+    "id": 161,
+    "name": "Linen Midi Skirt",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Trousers & Skirts",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Beige"
+    ],
+    "skuCount": 4,
+    "price": 2790000
+  },
+  {
+    "id": 162,
+    "name": "Tailored Bermuda Shorts",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Trousers & Skirts",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "White"
+    ],
+    "skuCount": 4,
+    "price": 2790000
+  },
+  {
+    "id": 163,
+    "name": "Silk Slip Dress",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Dresses",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Champagne",
+      "Black"
+    ],
+    "skuCount": 8,
+    "price": 7290000
+  },
+  {
+    "id": 164,
+    "name": "Linen Midi Dress",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Dresses",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Beige",
+      "White"
+    ],
+    "skuCount": 8,
+    "price": 7290000
+  },
+  {
+    "id": 165,
+    "name": "Cotton Poplin Shirt Dress",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Tops & Shirts",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "White"
+    ],
+    "skuCount": 4,
+    "price": 2390000
+  },
+  {
+    "id": 166,
+    "name": "Cashmere Knit Dress",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Dresses",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Charcoal"
+    ],
+    "skuCount": 4,
+    "price": 7290000
+  },
+  {
+    "id": 167,
+    "name": "Baby Cashmere Long Coat",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Outerwear",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Camel"
+    ],
+    "skuCount": 4,
+    "price": 6590000
+  },
+  {
+    "id": 168,
+    "name": "Wool-Cashmere Tailored Coat",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Outerwear",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Charcoal"
+    ],
+    "skuCount": 4,
+    "price": 6590000
+  },
+  {
+    "id": 169,
+    "name": "Linen Unstructured Blazer",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Outerwear",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Sand Beige"
+    ],
+    "skuCount": 4,
+    "price": 6590000
+  },
+  {
+    "id": 170,
+    "name": "Suede Cropped Jacket",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Outerwear",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Dark Brown"
+    ],
+    "skuCount": 4,
+    "price": 6590000
+  },
+  {
+    "id": 171,
+    "name": "Cotton Gabardine Trench Coat",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Outerwear",
+    "productType": "Clothing",
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "Stone Beige"
+    ],
+    "skuCount": 4,
+    "price": 6590000
+  },
+  {
+    "id": 172,
+    "name": "Suede Pointed-Toe Slingback Heels",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Shoes",
+    "productType": "Footwear",
+    "sizes": [
+      "36",
+      "37",
+      "38",
+      "39",
+      "40",
+      "41"
+    ],
+    "colors": [
+      "Dark Brown"
+    ],
+    "skuCount": 6,
+    "price": 2390000
+  },
+  {
+    "id": 173,
+    "name": "Calfskin Leather Ballet Flats",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Shoes",
+    "productType": "Footwear",
+    "sizes": [
+      "36",
+      "37",
+      "38",
+      "39",
+      "40",
+      "41"
+    ],
+    "colors": [
+      "Black"
+    ],
+    "skuCount": 6,
+    "price": 2390000
+  },
+  {
+    "id": 174,
+    "name": "Leather Minimalist Loafers",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Shoes",
+    "productType": "Footwear",
+    "sizes": [
+      "36",
+      "37",
+      "38",
+      "39",
+      "40",
+      "41"
+    ],
+    "colors": [
+      "Dark Brown"
+    ],
+    "skuCount": 6,
+    "price": 2390000
+  },
+  {
+    "id": 175,
+    "name": "Suede Ankle Boots",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Shoes",
+    "productType": "Footwear",
+    "sizes": [
+      "36",
+      "37",
+      "38",
+      "39",
+      "40",
+      "41"
+    ],
+    "colors": [
+      "Dark Brown"
+    ],
+    "skuCount": 6,
+    "price": 2390000
+  },
+  {
+    "id": 176,
+    "name": "Canvas-Linen Sneakers",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Shoes",
+    "productType": "Footwear",
+    "sizes": [
+      "36",
+      "37",
+      "38",
+      "39",
+      "40",
+      "41"
+    ],
+    "colors": [
+      "Natural Ecru"
+    ],
+    "skuCount": 6,
+    "price": 2390000
+  },
+  {
+    "id": 177,
+    "name": "Leather Minimalist Sandals",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Shoes",
+    "productType": "Footwear",
+    "sizes": [
+      "36",
+      "37",
+      "38",
+      "39",
+      "40",
+      "41"
+    ],
+    "colors": [
+      "Black"
+    ],
+    "skuCount": 6,
+    "price": 2390000
+  },
+  {
+    "id": 178,
+    "name": "Grained Calfskin Shoulder Bag",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Bags & Small Leather Goods",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Dark Brown"
+    ],
+    "skuCount": 1,
+    "price": 2390000
+  },
+  {
+    "id": 179,
+    "name": "Suede Leather Top Handle Bag",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Bags & Small Leather Goods",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Taupe"
+    ],
+    "skuCount": 1,
+    "price": 2390000
+  },
+  {
+    "id": 180,
+    "name": "Woven Leather Tote Bag",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Bags & Small Leather Goods",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Natural Ecru"
+    ],
+    "skuCount": 1,
+    "price": 2390000
+  },
+  {
+    "id": 181,
+    "name": "Smooth Calfskin Bifold Wallet",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Wallets & Small Leather Goods",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Black"
+    ],
+    "skuCount": 1,
+    "price": 2390000
+  },
+  {
+    "id": 182,
+    "name": "Grained Calfskin Card Holder",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Wallets & Small Leather Goods",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Dark Brown"
+    ],
+    "skuCount": 1,
+    "price": 2390000
+  },
+  {
+    "id": 183,
+    "name": "Smooth Calfskin Leather Belt",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Belts",
+    "productType": "Accessories",
+    "sizes": [
+      "75",
+      "80",
+      "85"
+    ],
+    "colors": [
+      "Dark Brown"
+    ],
+    "skuCount": 3,
+    "price": 2390000
+  },
+  {
+    "id": 184,
+    "name": "Suede Leather Belt",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Belts",
+    "productType": "Accessories",
+    "sizes": [
+      "75",
+      "80",
+      "85"
+    ],
+    "colors": [
+      "Taupe"
+    ],
+    "skuCount": 3,
+    "price": 2390000
+  },
+  {
+    "id": 185,
+    "name": "Cotton Twill Baseball Cap",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Hats",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Beige"
+    ],
+    "skuCount": 1,
+    "price": 2390000
+  },
+  {
+    "id": 186,
+    "name": "Cashmere Ribbed Beanie",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Hats",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Charcoal"
+    ],
+    "skuCount": 1,
+    "price": 4890000
+  },
+  {
+    "id": 187,
+    "name": "Acetate Cat-Eye Sunglasses",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Eyewear",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Dark Havana"
+    ],
+    "skuCount": 1,
+    "price": 2390000
+  },
+  {
+    "id": 188,
+    "name": "Acetate Oval Sunglasses",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Eyewear",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Black"
+    ],
+    "skuCount": 1,
+    "price": 2390000
+  },
+  {
+    "id": 189,
+    "name": "Titanium Minimalist Sunglasses",
+    "audience": "women",
+    "gender": "nữ",
+    "subcategory": "Eyewear",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Brushed Gold"
+    ],
+    "skuCount": 1,
+    "price": 2390000
+  },
+  {
+    "id": 190,
+    "name": "Organic Cotton Baby Bodysuit",
+    "audience": "kids",
+    "gender": "kids",
+    "subcategory": "Baby Clothing",
+    "productType": "Clothing",
+    "sizes": [
+      "0-3M",
+      "3-6M",
+      "6-12M"
+    ],
+    "colors": [
+      "Ivory"
+    ],
+    "skuCount": 3,
+    "price": 2390000
+  },
+  {
+    "id": 191,
+    "name": "Cotton Footed Sleepsuit",
+    "audience": "kids",
+    "gender": "kids",
+    "subcategory": "Baby Clothing",
+    "productType": "Clothing",
+    "sizes": [
+      "0-3M",
+      "3-6M",
+      "6-12M"
+    ],
+    "colors": [
+      "Beige"
+    ],
+    "skuCount": 3,
+    "price": 2390000
+  },
+  {
+    "id": 192,
+    "name": "Cashmere-Cotton Baby Cardigan",
+    "audience": "kids",
+    "gender": "kids",
+    "subcategory": "Baby Clothing",
+    "productType": "Clothing",
+    "sizes": [
+      "0-3M",
+      "3-6M",
+      "6-12M"
+    ],
+    "colors": [
+      "Oatmeal"
+    ],
+    "skuCount": 3,
+    "price": 4890000
+  },
+  {
+    "id": 193,
+    "name": "Organic Cotton Baby Romper",
+    "audience": "kids",
+    "gender": "kids",
+    "subcategory": "Baby Clothing",
+    "productType": "Clothing",
+    "sizes": [
+      "0-3M",
+      "3-6M",
+      "6-12M"
+    ],
+    "colors": [
+      "Soft Beige"
+    ],
+    "skuCount": 3,
+    "price": 2390000
+  },
+  {
+    "id": 194,
+    "name": "Cotton Piqué Polo Shirt",
+    "audience": "kids",
+    "gender": "kids",
+    "subcategory": "Boys Clothing",
+    "productType": "Clothing",
+    "sizes": [
+      "1-2Y",
+      "2-4Y",
+      "4-8Y"
+    ],
+    "colors": [
+      "Navy"
+    ],
+    "skuCount": 3,
+    "price": 2390000
+  },
+  {
+    "id": 195,
+    "name": "Linen-Cotton Easy Trousers",
+    "audience": "kids",
+    "gender": "kids",
+    "subcategory": "Boys Clothing",
+    "productType": "Clothing",
+    "sizes": [
+      "1-2Y",
+      "2-4Y",
+      "4-8Y"
+    ],
+    "colors": [
+      "Beige"
+    ],
+    "skuCount": 3,
+    "price": 2390000
+  },
+  {
+    "id": 196,
+    "name": "Merino-Cotton Knitted Cardigan",
+    "audience": "kids",
+    "gender": "kids",
+    "subcategory": "Boys Clothing",
+    "productType": "Clothing",
+    "sizes": [
+      "1-2Y",
+      "2-4Y"
+    ],
+    "colors": [
+      "Camel"
+    ],
+    "skuCount": 2,
+    "price": 4890000
+  },
+  {
+    "id": 197,
+    "name": "Premium Cotton Essential T-Shirt",
+    "audience": "kids",
+    "gender": "kids",
+    "subcategory": "Boys Clothing",
+    "productType": "Clothing",
+    "sizes": [
+      "1-2Y",
+      "2-4Y"
+    ],
+    "colors": [
+      "White"
+    ],
+    "skuCount": 2,
+    "price": 2390000
+  },
+  {
+    "id": 198,
+    "name": "Cotton Poplin Dress",
+    "audience": "kids",
+    "gender": "kids",
+    "subcategory": "Girls Clothing",
+    "productType": "Clothing",
+    "sizes": [
+      "1-2Y",
+      "2-4Y",
+      "4-8Y"
+    ],
+    "colors": [
+      "Ivory"
+    ],
+    "skuCount": 3,
+    "price": 2390000
+  },
+  {
+    "id": 199,
+    "name": "Cashmere-Cotton Knitted Cardigan",
+    "audience": "kids",
+    "gender": "kids",
+    "subcategory": "Boys Clothing",
+    "productType": "Clothing",
+    "sizes": [
+      "1-2Y",
+      "2-4Y",
+      "4-8Y"
+    ],
+    "colors": [
+      "Beige"
+    ],
+    "skuCount": 3,
+    "price": 4890000
+  },
+  {
+    "id": 200,
+    "name": "Cotton Jersey Leggings",
+    "audience": "kids",
+    "gender": "kids",
+    "subcategory": "Girls Clothing",
+    "productType": "Clothing",
+    "sizes": [
+      "1-2Y",
+      "2-4Y"
+    ],
+    "colors": [
+      "Soft Brown"
+    ],
+    "skuCount": 2,
+    "price": 2390000
+  },
+  {
+    "id": 201,
+    "name": "Linen Relaxed Shorts",
+    "audience": "kids",
+    "gender": "kids",
+    "subcategory": "Girls Clothing",
+    "productType": "Clothing",
+    "sizes": [
+      "1-2Y",
+      "2-4Y"
+    ],
+    "colors": [
+      "Natural Ecru"
+    ],
+    "skuCount": 2,
+    "price": 2390000
+  },
+  {
+    "id": 202,
+    "name": "Soft Leather Baby Shoes",
+    "audience": "kids",
+    "gender": "kids",
+    "subcategory": "Baby Clothing",
+    "productType": "Clothing",
+    "sizes": [
+      "18",
+      "19",
+      "20"
+    ],
+    "colors": [
+      "Cream"
+    ],
+    "skuCount": 3,
+    "price": 2390000
+  },
+  {
+    "id": 203,
+    "name": "Suede Kids Penny Loafers",
+    "audience": "kids",
+    "gender": "kids",
+    "subcategory": "Shoes",
+    "productType": "Footwear",
+    "sizes": [
+      "21",
+      "23",
+      "25"
+    ],
+    "colors": [
+      "Dark Brown"
+    ],
+    "skuCount": 3,
+    "price": 2390000
+  },
+  {
+    "id": 204,
+    "name": "Mini Canvas & Leather Backpack",
+    "audience": "kids",
+    "gender": "kids",
+    "subcategory": "Bags",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Natural Ecru",
+      "Beige"
+    ],
+    "skuCount": 2,
+    "price": 2390000
+  },
+  {
+    "id": 205,
+    "name": "Mini Grained Calfskin Crossbody Bag",
+    "audience": "kids",
+    "gender": "kids",
+    "subcategory": "Bags",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Dark Brown",
+      "Taupe"
+    ],
+    "skuCount": 2,
+    "price": 2390000
+  },
+  {
+    "id": 206,
+    "name": "Cashmere-Wool Knitted Scarf",
+    "audience": "kids",
+    "gender": "kids",
+    "subcategory": "Scarves",
+    "productType": "Accessories",
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "Beige",
+      "Charcoal"
+    ],
+    "skuCount": 2,
+    "price": 4890000
+  },
+  {
+    "id": 207,
+    "name": "Signature Cashmere-Touch Teddy Bear",
+    "audience": "kids",
+    "gender": "kids",
+    "subcategory": "Toys",
+    "productType": "Accessories",
+    "sizes": [
+      "Small"
+    ],
+    "colors": [
+      "Beige",
+      "Brown",
+      "Cream"
+    ],
+    "skuCount": 3,
+    "price": 4890000
+  },
+  {
+    "id": 208,
+    "name": "Mini Plush Teddy Bear",
+    "audience": "kids",
+    "gender": "kids",
+    "subcategory": "Toys",
+    "productType": "Accessories",
+    "sizes": [
+      "Small"
+    ],
+    "colors": [
+      "Oatmeal",
+      "Taupe",
+      "Ivory"
+    ],
+    "skuCount": 3,
+    "price": 2390000
+  }
+]

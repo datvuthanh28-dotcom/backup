@@ -46,15 +46,18 @@ export function StoreProvider({ children }) {
   const refreshOrders = useCallback(async () => {
     if (!isAuthenticated) {
       setOrders([]);
-      return;
+      return { success: false, orders: [], error: "Chưa đăng nhập." };
     }
     try {
       const res = await ordersAPI.getAll();
       if (res.success && Array.isArray(res.orders)) {
         setOrders(res.orders);
+        return { success: true, orders: res.orders };
       }
+      return { success: false, orders: [], error: res.error || "Không thể tải danh sách đơn hàng." };
     } catch (err) {
       console.warn("[Store] Orders API fetch fallback:", err.message);
+      return { success: false, orders: [], error: err.message };
     }
   }, [isAuthenticated]);
 
@@ -95,6 +98,19 @@ export function StoreProvider({ children }) {
       if (res.success) {
         await refreshProducts();
         return { success: true, stock: res.stock };
+      }
+      return { success: false, error: res.error };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updateVariantStock = async (productId, variantId, newStock, minStock, maxStock, note = "") => {
+    try {
+      const res = await productsAPI.updateVariantStock(productId, variantId, newStock, minStock, maxStock, note);
+      if (res.success) {
+        await refreshProducts();
+        return { success: true, stock: res.stock, totalStock: res.totalStock };
       }
       return { success: false, error: res.error };
     } catch (err) {
@@ -233,7 +249,7 @@ export function StoreProvider({ children }) {
         inFlightRevenue: revenueReport.pendingVerificationRevenue + revenueReport.unpaidRevenue || 0,
         cancelledAmount: revenueReport.refundedRevenue || 0,
         averageOrderValue: revenueReport.averageOrderValue || 0,
-        categorySales: revenueReport.categorySales || { men: 0, women: 0, accessories: 0 },
+        categorySales: revenueReport.categorySales || { men: 0, women: 0, kids: 0 },
         topSellingProducts: revenueReport.topSellingProducts || [],
       };
     }
@@ -255,7 +271,7 @@ export function StoreProvider({ children }) {
         .filter((o) => o.payment?.payment_status === "refunded")
         .reduce((sum, o) => sum + (o.total_amount || o.totalAmount || 0), 0),
       averageOrderValue: paidOrders.length > 0 ? Math.round(actualRevenue / paidOrders.length) : 0,
-      categorySales: { men: 0, women: 0, accessories: 0 },
+      categorySales: { men: 0, women: 0, kids: 0 },
       topSellingProducts: [],
     };
   };
@@ -266,6 +282,7 @@ export function StoreProvider({ children }) {
     revenueReport,
     getProductStock,
     updateProductStock,
+    updateVariantStock,
     adjustStock,
     createOrder,
     updateOrderStatus,

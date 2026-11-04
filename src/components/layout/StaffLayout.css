@@ -1,0 +1,119 @@
+.staff-shell {
+  width: 100%;
+}
+
+@media (max-width: 980px) {
+  .staff-shell {
+    flex-direction: column;
+  }
+
+  .staff-sidebar {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: auto;
+    flex-direction: row !important;
+    align-items: stretch;
+    border-right: 0 !important;
+    border-bottom: 1px solid #4e342e;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08) !important;
+  }
+
+  .staff-sidebar-brand {
+    display: flex;
+    min-width: 190px;
+    box-sizing: border-box;
+    flex-direction: column;
+    justify-content: center;
+    padding: 14px 18px !important;
+    border-right: 1px solid rgba(232, 225, 214, 0.12);
+    border-bottom: 0 !important;
+  }
+
+  .staff-user-card,
+  .staff-sidebar-note,
+  .staff-sidebar-divider {
+    display: none !important;
+  }
+
+  .staff-sidebar-nav {
+    min-width: 0;
+    flex-direction: row !important;
+    align-items: center;
+    overflow-x: auto;
+    padding: 10px !important;
+  }
+
+  .staff-sidebar-nav a {
+    min-width: max-content;
+  }
+
+  .staff-sidebar-footer {
+    display: flex;
+    align-items: center;
+    padding: 10px !important;
+    border-top: 0 !important;
+    border-left: 1px solid rgba(232, 225, 214, 0.12);
+  }
+
+  .staff-sidebar-footer button {
+    min-width: 112px;
+  }
+
+  .staff-workspace-header {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 20px !important;
+  }
+
+  .staff-workspace-body {
+    padding: 24px 20px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .staff-sidebar {
+    flex-wrap: wrap;
+  }
+
+  .staff-sidebar-brand {
+    width: 100%;
+    min-width: 0;
+    border-right: 0;
+    border-bottom: 1px solid rgba(232, 225, 214, 0.12) !important;
+  }
+
+  .staff-sidebar-nav {
+    order: 2;
+    width: 100%;
+  }
+
+  .staff-sidebar-footer {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    border-left: 0;
+  }
+
+  .staff-sidebar-footer button {
+    width: 42px !important;
+    min-width: 42px;
+    height: 42px;
+    overflow: hidden;
+    color: transparent !important;
+    white-space: nowrap;
+  }
+
+  .staff-sidebar-footer button i {
+    color: #ff9e9b;
+    font-size: 15px;
+  }
+
+  .staff-workspace-header > div:last-child {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .staff-workspace-body {
+    padding: 20px 14px !important;
+  }
+}
