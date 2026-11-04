@@ -756,7 +756,7 @@ export const db = {
     let refundedRevenue = 0;
     let unpaidRevenue = 0;
 
-    const categorySales = { men: 0, women: 0, accessories: 0 };
+    const categorySales = { men: 0, women: 0, kids: 0 };
     const productSalesMap = {};
 
     allOrders.forEach((order) => {
@@ -766,11 +766,10 @@ export const db = {
       if (status === "paid") {
         actualCollectedRevenue += order.total_amount;
         order.items.forEach((item) => {
-          const cat = (item.product_name || "").toLowerCase().includes("men")
-            ? "men"
-            : (item.product_name || "").toLowerCase().includes("women")
-            ? "women"
-            : "accessories";
+          const catalogProduct = catalogProducts.find((product) => product.id === Number(item.product_id));
+          const cat = ["men", "women", "kids"].includes(catalogProduct?.audience)
+            ? catalogProduct.audience
+            : "kids";
           categorySales[cat] = (categorySales[cat] || 0) + item.total_price;
 
           if (!productSalesMap[item.product_id]) {

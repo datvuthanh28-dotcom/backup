@@ -193,16 +193,16 @@ async function runTests() {
     // TEST 4.1: Variant-level inventory adjustment and audit trail
     // ----------------------------------------------------
     console.log("\n--- Testing Variant-Level Inventory Adjustment ---");
-    const productTwoBefore = await pool.request().query("SELECT stock FROM Products WHERE id = 2");
+    const productTwoBefore = await pool.request().query("SELECT stock FROM Products WHERE id = 107");
     const productTwoOriginalStock = productTwoBefore.recordset[0].stock;
-    let variantBeforeRes = await pool.request().query("SELECT TOP 1 id, product_id, stock_quantity, low_stock_threshold, max_stock_threshold FROM ProductVariants WHERE product_id = 2 AND is_active = 1 ORDER BY id");
+    let variantBeforeRes = await pool.request().query("SELECT TOP 1 id, product_id, stock_quantity, low_stock_threshold, max_stock_threshold FROM ProductVariants WHERE product_id = 107 AND is_active = 1 ORDER BY id");
     let createdVariantFixture = false;
     if (!variantBeforeRes.recordset.length) {
       await pool.request().query(`INSERT INTO ProductVariants
         (id, product_id, sku, color_name, size_name, price, stock_quantity, low_stock_threshold, is_active)
-        VALUES ('TEST-P2-IVORY-M', 2, 'TEST-P2-IVORY-M', 'IVORY', 'M', 1000000, 4, 3, 1)`);
+        VALUES ('TEST-MR107-BROWN-S', 107, 'TEST-MR107-BROWN-S', 'Brown', 'S', 4890000, 4, 3, 1)`);
       createdVariantFixture = true;
-      variantBeforeRes = await pool.request().query("SELECT id, product_id, stock_quantity, low_stock_threshold, max_stock_threshold FROM ProductVariants WHERE id='TEST-P2-IVORY-M'");
+      variantBeforeRes = await pool.request().query("SELECT id, product_id, stock_quantity, low_stock_threshold, max_stock_threshold FROM ProductVariants WHERE id='TEST-MR107-BROWN-S'");
     }
     const testVariant = variantBeforeRes.recordset[0];
     const variantAdjust = await makeRequest(
@@ -228,7 +228,7 @@ async function runTests() {
     if (createdVariantFixture) {
       await pool.request().input("variant_id", sql.NVarChar, testVariant.id).query("DELETE FROM InventoryMovements WHERE variant_id=@variant_id");
       await pool.request().input("variant_id", sql.NVarChar, testVariant.id).query("DELETE FROM ProductVariants WHERE id=@variant_id");
-      await pool.request().input("stock", sql.Int, productTwoOriginalStock).query("UPDATE Products SET stock=@stock WHERE id=2");
+      await pool.request().input("stock", sql.Int, productTwoOriginalStock).query("UPDATE Products SET stock=@stock WHERE id=107");
     }
 
     // ----------------------------------------------------
@@ -236,10 +236,10 @@ async function runTests() {
     // ----------------------------------------------------
     console.log("\n--- Testing End-to-End Business Workflow & Payment Decoupling ---");
 
-    // 5.1 Check initial stock of product 1
-    const prodBefore = await pool.request().query("SELECT stock FROM Products WHERE id = 1");
+    // 5.1 Check initial stock of a product from the current catalog
+    const prodBefore = await pool.request().query("SELECT stock FROM Products WHERE id = 109");
     const initialStock = prodBefore.recordset[0].stock;
-    console.log(`Initial stock for Product 1: ${initialStock}`);
+    console.log(`Initial stock for Product MR-109: ${initialStock}`);
 
     // 5.2 Customer places order for 2 items
     const orderPayload = {
@@ -250,11 +250,14 @@ async function runTests() {
       paymentMethod: "cod",
       items: [
         {
-          id: 1,
-          name: "Cashmere Cardigan",
-          price: 6490000,
+          id: 109,
+          name: "Cashmere Button Cardigan",
+          price: 4890000,
           quantity: 2,
-          selectedColor: "BEIGE",
+          selectedColor: "Beige",
+          selectedSize: "S",
+          variantId: "v-109-beige-s",
+          sku: "MR-109-BEIGE-S",
           image: "image/Cashmere Cardigan - Men/BEIGE/1.png",
         },
       ],
@@ -267,9 +270,9 @@ async function runTests() {
     console.log(`Created Order ID: ${orderId}`);
 
     // 5.3 Stock deducted in Products table
-    const prodAfterDeduct = await pool.request().query("SELECT stock FROM Products WHERE id = 1");
+    const prodAfterDeduct = await pool.request().query("SELECT stock FROM Products WHERE id = 109");
     const deductedStock = prodAfterDeduct.recordset[0].stock;
-    assert(deductedStock === initialStock - 2, `Product 1 stock correctly deducted (${initialStock} -> ${deductedStock})`);
+    assert(deductedStock === initialStock - 2, `Product MR-109 stock correctly deducted (${initialStock} -> ${deductedStock})`);
 
     // 5.4 Initial payment is unpaid
     const pmtInitial = await pool
@@ -352,7 +355,7 @@ async function runTests() {
         phone: "0912345678",
         address: "45 Lê Lợi, Q.1",
         paymentMethod: "cod",
-        items: [{ id: 1, name: "Cashmere Cardigan", price: 6490000, quantity: 1, selectedColor: "BEIGE" }],
+        items: [{ id: 109, name: "Cashmere Button Cardigan", price: 4890000, quantity: 1, selectedColor: "Beige", selectedSize: "S", variantId: "v-109-beige-s", sku: "MR-109-BEIGE-S" }],
       },
       custCookie
     );
@@ -380,7 +383,7 @@ async function runTests() {
         phone: "0912345678",
         address: "45 Lê Lợi, Q.1",
         paymentMethod: "bank_transfer",
-        items: [{ id: 1, name: "Cashmere Cardigan", price: 6490000, quantity: 1, selectedColor: "BEIGE" }],
+        items: [{ id: 109, name: "Cashmere Button Cardigan", price: 4890000, quantity: 1, selectedColor: "Beige", selectedSize: "S", variantId: "v-109-beige-s", sku: "MR-109-BEIGE-S" }],
       },
       custCookie
     );

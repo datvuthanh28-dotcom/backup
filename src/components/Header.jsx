@@ -56,7 +56,6 @@ export default function Header() {
           </div>
         </div>
         <Link to="/kids" className="nav-main">KIDS</Link>
-        <div className="nav-dropdown"><Link to="/unisex" className="nav-main">UNISEX</Link><div className="dropdown-menu"><Link to="/unisex">All pieces</Link><Link to="/collections/heritage-cashmere">Cashmere</Link><Link to="/collections/suede-essentials">Suede</Link></div></div>
       </nav>
 
       <Link to="/" className="logo-link">
