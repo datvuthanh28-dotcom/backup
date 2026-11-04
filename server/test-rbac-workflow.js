@@ -116,21 +116,21 @@ async function runTests() {
 
     // Admin trying /api/auth/customer/login
     const adminAsCust = await makeRequest("POST", "/api/auth/customer/login", {
-      email: "admin@maisonrue.com",
+      email: "vanhung29993@gmail.com",
       password: "admin123",
     });
     assert(adminAsCust.status === 403, "Admin login via customer endpoint rejected (HTTP 403)");
 
     // Staff trying /api/auth/admin/login
     const staffAsAdmin = await makeRequest("POST", "/api/auth/admin/login", {
-      email: "staff@maisonrue.com",
+      email: "staffmaisonrue@gmail.com",
       password: "staff123",
     });
     assert(staffAsAdmin.status === 403, "Staff login via admin endpoint rejected (HTTP 403)");
 
     // Customer trying /api/auth/staff/login
     const custAsStaff = await makeRequest("POST", "/api/auth/staff/login", {
-      email: "customer@gmail.com",
+      email: "vudat9532@gmail.com",
       password: "customer123",
     });
     assert(custAsStaff.status === 403, "Customer login via staff endpoint rejected (HTTP 403)");
@@ -147,7 +147,7 @@ async function runTests() {
     // ----------------------------------------------------
     console.log("\n--- Testing Valid Logins & Cookie Generation ---");
     const custLogin = await makeRequest("POST", "/api/auth/customer/login", {
-      email: "customer@gmail.com",
+      email: "vudat9532@gmail.com",
       password: "customer123",
     });
     assert(custLogin.status === 200 && custLogin.body.user.role === "customer", "Customer login succeeds with role customer");
@@ -155,7 +155,7 @@ async function runTests() {
     assert(!!custCookie, "Customer received HttpOnly auth token cookie");
 
     const staffLogin = await makeRequest("POST", "/api/auth/staff/login", {
-      email: "staff@maisonrue.com",
+      email: "staffmaisonrue@gmail.com",
       password: "staff123",
     });
     assert(staffLogin.status === 200 && staffLogin.body.user.role === "staff", "Staff login succeeds with role staff");
@@ -163,7 +163,7 @@ async function runTests() {
     assert(!!staffCookie, "Staff received HttpOnly auth token cookie");
 
     const adminLogin = await makeRequest("POST", "/api/auth/admin/login", {
-      email: "admin@maisonrue.com",
+      email: "vanhung29993@gmail.com",
       password: "admin123",
     });
     assert(adminLogin.status === 200 && adminLogin.body.user.role === "admin", "Admin login succeeds with role admin");
@@ -244,7 +244,7 @@ async function runTests() {
     // 5.2 Customer places order for 2 items
     const orderPayload = {
       name: "Trần Mai Anh",
-      email: "customer@gmail.com",
+      email: "vudat9532@gmail.com",
       phone: "0901234567",
       address: "88 Lý Tự Trọng, Q.1, TP.HCM",
       paymentMethod: "cod",
@@ -345,7 +345,7 @@ async function runTests() {
     // ----------------------------------------------------
     console.log("\n--- Testing Product Engagement Workflow ---");
 
-    const engagementTestUser = await pool.request().query("SELECT id FROM Users WHERE email='customer@gmail.com'");
+    const engagementTestUser = await pool.request().query("SELECT id FROM Users WHERE email='vudat9532@gmail.com'");
     const engagementUserId = engagementTestUser.recordset[0].id;
     await pool.request().input("user_id", sql.NVarChar, engagementUserId).input("product_id", sql.Int, 109).query("DELETE FROM ProductFavoriteEvents WHERE user_id=@user_id AND product_id=@product_id; DELETE FROM ProductFavorites WHERE user_id=@user_id AND product_id=@product_id; DELETE FROM ProductReviews WHERE user_id=@user_id AND product_id=@product_id;");
 
@@ -398,7 +398,7 @@ async function runTests() {
       "/api/orders",
       {
         name: "Lê Hoàng",
-        email: "customer@gmail.com",
+        email: "vudat9532@gmail.com",
         phone: "0912345678",
         address: "45 Lê Lợi, Q.1",
         paymentMethod: "cod",
@@ -426,7 +426,7 @@ async function runTests() {
       "/api/orders",
       {
         name: "Lê Hoàng",
-        email: "customer@gmail.com",
+        email: "vudat9532@gmail.com",
         phone: "0912345678",
         address: "45 Lê Lợi, Q.1",
         paymentMethod: "bank_transfer",

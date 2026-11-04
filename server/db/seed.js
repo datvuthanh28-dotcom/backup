@@ -6,7 +6,7 @@ const DEFAULT_USERS = [
   {
     id: "usr_admin_01",
     name: "Quản Trị Viên Maison Rue",
-    email: "admin@maisonrue.com",
+    email: "vanhung29993@gmail.com",
     rawPassword: "admin123",
     role: "admin",
     phone: "0901234567",
@@ -15,7 +15,7 @@ const DEFAULT_USERS = [
   {
     id: "usr_staff_01",
     name: "Lê Hoàng Yến (Vận Hành)",
-    email: "staff@maisonrue.com",
+    email: "staffmaisonrue@gmail.com",
     rawPassword: "staff123",
     role: "staff",
     phone: "0912345678",
@@ -24,7 +24,7 @@ const DEFAULT_USERS = [
   {
     id: "usr_staff_02",
     name: "Trần Minh Khoa (Kho Vận)",
-    email: "staff2@maisonrue.com",
+    email: "maisonruestaff2@gmail.com",
     rawPassword: "staff123",
     role: "staff",
     phone: "0923456789",
@@ -42,7 +42,7 @@ const DEFAULT_USERS = [
   {
     id: "usr_cust_01",
     name: "Nguyễn Văn An",
-    email: "customer@gmail.com",
+    email: "vudat9532@gmail.com",
     rawPassword: "customer123",
     role: "customer",
     phone: "0987654321",
@@ -64,10 +64,12 @@ export async function runSeed() {
 
   await connectDB();
 
+  const pool = await connectDB();
+
   // 1. Seed Users with bcrypt hashes
   console.log("[Seed] Checking & seeding default accounts...");
   for (const u of DEFAULT_USERS) {
-    const existing = await db.findUserByEmail(u.email);
+    const existing = (await db.findUserById(u.id)) || (await db.findUserByEmail(u.email));
     if (!existing) {
       const password_hash = bcrypt.hashSync(u.rawPassword, 10);
       await db.createUser({
@@ -81,13 +83,13 @@ export async function runSeed() {
       });
       console.log(`[Seed] Created ${u.role.toUpperCase()} account: ${u.email}`);
     } else {
-      console.log(`[Seed] Account already exists: ${u.email} (${u.role})`);
+      await pool.request().input("id", u.id).input("email", u.email).input("name", u.name).input("role", u.role).query("UPDATE Users SET email = @email, name = @name, role = @role WHERE id = @id");
+      console.log(`[Seed] Synced account: ${u.email} (${u.role})`);
     }
   }
 
   // 2. Seed Products
   console.log("[Seed] Checking & seeding catalog products...");
-  const pool = await connectDB();
   for (const [productIndex, p] of allProducts.entries()) {
     const variantStocks = p.variants.map((_, variantIndex) => initialVariantStock(productIndex, variantIndex));
     const stock = variantStocks.reduce((sum, value) => sum + value, 0);
@@ -150,7 +152,7 @@ export async function runSeed() {
         id: "MR-2024-00101",
         customer_id: "usr_cust_01",
         customer_name: "Nguyễn Văn An",
-        customer_email: "customer@gmail.com",
+        customer_email: "vudat9532@gmail.com",
         customer_phone: "0987654321",
         shipping_address: "128 Đồng Khởi, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh",
         shipping_fee: 0,
@@ -216,7 +218,7 @@ export async function runSeed() {
         id: "MR-2024-00102",
         customer_id: "usr_cust_01",
         customer_name: "Nguyễn Văn An",
-        customer_email: "customer@gmail.com",
+        customer_email: "vudat9532@gmail.com",
         customer_phone: "0987654321",
         shipping_address: "128 Đồng Khởi, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh",
         shipping_fee: 0,
@@ -263,7 +265,7 @@ export async function runSeed() {
         id: "MR-2024-00105",
         customer_id: "usr_cust_01",
         customer_name: "Nguyễn Văn An",
-        customer_email: "customer@gmail.com",
+        customer_email: "vudat9532@gmail.com",
         customer_phone: "0987654321",
         shipping_address: "128 Đồng Khởi, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh",
         shipping_fee: 0,
