@@ -3,16 +3,24 @@ import useDocumentTitle from "../hooks/useDocumentTitle";
 import { useMemo, useState } from "react";
 import { useStore } from "../hooks/useStore";
 
-export default function ProductListPage({ gender, audience, productType, collection, title }) {
+export default function ProductListPage({ gender, audience, collection, productType, title }) {
   useDocumentTitle(title);
   const { products } = useStore();
   const [type, setType] = useState("all");
   const [sort, setSort] = useState("featured");
-  const types = [...new Set(products.filter((p) => (!gender || p.gender === gender) && (!audience || p.audience === audience) && (!productType || p.productType === productType)).map((p) => p.subcategory))];
+  const matchesAudience = (product) => {
+    if (audience) return product.audience === audience;
+    if (gender === "unisex") return product.gender === "unisex";
+    if (gender === "nam") return product.audience === "men";
+    if (gender === "nữ") return product.audience === "women";
+    return !gender || product.gender === gender;
+  };
+  const matchesProduct = (product) => matchesAudience(product) && (!productType || product.productType === productType);
+  const types = [...new Set(products.filter((p) => matchesProduct(p) && (!collection || p.collection === collection)).map((p) => p.subcategory))];
   const items = useMemo(() => {
-    const filtered = products.filter((p) => (!gender || p.gender === gender) && (!audience || p.audience === audience) && (!productType || p.productType === productType) && (!collection || p.collection === collection) && (type === "all" || p.subcategory === type));
+    const filtered = products.filter((p) => matchesProduct(p) && (!collection || p.collection === collection) && (type === "all" || p.subcategory === type));
     return [...filtered].sort((a, b) => sort === "price-low" ? a.price - b.price : sort === "price-high" ? b.price - a.price : a.id - b.id);
-  }, [products, gender, audience, productType, collection, type, sort]);
+  }, [products, gender, audience, collection, productType, type, sort]);
 
   return (
     <main className="collection-page">

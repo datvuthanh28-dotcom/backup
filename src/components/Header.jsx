@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
 import { useAuth } from "../context/AuthContext";
@@ -12,6 +12,22 @@ export default function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [headerHidden, setHeaderHidden] = useState(false);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    lastScrollY.current = window.scrollY;
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      const delta = currentY - lastScrollY.current;
+      if (currentY < 80) setHeaderHidden(false);
+      else if (delta > 3) setHeaderHidden(true);
+      else if (delta < -3) setHeaderHidden(false);
+      lastScrollY.current = currentY;
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleSearch = (event) => {
     event?.preventDefault();
@@ -35,8 +51,16 @@ export default function Header() {
   };
 
   return (
-    <header>
+    <header className={`store-header${headerHidden ? " is-hidden" : ""}`}>
+      <div className="header-announcement"><span>‹</span><p>E-Concierge · Monday to Sunday, 9 am – 7 pm</p><span>›</span></div>
+      <div className="header-brand-row">
+        <Link to="/" className="logo-link">
+          <img src="/image/logo.png" alt="Maison Rue logo" className="header-logo" />
+        </Link>
+      </div>
       <nav className="head-left">
+        <Link to="/collections/new-arrivals" className="nav-main nav-highlight">NEW ARRIVALS</Link>
+        <Link to="/collections/heritage-cashmere" className="nav-main nav-highlight">THE CASHMERE EDIT</Link>
         <div className="nav-dropdown">
           <Link to="/men" className="nav-main">MEN</Link>
           <div className="dropdown-menu">
@@ -56,11 +80,8 @@ export default function Header() {
           </div>
         </div>
         <Link to="/kids" className="nav-main">KIDS</Link>
+        <Link to="/our-story" className="nav-main">OUR STORY</Link>
       </nav>
-
-      <Link to="/" className="logo-link">
-        <img src="/image/logo.png" alt="Maison Rue logo" className="header-logo" />
-      </Link>
 
       <nav className="head-right">
         <a href="#" id="searchBtn" onClick={(e) => { e.preventDefault(); setSearchOpen(true); }}>
