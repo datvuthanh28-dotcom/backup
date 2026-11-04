@@ -333,6 +333,7 @@ export const db = {
   async createOrderWithTransaction({ orderData, items, paymentData }) {
     const p = await getActivePool();
     const transaction = new sql.Transaction(p);
+    const lowStockAlerts = [];
     await transaction.begin();
     try {
       // 1. Check stock availability for all items
@@ -397,8 +398,20 @@ export const db = {
           `);
 
         if (item.variantId) {
-          await transaction.request().input("variant_id", sql.NVarChar, item.variantId).input("qty", sql.Int, item.quantity)
-            .query("UPDATE ProductVariants SET stock_quantity=stock_quantity-@qty, updated_at=GETDATE() WHERE id=@variant_id");
+          const varUpdate = await transaction.request().input("variant_id", sql.NVarChar, item.variantId).input("qty", sql.Int, item.quantity)
+            .query("UPDATE ProductVariants SET stock_quantity=stock_quantity-@qty, updated_at=GETDATE() OUTPUT inserted.id, inserted.sku, inserted.stock_quantity, inserted.low_stock_threshold, inserted.color_name, inserted.size_name WHERE id=@variant_id");
+          if (varUpdate.recordset && varUpdate.recordset[0]) {
+            const v = varUpdate.recordset[0];
+            if (v.stock_quantity <= v.low_stock_threshold) {
+              lowStockAlerts.push({
+                productName: item.name,
+                sku: v.sku,
+                variantInfo: `${v.color_name || ""} - ${v.size_name || ""}`.trim(),
+                currentStock: v.stock_quantity,
+                minStock: v.low_stock_threshold,
+              });
+            }
+          }
         }
         await transaction.request().input("id", sql.Int, item.id).input("qty", sql.Int, item.quantity)
           .query("UPDATE Products SET stock = stock - @qty, updated_at = GETDATE() WHERE id = @id");
@@ -450,7 +463,9 @@ export const db = {
         `);
 
       await transaction.commit();
-      return this.getOrderById(orderData.id);
+      const finalOrder = await this.getOrderById(orderData.id);
+      if (finalOrder) finalOrder.lowStockAlerts = lowStockAlerts;
+      return finalOrder;
     } catch (err) {
       await transaction.rollback();
       throw err;
