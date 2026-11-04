@@ -35,7 +35,24 @@ export function StoreProvider({ children }) {
     try {
       const res = await productsAPI.getAll();
       if (res.success && Array.isArray(res.products) && res.products.length > 0) {
-        setProducts(res.products);
+        // The approved assortment is the storefront source of truth. Ignore legacy
+        // products that may still be returned by an older or unsynchronized API.
+        const staticById = new Map(staticProducts.map((product) => [Number(product.id), product]));
+        const approvedProducts = res.products
+          .map((product) => {
+            const catalogProduct = staticById.get(Number(product.id));
+            if (!catalogProduct) return null;
+            return {
+              ...catalogProduct,
+              ...product,
+              audience: catalogProduct.audience,
+              gender: catalogProduct.gender,
+              productType: catalogProduct.productType,
+              subcategory: catalogProduct.subcategory,
+            };
+          })
+          .filter(Boolean);
+        if (approvedProducts.length > 0) setProducts(approvedProducts);
       }
     } catch (err) {
       console.warn("[Store] Products API fetch fallback:", err.message);

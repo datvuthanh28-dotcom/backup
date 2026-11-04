@@ -54,7 +54,7 @@ const products = {
   men: allProducts.filter((product) => product.audience === "men"),
   women: allProducts.filter((product) => product.audience === "women"),
   kids: allProducts.filter((product) => product.audience === "kids"),
-  accessories: allProducts.filter((product) => product.audience === "kids")
+  accessories: allProducts.filter((product) => product.productType === "Accessories")
 };
 
 export function getProductById(id) {

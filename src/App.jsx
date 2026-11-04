@@ -20,6 +20,7 @@ import CustomerOrders from "./pages/customer/CustomerOrders";
 import CustomerAccount from "./pages/customer/CustomerAccount";
 import AccessDenied from "./pages/AccessDenied";
 import SearchResultsPage from "./pages/SearchResultsPage";
+import OurStory from "./pages/OurStory";
 
 // Separate Portals Login Pages
 import StaffLogin from "./pages/staff/StaffLogin"; // Staff Login (/staff/login)
@@ -46,11 +47,11 @@ function App() {
               {/* 1. CUSTOMER PORTAL & STOREFRONT */}
               <Route element={<StorefrontLayout />}>
                 <Route path="/" element={<Home />} />
-                <Route path="/men" element={<ProductListPage gender="nam" title="Men" />} />
-                <Route path="/women" element={<ProductListPage gender="nữ" title="Women" />} />
+                <Route path="/men" element={<ProductListPage audience="men" title="Men" />} />
+                <Route path="/women" element={<ProductListPage audience="women" title="Women" />} />
                 <Route path="/kids" element={<ProductListPage audience="kids" title="Kids" />} />
-                <Route path="/unisex" element={<ProductListPage gender="unisex" title="Unisex" />} />
-                <Route path="/accessories" element={<ProductListPage gender="unisex" title="Accessories" />} />
+                <Route path="/accessories" element={<ProductListPage productType="Accessories" title="Accessories" />} />
+                <Route path="/our-story" element={<OurStory />} />
                 <Route path="/collections/riviera-linen" element={<ProductListPage collection="Riviera Linen" title="Riviera Linen" />} />
                 <Route path="/collections/heritage-cashmere" element={<ProductListPage collection="Heritage Cashmere" title="Heritage Cashmere" />} />
                 <Route path="/collections/suede-essentials" element={<ProductListPage collection="Suede Essentials" title="Suede Essentials" />} />
