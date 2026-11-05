@@ -25,6 +25,7 @@ import CustomerOffers from "./pages/customer/CustomerOffers";
 import AccessDenied from "./pages/AccessDenied";
 import SearchResultsPage from "./pages/SearchResultsPage";
 import OurStory from "./pages/OurStory";
+import StoreInfoPage from "./pages/StoreInfoPage";
 
 // Separate Portals Login Pages
 import StaffLogin from "./pages/staff/StaffLogin"; // Staff Login (/staff/login)
@@ -60,6 +61,12 @@ function App() {
                 <Route path="/kids" element={<ProductListPage audience="kids" title="Kids" />} />
                 <Route path="/accessories" element={<ProductListPage productType="Accessories" title="Accessories" />} />
                 <Route path="/our-story" element={<OurStory />} />
+                <Route path="/contact" element={<StoreInfoPage page="contact" />} />
+                <Route path="/returns" element={<StoreInfoPage page="returns" />} />
+                <Route path="/shopping-guide" element={<StoreInfoPage page="guide" />} />
+                <Route path="/terms" element={<StoreInfoPage page="terms" />} />
+                <Route path="/privacy" element={<StoreInfoPage page="privacy" />} />
+                <Route path="/cookies" element={<StoreInfoPage page="cookies" />} />
                 <Route path="/collections/riviera-linen" element={<ProductListPage collection="Riviera Linen" title="Riviera Linen" />} />
                 <Route path="/collections/heritage-cashmere" element={<ProductListPage collection="Heritage Cashmere" title="Heritage Cashmere" />} />
                 <Route path="/collections/suede-essentials" element={<ProductListPage collection="Suede Essentials" title="Suede Essentials" />} />
