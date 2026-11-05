@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
 import { useStore } from "../hooks/useStore";
@@ -8,12 +9,33 @@ function formatPrice(v) {
 }
 
 export default function Cart() {
-  useDocumentTitle("Giỏ Hàng");
-  const { cart, removeFromCart, updateQuantity, cartCount, cartTotal, cartLoading, cartError } = useCart();
+  useDocumentTitle("Shopping Bag");
+  const { cart, removeFromCart, updateQuantity, selectedCartCount, selectedCartTotal, selectedCartItemIds, toggleCartItemSelected, setAllCartItemsSelected, cartLoading, cartError } = useCart();
   const { getProductStock } = useStore();
+  const [quantityDrafts, setQuantityDrafts] = useState({});
+
+  useEffect(() => {
+    setQuantityDrafts((drafts) => {
+      const next = { ...drafts };
+      for (const item of cart) {
+        if (!(item.cartItemId in next)) next[item.cartItemId] = String(item.quantity);
+      }
+      for (const id of Object.keys(next)) {
+        if (!cart.some((item) => item.cartItemId === id)) delete next[id];
+      }
+      return next;
+    });
+  }, [cart]);
+
+  const commitQuantity = (item, rawValue) => {
+    const parsed = Number.parseInt(rawValue, 10);
+    const value = rawValue === "" || !Number.isFinite(parsed) ? 1 : Math.min(10, Math.max(1, parsed));
+    updateQuantity(item.cartItemId, value);
+    setQuantityDrafts((drafts) => ({ ...drafts, [item.cartItemId]: String(value) }));
+  };
 
   if (cartLoading) {
-    return <main id="cart-container"><div className="empty-cart"><p>Đang tải giỏ hàng...</p></div></main>;
+    return <main id="cart-container"><div className="empty-cart"><p>Loading your bag...</p></div></main>;
   }
 
   if (cart.length === 0) {
@@ -21,9 +43,9 @@ export default function Cart() {
       <main id="cart-container">
         <div className="empty-cart">
           {cartError && <p className="form-error">{cartError}</p>}
-          <h2>Giỏ Hàng Trống</h2>
-          <p>Hãy thêm sản phẩm vào giỏ hàng của bạn để trải nghiệm dịch vụ</p>
-          <Link to="/" className="btn-primary">Tiếp Tục Mua Sắm</Link>
+          <h2>Your Bag Is Empty</h2>
+          <p>Add something to your bag and discover the Maison Rue experience.</p>
+          <Link to="/" className="btn-primary">Continue Shopping</Link>
         </div>
       </main>
     );
@@ -35,12 +57,15 @@ export default function Cart() {
     const insufficient = item.quantity > stock;
     return { ...item, availableStock: stock, insufficient };
   });
-  const hasStockIssue = itemStockStatus.some((item) => item.insufficient);
+  const selectedIds = selectedCartItemIds === null ? cart.map((item) => item.cartItemId) : selectedCartItemIds;
+  const allSelected = cart.length > 0 && selectedIds.length === cart.length;
+  const selectedStockIssue = itemStockStatus.some((item) => selectedIds.includes(item.cartItemId) && item.insufficient);
 
   return (
     <main id="cart-container">
       <div className="cart-content">
         <div className="cart-items">
+          <div className="cart-select-all"><label><input type="checkbox" checked={allSelected} onChange={(event) => setAllCartItemsSelected(event.target.checked)} /> <span>Select all</span></label><span>{selectedCartCount} items selected</span></div>
           {itemStockStatus.map((item) => {
             const image =
               item.selectedColor && item.colorImages
@@ -48,6 +73,7 @@ export default function Cart() {
                 : item.images[0];
             return (
               <div className="cart-item" key={item.cartItemId}>
+                <label className="cart-item-select"><input type="checkbox" aria-label={`Select ${item.name}`} checked={selectedIds.includes(item.cartItemId)} onChange={() => toggleCartItemSelected(item.cartItemId)} /></label>
                 <div className="cart-item-image">
                   <img src={`/${image}`} alt={item.name} />
                 </div>
@@ -56,51 +82,41 @@ export default function Cart() {
                   <h3>{item.name}</h3>
                   <p className="cart-item-category">{item.category.toUpperCase()}</p>
                   {item.selectedColor && (
-                    <p className="cart-item-color">Màu: {item.selectedColor}</p>
+                    <p className="cart-item-color">Colour: {item.selectedColor}</p>
                   )}
                   {item.selectedSize && <p className="cart-item-color">Size: {item.selectedSize} · {item.sku}</p>}
-                  <Link className="cart-edit-link" to={`/product/${item.id}`}>Chỉnh sửa màu / size</Link>
                   <p className="cart-item-price">{formatPrice(item.price)}</p>
-
-                  {/* Stock validation badge */}
                   {item.availableStock === 0 ? (
-                    <div style={{ color: "#D9534F", fontSize: "12px", marginTop: "4px", fontWeight: "600" }}>
-                      ⚠️ Sản phẩm này đã hết hàng trong kho
-                    </div>
+                    <p className="cart-stock-notice" role="alert">This item is currently unavailable.</p>
                   ) : item.insufficient ? (
-                    <div style={{ color: "#D9534F", fontSize: "12px", marginTop: "4px", fontWeight: "600" }}>
-                      ⚠️ Chỉ còn {item.availableStock} sản phẩm (bạn chọn {item.quantity})
-                    </div>
-                  ) : item.availableStock <= 5 ? (
-                    <div style={{ color: "#B8860B", fontSize: "12px", marginTop: "4px" }}>
-                      ⚡ Kho chỉ còn {item.availableStock} sản phẩm
-                    </div>
-                  ) : (
-                    <div style={{ color: "#2E8B57", fontSize: "12px", marginTop: "4px" }}>
-                      ✓ Sẵn hàng ({item.availableStock} sản phẩm)
-                    </div>
-                  )}
+                    <p className="cart-stock-notice" role="alert">Selected quantity exceeds availability.</p>
+                  ) : null}
                 </div>
 
                 <div className="cart-item-quantity">
-                  <label>Số Lượng:</label>
+                  <label>Quantity:</label>
                   <div className="quantity-controls">
-                    <button onClick={() => updateQuantity(item.cartItemId, Math.max(1, item.quantity - 1))}>−</button>
+                    <button type="button" aria-label="Decrease quantity" disabled={item.quantity <= 1} onClick={() => commitQuantity(item, String(Math.max(1, item.quantity - 1)))}>−</button>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       min="1"
-                      max={item.availableStock || 99}
-                      value={item.quantity}
-                      onChange={(e) => updateQuantity(item.cartItemId, Math.max(1, Number(e.target.value)))}
+                      max="10"
+                      value={quantityDrafts[item.cartItemId] ?? String(item.quantity)}
+                      onChange={(e) => setQuantityDrafts((drafts) => ({ ...drafts, [item.cartItemId]: e.target.value.replace(/\D/g, "").slice(0, 2) }))}
+                      onBlur={(e) => commitQuantity(item, e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                      aria-label={`Quantity for ${item.name}`}
                     />
                     <button
+                      type="button"
                       onClick={() => {
-                        if (item.quantity < item.availableStock) {
-                          updateQuantity(item.cartItemId, item.quantity + 1);
+                        if (item.quantity < 10) {
+                          commitQuantity(item, String(item.quantity + 1));
                         }
                       }}
-                      disabled={item.quantity >= item.availableStock}
-                      style={item.quantity >= item.availableStock ? { opacity: 0.4, cursor: "not-allowed" } : {}}
+                      disabled={item.quantity >= 10}
+                      style={item.quantity >= 10 ? { opacity: 0.4, cursor: "not-allowed" } : {}}
                     >
                       +
                     </button>
@@ -111,7 +127,7 @@ export default function Cart() {
                   <p>{formatPrice(item.price * item.quantity)}</p>
                 </div>
 
-                <button className="btn-remove" onClick={() => removeFromCart(item.cartItemId)} title="Xóa khỏi giỏ">
+                <button className="btn-remove" onClick={() => removeFromCart(item.cartItemId)} title="Remove from bag">
                   <i className="fas fa-trash"></i>
                 </button>
               </div>
@@ -121,42 +137,33 @@ export default function Cart() {
 
         <div className="cart-summary">
           <div className="summary-row">
-            <span>Tổng Số Sản Phẩm:</span>
-            <span>{cartCount}</span>
+            <span>Items:</span>
+            <span>{selectedCartCount}</span>
           </div>
           <div className="summary-row">
-            <span>Vận chuyển cao cấp:</span>
-            <span style={{ color: "#2E8B57", fontWeight: "600" }}>MIỄN PHÍ</span>
+            <span>Shipping:</span>
+            <span className="shipping-included">Complimentary</span>
           </div>
           <div className="summary-row total">
-            <span>Tổng Tiền:</span>
-            <span>{formatPrice(cartTotal)}</span>
+            <span>Total:</span>
+            <span>{formatPrice(selectedCartTotal)}</span>
           </div>
 
-          {hasStockIssue && (
-            <div
-              style={{
-                backgroundColor: "#FFF0F0",
-                color: "#D9534F",
-                border: "1px solid #F5C6CB",
-                padding: "10px",
-                borderRadius: "5px",
-                fontSize: "12.5px",
-                marginBottom: "15px",
-                lineHeight: "1.4",
-              }}
-            >
-              Một số sản phẩm vượt quá số lượng tồn kho khả dụng. Vui lòng cập nhật lại số lượng trước khi đặt hàng.
+          {selectedStockIssue && (
+            <div className="cart-stock-summary" role="alert">
+              Please adjust the quantity of the selected item before checkout.
             </div>
           )}
 
-          {hasStockIssue ? (
+          {selectedIds.length === 0 ? (
+            <button className="btn-primary btn-large" disabled style={{ opacity: 0.5, cursor: "not-allowed" }}>Select items to checkout</button>
+          ) : selectedStockIssue ? (
             <button
               className="btn-primary btn-large"
               disabled
               style={{ opacity: 0.5, cursor: "not-allowed" }}
             >
-              Chưa thể thanh toán
+              Unable to checkout
             </button>
           ) : (
             <Link
@@ -164,7 +171,7 @@ export default function Cart() {
               className="btn-primary btn-large"
               style={{ display: "block", textAlign: "center", textDecoration: "none" }}
             >
-              Tiến Hành Đặt Hàng
+              Proceed to Checkout
             </Link>
           )}
 
@@ -173,7 +180,7 @@ export default function Cart() {
             className="btn-secondary"
             style={{ textAlign: "center", textDecoration: "none" }}
           >
-            Tiếp Tục Mua Sắm
+            Continue Shopping
           </Link>
         </div>
       </div>

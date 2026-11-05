@@ -50,7 +50,7 @@ export default function Home() {
       </section>
 
       <section className="home-edit">
-        <div className="home-edit-image"><img src="/image/best sellers/cardigan.png" alt="Áo cardigan len cashmere Maison Rue" /></div>
+        <div className="home-edit-image"><img src="/image/best sellers/cardigan.png" alt="Maison Rue cashmere cardigan" /></div>
         <div className="home-edit-copy">
           <span className="home-eyebrow">THE MAISON RUE EDIT</span>
           <h2>Considered<br />essentials.</h2>
@@ -73,11 +73,11 @@ export default function Home() {
           <p>Maison Rue was born from a simple idea: that what we wear should feel as good as it looks. We bring together natural fibres, thoughtful details and enduring silhouettes to create a quieter kind of luxury.</p>
           <Link className="home-link" to="/our-story">THE MAISON RUE STORY <span>→</span></Link>
         </div>
-        <div className="home-craft-image"><img src="/image/our story/craft.jpg" alt="Đôi tay nghệ nhân chăm chút từng chi tiết" /></div>
+        <div className="home-craft-image"><img src="/image/our story/craft.jpg" alt="An artisan’s hands perfecting every detail" /></div>
       </section>
 
       <section className="home-material">
-        <img src="/image/our story/cashmere.png" alt="Chất liệu cashmere tự nhiên" />
+        <img src="/image/our story/cashmere.png" alt="Natural cashmere" />
         <div><span className="home-eyebrow">THE FEEL OF NATURE</span><h2>Fibre, feeling,<br />and the passage of time.</h2><p>Natural materials have a character all their own. We honour it in every thread, every texture, every piece made to last beyond a season.</p><Link className="home-link home-link-light" to="/collections/heritage-cashmere">DISCOVER OUR CASHMERE SELECTION <span>→</span></Link></div>
       </section>
     </main>

@@ -13,7 +13,7 @@ import {
 const FALLBACK_IMAGE = "/image/hero-image/hero-image.png";
 
 export default function OrderItemLine({ item, formatPrice, linkProduct = false, showImage = true, showCost = false }) {
-  const productName = item.product_name || item.name || "Sản phẩm";
+  const productName = item.product_name || item.name || "Product";
   const quantity = numberValue(item.quantity, 1);
   const originalTotal = getOrderItemOriginalUnitPrice(item) * quantity;
   const finalTotal = getOrderItemFinalTotal(item);
@@ -41,16 +41,16 @@ export default function OrderItemLine({ item, formatPrice, linkProduct = false, 
           SKU: <strong>{getOrderItemSku(item)}</strong>
         </div>
         <div style={{ marginTop: 2, fontSize: 12.5, color: "#8A7350" }}>
-          Màu: {getOrderItemColor(item)} · Size: {getOrderItemSize(item)} · Số lượng: {quantity}
+          Colour: {getOrderItemColor(item)} · Size: {getOrderItemSize(item)} · Quantity: {quantity}
         </div>
         {showCost && item.unit_cost_snapshot != null && (
-          <div style={{ marginTop: 2, fontSize: 12, color: "#6B5A4B" }}>Giá vốn lưu tại thời điểm bán: {formatPrice(numberValue(item.unit_cost_snapshot) * quantity)}</div>
+          <div style={{ marginTop: 2, fontSize: 12, color: "#6B5A4B" }}>Cost at time of sale: {formatPrice(numberValue(item.unit_cost_snapshot) * quantity)}</div>
         )}
       </div>
       <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
         {discount > 0 && <div style={{ color: "#8A7350", fontSize: 12, textDecoration: "line-through" }}>{formatPrice(originalTotal)}</div>}
         <strong style={{ color: "#B89B5E", fontSize: 14 }}>{formatPrice(finalTotal)}</strong>
-        {discount > 0 && <div style={{ color: "#2E7D50", fontSize: 11.5 }}>Đã giảm {formatPrice(discount)}</div>}
+        {discount > 0 && <div style={{ color: "#2E7D50", fontSize: 11.5 }}>Discount: {formatPrice(discount)}</div>}
       </div>
     </div>
   );

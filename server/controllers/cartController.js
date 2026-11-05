@@ -75,7 +75,7 @@ export async function saveCart(req, res) {
     }
 
     for (const item of items) {
-      const quantity = Math.max(1, Math.min(99, Number.parseInt(item.quantity, 10) || 1));
+      const quantity = Math.max(1, Math.min(10, Number.parseInt(item.quantity, 10) || 1));
       const productId = Number(item.id || item.productId);
       let variantId = String(item.variantId || "").trim();
       const lookup = transaction.request().input("product_id", sql.Int, productId);
@@ -96,7 +96,7 @@ export async function saveCart(req, res) {
       const variant = variantResult.recordset[0];
       if (!variant || variant.stock_quantity <= 0) continue;
       variantId = variant.id;
-      const acceptedQuantity = Math.min(quantity, variant.stock_quantity);
+      const acceptedQuantity = quantity;
 
       if (mode === "merge") {
         await transaction.request().input("cart_id", sql.BigInt, cartId)
@@ -105,7 +105,7 @@ export async function saveCart(req, res) {
           MERGE ShoppingCartItems AS target
           USING (SELECT @cart_id cart_id,@variant_id variant_id) AS source
           ON target.cart_id=source.cart_id AND target.variant_id=source.variant_id
-          WHEN MATCHED THEN UPDATE SET quantity=CASE WHEN target.quantity+@quantity>@stock THEN @stock ELSE target.quantity+@quantity END,updated_at=GETDATE()
+          WHEN MATCHED THEN UPDATE SET quantity=CASE WHEN target.quantity+@quantity>10 THEN 10 ELSE target.quantity+@quantity END,updated_at=GETDATE()
           WHEN NOT MATCHED THEN INSERT(cart_id,product_id,variant_id,quantity) VALUES(@cart_id,@product_id,@variant_id,@quantity);`);
       } else {
         await transaction.request().input("cart_id", sql.BigInt, cartId)

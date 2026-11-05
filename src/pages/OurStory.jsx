@@ -8,7 +8,7 @@ export default function OurStory() {
     <main className="our-story-page">
       <div className="story-brand">
       <section className="story-hero">
-        <img src="/image/our story/saigon-heritage.png" alt="Ảnh lịch sử Chợ Bến Thành, Sài Gòn" />
+        <img src="/image/our story/saigon-heritage.png" alt="Historic Ben Thanh Market in Saigon" />
         <div className="story-hero-copy">
           <span>EST. SAIGON · 1975</span>
           <h1>A legacy in<br />every stitch.</h1>
@@ -29,11 +29,11 @@ export default function OurStory() {
           <p className="story-lead">“Clothing should be made with care, then live beautifully with the person who wears it.”</p>
           <p>Maison Rue was founded by a Saigon family who saw tailoring as more than a trade. They believed that a garment should be considered from its first choice of cloth to its final stitch, and that the relationship between maker and wearer gives an object its meaning. This belief remains at the heart of the house today.</p>
         </div>
-        <div className="story-founder-image"><img src="/image/our story/founders-atelier.png" alt="Xưởng may lịch sử của Maison Rue" /></div>
+        <div className="story-founder-image"><img src="/image/our story/founders-atelier.png" alt="Maison Rue’s historic atelier" /></div>
       </section>
 
       <section className="story-founder">
-        <div className="story-founder-image"><img src="/image/our story/craft.jpg" alt="Nghệ nhân Maison Rue trong xưởng thủ công" /></div>
+        <div className="story-founder-image"><img src="/image/our story/craft.jpg" alt="Maison Rue artisan at work" /></div>
         <div className="story-founder-copy">
           <span className="story-kicker">THE CRAFT</span>
           <h2>Time, patience<br />and precision.</h2>
@@ -54,7 +54,7 @@ export default function OurStory() {
 
       <div className="story-material-story">
       <section className="story-material-hero">
-        <img src="/image/our story/cashmere.png" alt="Cashmere tự nhiên Maison Rue" />
+        <img src="/image/our story/cashmere.png" alt="Maison Rue natural cashmere" />
         <div><span className="story-kicker">THE MATERIALS WE LIVE IN</span><h2>Nature is our<br />starting point.</h2></div>
       </section>
 
@@ -68,7 +68,7 @@ export default function OurStory() {
         <span className="story-kicker">OUR PROMISE</span>
         <h2>Made by hand.<br />Kept by time.</h2>
         <p>Crafted in Saigon. Enduring through time.</p>
-        <Link to="/women">EXPLORE THE COLLECTION <b>→</b></Link>
+        <Link to="/collections/fall-winter-2026-2027">EXPLORE OUR COLLECTION <b>→</b></Link>
       </section>
       </div>
     </main>

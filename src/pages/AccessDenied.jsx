@@ -3,32 +3,32 @@ import { useAuth } from "../context/AuthContext";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 
 export default function AccessDenied() {
-  useDocumentTitle("Truy cập bị từ chối");
+  useDocumentTitle("Access Denied");
   const { currentUser, role, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
   const state = location.state || {};
   const requiredRoles = state.requiredRoles || [];
-  const attemptedPath = state.attemptedPath || "trang yêu cầu";
+  const attemptedPath = state.attemptedPath || "requested page";
 
   const getRoleLabel = (r) => {
     switch (r) {
       case "admin":
-        return "Quản trị viên (Admin)";
+        return "Administrator";
       case "staff":
-        return "Nhân viên vận hành (Staff)";
+        return "Staff";
       case "customer":
-        return "Khách hàng (Customer)";
+        return "Customer";
       default:
-        return r || "Khách chưa đăng nhập";
+        return r || "Guest";
     }
   };
 
   const getTargetWorkspace = () => {
-    if (role === "admin") return { path: "/admin", label: "Về Cổng Quản Trị (Admin Portal)" };
-    if (role === "staff") return { path: "/staff", label: "Về Cổng Nhân Viên (Staff Portal)" };
-    return { path: "/account/orders", label: "Về Đơn Hàng Của Tôi (Customer Portal)" };
+    if (role === "admin") return { path: "/admin", label: "Go to Admin Portal" };
+    if (role === "staff") return { path: "/staff", label: "Go to Staff Portal" };
+    return { path: "/account/orders", label: "Go to My Orders" };
   };
 
   const getTargetLogin = () => {
@@ -95,7 +95,7 @@ export default function AccessDenied() {
             fontWeight: "600",
           }}
         >
-          TRUY CẬP BỊ TỪ CHỐI
+          ACCESS DENIED
         </h1>
 
         <p
@@ -106,7 +106,7 @@ export default function AccessDenied() {
             marginBottom: "25px",
           }}
         >
-          Bạn không có đặc quyền cần thiết để truy cập vào phân vùng này (
+          You don't have permission to access this area (
           <code
             style={{
               backgroundColor: "#EEEAE6",
@@ -118,7 +118,7 @@ export default function AccessDenied() {
           >
             {attemptedPath}
           </code>
-          ). Hệ thống Maison Rue thực thi chính sách bảo mật phân quyền 3 cổng nghiêm ngặt (Strict Role Isolation).
+          ). Maison Rue protects its customer, staff and administrator portals with separate access permissions.
         </p>
 
         <div
@@ -133,13 +133,13 @@ export default function AccessDenied() {
           }}
         >
           <div style={{ marginBottom: "8px" }}>
-            <strong style={{ color: "#2B211C" }}>Tài khoản đang đăng nhập:</strong>{" "}
+            <strong style={{ color: "#2B211C" }}>Signed-in account:</strong>{" "}
             <span style={{ color: "#4E342E" }}>
-              {currentUser?.name || "Chưa xác thực"} ({currentUser?.email || "Chưa có"})
+              {currentUser?.name || "Not authenticated"} ({currentUser?.email || "Unavailable"})
             </span>
           </div>
           <div style={{ marginBottom: "8px" }}>
-            <strong style={{ color: "#2B211C" }}>Vai trò hiện hành:</strong>{" "}
+            <strong style={{ color: "#2B211C" }}>Current role:</strong>{" "}
             <span
               style={{
                 display: "inline-block",
@@ -155,9 +155,9 @@ export default function AccessDenied() {
             </span>
           </div>
           <div>
-            <strong style={{ color: "#2B211C" }}>Vai trò được phép truy cập:</strong>{" "}
+            <strong style={{ color: "#2B211C" }}>Required role:</strong>{" "}
             <span style={{ color: "#8A5A36", fontWeight: "600" }}>
-              {requiredRoles.map((r) => getRoleLabel(r)).join(" HOẶC ")}
+              {requiredRoles.map((r) => getRoleLabel(r)).join(" OR ")}
             </span>
           </div>
         </div>
@@ -190,7 +190,7 @@ export default function AccessDenied() {
                 padding: "11px",
               }}
             >
-              Về Cửa Hàng
+              Back to Store
             </Link>
 
             <button
@@ -204,7 +204,7 @@ export default function AccessDenied() {
                 color: "#D9534F",
               }}
             >
-              Đăng Nhập Cổng Đúng
+              Sign In to the Correct Portal
             </button>
           </div>
         </div>

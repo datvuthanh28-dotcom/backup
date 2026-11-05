@@ -21,7 +21,7 @@ async function request(endpoint, options = {}) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const errorMsg = data.error || `Yêu cầu thất bại (Mã lỗi ${response.status})`;
+    const errorMsg = data.error || `Request failed (Error ${response.status})`;
     const error = new Error(errorMsg);
     error.status = response.status;
     error.data = data;

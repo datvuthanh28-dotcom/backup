@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
 import { useStore } from "../hooks/useStore";
@@ -11,8 +11,9 @@ function formatPrice(v) {
 }
 
 export default function Checkout() {
-  useDocumentTitle("Thanh Toán & Đặt Hàng");
-  const { cart, cartTotal, clearCart, cartLoading, cartError } = useCart();
+  useDocumentTitle("Checkout");
+  const { cart, selectedCartItemIds, selectedCartTotal, removeCartItems, cartLoading, cartError } = useCart();
+  const checkoutItems = useMemo(() => selectedCartItemIds === null ? cart : cart.filter((item) => selectedCartItemIds.includes(item.cartItemId)), [cart, selectedCartItemIds]);
   const { createOrder } = useStore();
   const { currentUser } = useAuth();
   const [searchParams] = useSearchParams();
@@ -22,7 +23,7 @@ export default function Checkout() {
     name: currentUser?.name || "",
     email: currentUser?.email || "",
     phone: currentUser?.phone || "",
-    address: "128 Đồng Khởi, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh",
+    address: "128 Dong Khoi Street, Ben Nghe Ward, District 1, Ho Chi Minh City",
     paymentMethod: "cod",
     notes: "",
   });
@@ -37,26 +38,26 @@ export default function Checkout() {
   const [previewing, setPreviewing] = useState(false);
 
   const previewPricing = useCallback(async (code = "") => {
-    if (!cart.length) return;
+    if (!checkoutItems.length) return;
     setPreviewing(true); setPromotionMessage("");
-    try { const result = await promotionAPI.preview(cart, code); setPricing(result.pricing); if (code) setPromotionMessage(`Đã áp dụng mã ${result.pricing.code}.`); }
+    try { const result = await promotionAPI.preview(checkoutItems, code); setPricing(result.pricing); if (code) setPromotionMessage(`Code ${result.pricing.code} applied.`); }
     catch (error) { setPromotionMessage(error.message); if (code) { setAppliedCode(""); setPricing(null); } }
     finally { setPreviewing(false); }
-  }, [cart]);
+  }, [checkoutItems]);
 
   useEffect(() => { previewPricing(appliedCode); }, [appliedCode, previewPricing]);
 
   if (cartLoading && !orderSuccess) {
-    return <main id="cart-container" style={{ padding: "60px 20px", textAlign: "center" }}>Đang tải giỏ hàng...</main>;
+    return <main id="cart-container" style={{ padding: "60px 20px", textAlign: "center" }}>Loading your bag...</main>;
   }
 
-  if (cart.length === 0 && !orderSuccess) {
+  if (checkoutItems.length === 0 && !orderSuccess) {
     return (
       <main id="cart-container" style={{ padding: "60px 20px", textAlign: "center" }}>
         <div className="empty-cart" style={{ maxWidth: "600px", margin: "0 auto" }}>
-          <h2>Giỏ hàng chưa có sản phẩm</h2>
-          <p>{cartError || "Vui lòng chọn sản phẩm vào giỏ hàng trước khi tiến hành thanh toán."}</p>
-          <Link to="/" className="btn-primary">Tiếp tục mua sắm</Link>
+          <h2>No items selected</h2>
+          <p>{cartError || "Please select items in your bag before proceeding to checkout."}</p>
+          <Link to="/" className="btn-primary">Continue shopping</Link>
         </div>
       </main>
     );
@@ -69,10 +70,10 @@ export default function Checkout() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const errs = {};
-    if (!formData.name.trim()) errs.name = "Vui lòng nhập họ và tên người nhận.";
-    if (!/^0\d{9,10}$/.test(formData.phone.trim())) errs.phone = "Vui lòng nhập số điện thoại Việt Nam hợp lệ.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) errs.email = "Vui lòng nhập email hợp lệ.";
-    if (!formData.address.trim()) errs.address = "Vui lòng nhập địa chỉ nhận hàng chi tiết.";
+    if (!formData.name.trim()) errs.name = "Please enter the recipient's full name.";
+    if (!/^0\d{9,10}$/.test(formData.phone.trim())) errs.phone = "Please enter a valid Vietnam phone number.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) errs.email = "Please enter a valid email address.";
+    if (!formData.address.trim()) errs.address = "Please enter a complete delivery address.";
 
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
@@ -85,7 +86,7 @@ export default function Checkout() {
       customerPhone: formData.phone.trim(),
       shippingAddress: formData.address.trim(),
       paymentMethod: formData.paymentMethod,
-      items: cart,
+      items: checkoutItems,
       notes: formData.notes,
       promotionCode: appliedCode,
     });
@@ -97,7 +98,7 @@ export default function Checkout() {
     }
 
     // Clear this customer's persisted cart only after order creation succeeds.
-    await clearCart();
+    removeCartItems(checkoutItems.map((item) => item.cartItemId));
 
     setOrderSuccess(result.order);
     setSubmitting(false);
@@ -142,11 +143,11 @@ export default function Checkout() {
               marginBottom: "10px",
             }}
           >
-            ĐẶT HÀNG THÀNH CÔNG
+            ORDER PLACED SUCCESSFULLY
           </h1>
 
           <p style={{ color: "#6B5A4B", fontSize: "15px", marginBottom: "25px" }}>
-            Cảm ơn quý khách đã tin tưởng và lựa chọn Maison Rue. Mã đơn hàng của bạn là:
+            Thank you for choosing Maison Rue. Your order number is:
           </p>
 
           <div
@@ -178,17 +179,17 @@ export default function Checkout() {
             }}
           >
             <div style={{ marginBottom: "8px" }}>
-              <strong>Người nhận:</strong> {orderSuccess.customer_name || orderSuccess.customerName} ({orderSuccess.customer_phone || orderSuccess.customerPhone})
+              <strong>Recipient:</strong> {orderSuccess.customer_name || orderSuccess.customerName} ({orderSuccess.customer_phone || orderSuccess.customerPhone})
             </div>
             <div style={{ marginBottom: "8px" }}>
-              <strong>Địa chỉ giao hàng:</strong> {orderSuccess.shipping_address || orderSuccess.shippingAddress}
+              <strong>Delivery address:</strong> {orderSuccess.shipping_address || orderSuccess.shippingAddress}
             </div>
             <div style={{ marginBottom: "8px" }}>
-              <strong>Phương thức thanh toán:</strong>{" "}
-              {(orderSuccess.payment_method || orderSuccess.paymentMethod) === "cod" ? "Thanh toán khi nhận hàng (COD)" : "Chuyển khoản ngân hàng"}
+              <strong>Payment method:</strong>{" "}
+              {(orderSuccess.payment_method || orderSuccess.paymentMethod) === "cod" ? "Cash on delivery (COD)" : "Bank transfer"}
             </div>
             <div>
-              <strong>Tổng thanh toán:</strong>{" "}
+              <strong>Total paid:</strong>{" "}
               <span style={{ color: "#B89B5E", fontWeight: "700", fontSize: "15px" }}>
                 {formatPrice(orderSuccess.total_amount || orderSuccess.totalAmount || 0)}
               </span>
@@ -197,10 +198,10 @@ export default function Checkout() {
 
           <div style={{ display: "flex", gap: "15px", justifyContent: "center" }}>
             <Link to="/account/orders" className="btn-primary" style={{ textDecoration: "none", padding: "14px 28px" }}>
-              Xem Lịch Sử Đơn Hàng
+              View Order History
             </Link>
             <Link to="/" className="btn-secondary" style={{ textDecoration: "none", padding: "14px 28px", margin: 0, width: "auto" }}>
-              Tiếp Tục Mua Sắm
+              Continue Shopping
             </Link>
           </div>
         </div>
@@ -220,7 +221,7 @@ export default function Checkout() {
           fontWeight: "500",
         }}
       >
-        THANH TOÁN ĐƠN HÀNG
+        CHECKOUT
       </h1>
 
       {errors.form && (
@@ -260,30 +261,30 @@ export default function Checkout() {
                 paddingBottom: "10px",
               }}
             >
-              1. Thông Tin Nhận Hàng
+              1. DELIVERY INFORMATION
             </h2>
 
             <div className="form-group">
-              <label>Họ và tên người nhận *</label>
+              <label>Recipient's full name *</label>
               <input
                 type="text"
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                placeholder="Nhập họ và tên đầy đủ"
+                placeholder="Enter your full name"
               />
               {errors.name && <span className="error">{errors.name}</span>}
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
               <div className="form-group">
-                <label>Số điện thoại *</label>
+                <label>Phone number *</label>
                 <input
                   type="tel"
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  placeholder="Ví dụ: 0901234567"
+                  placeholder="e.g. 0901234567"
                 />
                 {errors.phone && <span className="error">{errors.phone}</span>}
               </div>
@@ -295,32 +296,32 @@ export default function Checkout() {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="Email nhận mã đơn"
+                  placeholder="Email for order updates"
                 />
                 {errors.email && <span className="error">{errors.email}</span>}
               </div>
             </div>
 
             <div className="form-group">
-              <label>Địa chỉ giao hàng chi tiết *</label>
+              <label>Full delivery address *</label>
               <input
                 type="text"
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
-                placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành"
+                placeholder="Street address, district, city, province"
               />
               {errors.address && <span className="error">{errors.address}</span>}
             </div>
 
             <div className="form-group">
-              <label>Ghi chú đơn hàng (Tùy chọn)</label>
+              <label>Order notes (optional)</label>
               <input
                 type="text"
                 name="notes"
                 value={formData.notes}
                 onChange={handleChange}
-                placeholder="Ví dụ: Giao giờ hành chính, đóng gói hộp quà..."
+                placeholder="e.g. Please deliver during business hours or use gift packaging..."
               />
             </div>
 
@@ -335,7 +336,7 @@ export default function Checkout() {
                 paddingBottom: "10px",
               }}
             >
-              2. Phương Thức Thanh Toán
+              2. PAYMENT METHOD
             </h2>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -359,8 +360,8 @@ export default function Checkout() {
                   onChange={handleChange}
                 />
                 <div>
-                  <strong style={{ display: "block", color: "#2B211C" }}>Thanh toán khi nhận hàng (COD)</strong>
-                  <span style={{ fontSize: "12.5px", color: "#6B5A4B" }}>Kiểm tra hàng trước khi thanh toán tiền mặt</span>
+                  <strong style={{ display: "block", color: "#2B211C" }}>Cash on delivery (COD)</strong>
+                  <span style={{ fontSize: "12.5px", color: "#6B5A4B" }}>Pay in cash upon delivery</span>
                 </div>
               </label>
 
@@ -384,7 +385,7 @@ export default function Checkout() {
                   onChange={handleChange}
                 />
                 <div>
-                  <strong style={{ display: "block", color: "#2B211C" }}>Chuyển khoản trực tiếp (Bank Transfer)</strong>
+                  <strong style={{ display: "block", color: "#2B211C" }}>Direct bank transfer</strong>
                   <span style={{ fontSize: "12.5px", color: "#6B5A4B" }}>Vietcombank - Maison Rue Luxury - 0071000888999</span>
                 </div>
               </label>
@@ -413,11 +414,11 @@ export default function Checkout() {
                   paddingBottom: "10px",
                 }}
               >
-                Đơn Hàng ({cart.length} sản phẩm)
+                Your Order ({checkoutItems.length} items)
               </h2>
 
               <div style={{ maxHeight: "280px", overflowY: "auto", marginBottom: "20px" }}>
-                {cart.map((item) => (
+                {checkoutItems.map((item) => (
                   <div
                     key={item.cartItemId}
                     style={{
@@ -436,7 +437,7 @@ export default function Checkout() {
                     <div style={{ flex: 1, fontSize: "13px" }}>
                       <div style={{ fontWeight: "600", color: "#2B211C" }}>{item.name}</div>
                       <div style={{ color: "#8A7350" }}>
-                        {item.selectedColor || "Tiêu chuẩn"} / {item.selectedSize || "One size"} × {item.quantity}
+                        {item.selectedColor || "Standard"} / {item.selectedSize || "One size"} × {item.quantity}
                       </div>
                     </div>
                     <div style={{ fontWeight: "600", color: "#B89B5E", fontSize: "13.5px" }}>
@@ -447,19 +448,19 @@ export default function Checkout() {
               </div>
 
               <div className="summary-row">
-                <span>Tạm tính:</span>
-                <span>{formatPrice(pricing?.originalSubtotal ?? cartTotal)}</span>
+                <span>Subtotal:</span>
+                <span>{formatPrice(pricing?.originalSubtotal ?? selectedCartTotal)}</span>
               </div>
-              {Number(pricing?.productDiscountTotal || 0) > 0 && <div className="summary-row promotion-saving"><span>Khuyến mãi sản phẩm:</span><span>−{formatPrice(pricing.productDiscountTotal)}</span></div>}
-              {Number(pricing?.codeDiscountTotal || 0) > 0 && <div className="summary-row promotion-saving"><span>Mã {pricing.code}:</span><span>−{formatPrice(pricing.codeDiscountTotal)}</span></div>}
+              {Number(pricing?.productDiscountTotal || 0) > 0 && <div className="summary-row promotion-saving"><span>Product discounts:</span><span>−{formatPrice(pricing.productDiscountTotal)}</span></div>}
+              {Number(pricing?.codeDiscountTotal || 0) > 0 && <div className="summary-row promotion-saving"><span>Code {pricing.code}:</span><span>−{formatPrice(pricing.codeDiscountTotal)}</span></div>}
               <div className="summary-row">
-                <span>Phí vận chuyển:</span>
-                <span style={{ color: "#2E8B57", fontWeight: "600" }}>MIỄN PHÍ</span>
+                <span>Shipping:</span>
+                <span style={{ color: "#2E8B57", fontWeight: "600" }}>COMPLIMENTARY</span>
               </div>
-              <div className="checkout-promotion"><label>Mã giảm giá</label><div><input value={codeInput} onChange={(event) => setCodeInput(event.target.value.toUpperCase())} placeholder="Nhập mã ưu đãi" disabled={Boolean(appliedCode)} /><button type="button" onClick={() => appliedCode ? (setAppliedCode(""), setCodeInput("")) : setAppliedCode(codeInput.trim().toUpperCase())} disabled={previewing || (!appliedCode && !codeInput.trim())}>{appliedCode ? "Xóa mã" : previewing ? "Đang kiểm tra" : "Áp dụng"}</button></div>{promotionMessage && <p className={pricing?.code ? "success" : "error"}>{promotionMessage}</p>}</div>
+              <div className="checkout-promotion"><label>Promo code</label><div><input value={codeInput} onChange={(event) => setCodeInput(event.target.value.toUpperCase())} placeholder="Enter a promo code" disabled={Boolean(appliedCode)} /><button type="button" onClick={() => appliedCode ? (setAppliedCode(""), setCodeInput("")) : setAppliedCode(codeInput.trim().toUpperCase())} disabled={previewing || (!appliedCode && !codeInput.trim())}>{appliedCode ? "Remove code" : previewing ? "Checking..." : "Apply"}</button></div>{promotionMessage && <p className={pricing?.code ? "success" : "error"}>{promotionMessage}</p>}</div>
               <div className="summary-row total" style={{ fontSize: "20px" }}>
-                <span>Tổng cộng:</span>
-                <span>{formatPrice(pricing?.finalTotal ?? cartTotal)}</span>
+                <span>Total:</span>
+                <span>{formatPrice(pricing?.finalTotal ?? selectedCartTotal)}</span>
               </div>
 
               <button
@@ -468,7 +469,7 @@ export default function Checkout() {
                 className="btn-primary btn-large"
                 style={{ marginTop: "20px" }}
               >
-                {submitting ? "Đang xử lý đơn hàng..." : "HOÀN TẤT ĐẶT HÀNG"}
+                {submitting ? "Processing order..." : "PLACE ORDER"}
               </button>
 
               <p
@@ -480,7 +481,7 @@ export default function Checkout() {
                   lineHeight: "1.5",
                 }}
               >
-                Bằng việc bấm đặt hàng, quý khách đồng ý với chính sách bán hàng và bảo mật của Maison Rue.
+                By placing your order, you agree to Maison Rue's sales and privacy policies.
               </p>
             </div>
           </div>
