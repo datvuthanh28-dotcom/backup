@@ -116,21 +116,21 @@ async function runTests() {
 
     // Admin trying /api/auth/customer/login
     const adminAsCust = await makeRequest("POST", "/api/auth/customer/login", {
-      email: "admin@maisonrue.com",
+      email: "vanhung29993@gmail.com",
       password: "admin123",
     });
     assert(adminAsCust.status === 403, "Admin login via customer endpoint rejected (HTTP 403)");
 
     // Staff trying /api/auth/admin/login
     const staffAsAdmin = await makeRequest("POST", "/api/auth/admin/login", {
-      email: "staff@maisonrue.com",
+      email: "staffmaisonrue@gmail.com",
       password: "staff123",
     });
     assert(staffAsAdmin.status === 403, "Staff login via admin endpoint rejected (HTTP 403)");
 
     // Customer trying /api/auth/staff/login
     const custAsStaff = await makeRequest("POST", "/api/auth/staff/login", {
-      email: "customer@gmail.com",
+      email: "vudat9532@gmail.com",
       password: "customer123",
     });
     assert(custAsStaff.status === 403, "Customer login via staff endpoint rejected (HTTP 403)");
@@ -147,7 +147,7 @@ async function runTests() {
     // ----------------------------------------------------
     console.log("\n--- Testing Valid Logins & Cookie Generation ---");
     const custLogin = await makeRequest("POST", "/api/auth/customer/login", {
-      email: "customer@gmail.com",
+      email: "vudat9532@gmail.com",
       password: "customer123",
     });
     assert(custLogin.status === 200 && custLogin.body.user.role === "customer", "Customer login succeeds with role customer");
@@ -155,7 +155,7 @@ async function runTests() {
     assert(!!custCookie, "Customer received HttpOnly auth token cookie");
 
     const staffLogin = await makeRequest("POST", "/api/auth/staff/login", {
-      email: "staff@maisonrue.com",
+      email: "staffmaisonrue@gmail.com",
       password: "staff123",
     });
     assert(staffLogin.status === 200 && staffLogin.body.user.role === "staff", "Staff login succeeds with role staff");
@@ -163,7 +163,7 @@ async function runTests() {
     assert(!!staffCookie, "Staff received HttpOnly auth token cookie");
 
     const adminLogin = await makeRequest("POST", "/api/auth/admin/login", {
-      email: "admin@maisonrue.com",
+      email: "vanhung29993@gmail.com",
       password: "admin123",
     });
     assert(adminLogin.status === 200 && adminLogin.body.user.role === "admin", "Admin login succeeds with role admin");
@@ -238,12 +238,14 @@ async function runTests() {
     const testCode = `E2E${Date.now()}`;
     const startAt = new Date(Date.now() - 60_000).toISOString();
     const endAt = new Date(Date.now() + 86_400_000).toISOString();
-    const automaticPromotion = await makeRequest("POST", "/api/promotions/admin", { name: "E2E Automatic 5%", discountType: "percentage", discountValue: 5, minimumOrderValue: 0, isAutomatic: true, stackingPolicy: "allowed", priority: 1, customerRequirement: "any", startAt, endAt, status: "active", targets: [{ type: "product", value: "109" }] }, adminCookie);
+    const automaticPromotion = await makeRequest("POST", "/api/promotions/admin", { name: "E2E Automatic 5%", discountType: "percentage", discountValue: 5, minimumOrderValue: 0, isAutomatic: true, stackingPolicy: "allowed", priority: 1, customerRequirement: "any", startAt, endAt, status: "active", approvalStatus: "approved", targets: [{ type: "product", value: "109" }] }, adminCookie);
     assert(automaticPromotion.status === 201, "Admin created an automatic product promotion");
-    const codePromotion = await makeRequest("POST", "/api/promotions/admin", { name: "E2E Voucher 10%", discountType: "percentage", discountValue: 10, maximumDiscount: 1000000, minimumOrderValue: 1000000, isAutomatic: false, stackingPolicy: "allowed", customerRequirement: "authenticated", usageLimitTotal: 3, usageLimitPerCustomer: 1, startAt, endAt, status: "active", code: testCode, codeUsageLimit: 3, targets: [{ type: "product", value: "109" }] }, adminCookie);
+    const codePromotion = await makeRequest("POST", "/api/promotions/admin", { name: "E2E Voucher 10%", discountType: "percentage", discountValue: 10, maximumDiscount: 1000000, minimumOrderValue: 1000000, isAutomatic: false, stackingPolicy: "allowed", customerRequirement: "authenticated", usageLimitTotal: 3, usageLimitPerCustomer: 1, startAt, endAt, status: "active", approvalStatus: "approved", code: testCode, codeUsageLimit: 3, targets: [{ type: "product", value: "109" }] }, adminCookie);
     assert(codePromotion.status === 201, "Admin created a limited voucher promotion");
     const staffPromotions = await makeRequest("GET", "/api/promotions/admin", null, staffCookie);
     assert(staffPromotions.status === 403, "Staff cannot access promotion administration");
+    await makeRequest("PATCH", `/api/promotions/admin/${automaticPromotion.body.id}/approval`, { status: "approved" }, adminCookie);
+    await makeRequest("PATCH", `/api/promotions/admin/${codePromotion.body.id}/approval`, { status: "approved" }, adminCookie);
     const preview = await makeRequest("POST", "/api/promotions/preview", { code: testCode.toLowerCase(), items: [{ id: 109, variantId: "v-109-beige-s", quantity: 2 }] }, custCookie);
     assert(preview.status === 200 && preview.body.pricing.productDiscountTotal > 0, "Preview selected the best automatic promotion");
     assert(preview.body.pricing.codeDiscountTotal > 0 && preview.body.pricing.code === testCode, "Voucher is case-insensitive and stacks when allowed");
@@ -263,7 +265,7 @@ async function runTests() {
     // 5.2 Customer places order for 2 items
     const orderPayload = {
       name: "Trần Mai Anh",
-      email: "customer@gmail.com",
+      email: "vudat9532@gmail.com",
       phone: "0901234567",
       address: "88 Lý Tự Trọng, Q.1, TP.HCM",
       paymentMethod: "cod",
@@ -374,7 +376,7 @@ async function runTests() {
     // ----------------------------------------------------
     console.log("\n--- Testing Product Engagement Workflow ---");
 
-    const engagementTestUser = await pool.request().query("SELECT id FROM Users WHERE email='customer@gmail.com'");
+    const engagementTestUser = await pool.request().query("SELECT id FROM Users WHERE email='vudat9532@gmail.com'");
     const engagementUserId = engagementTestUser.recordset[0].id;
     await pool.request().input("user_id", sql.NVarChar, engagementUserId).input("product_id", sql.Int, 109).query("DELETE FROM ProductFavoriteEvents WHERE user_id=@user_id AND product_id=@product_id; DELETE FROM ProductFavorites WHERE user_id=@user_id AND product_id=@product_id; DELETE FROM ProductReviews WHERE user_id=@user_id AND product_id=@product_id;");
 
@@ -423,13 +425,14 @@ async function runTests() {
 
     // 6.1 Cancellation of UNPAID order -> payment marked 'cancelled', NEVER 'refunded'
     const cancelCode = `CANCEL${Date.now()}`;
-    const cancellablePromotion = await makeRequest("POST", "/api/promotions/admin", { name: "E2E Cancellation Voucher", discountType: "fixed_amount", discountValue: 100000, minimumOrderValue: 0, isAutomatic: false, stackingPolicy: "allowed", customerRequirement: "authenticated", usageLimitTotal: 1, usageLimitPerCustomer: 1, startAt: new Date(Date.now() - 60000).toISOString(), endAt: new Date(Date.now() + 86400000).toISOString(), status: "active", code: cancelCode, codeUsageLimit: 1, targets: [{ type: "product", value: "109" }] }, adminCookie);
+    const cancellablePromotion = await makeRequest("POST", "/api/promotions/admin", { name: "E2E Cancellation Voucher", discountType: "fixed_amount", discountValue: 100000, minimumOrderValue: 0, isAutomatic: false, stackingPolicy: "allowed", customerRequirement: "authenticated", usageLimitTotal: 1, usageLimitPerCustomer: 1, startAt: new Date(Date.now() - 60000).toISOString(), endAt: new Date(Date.now() + 86400000).toISOString(), status: "active", approvalStatus: "approved", code: cancelCode, codeUsageLimit: 1, targets: [{ type: "product", value: "109" }] }, adminCookie);
+    await makeRequest("PATCH", `/api/promotions/admin/${cancellablePromotion.body.id}/approval`, { status: "approved" }, adminCookie);
     const unpaidOrderRes = await makeRequest(
       "POST",
       "/api/orders",
       {
         name: "Lê Hoàng",
-        email: "customer@gmail.com",
+        email: "vudat9532@gmail.com",
         phone: "0912345678",
         address: "45 Lê Lợi, Q.1",
         paymentMethod: "cod",
@@ -463,7 +466,7 @@ async function runTests() {
       "/api/orders",
       {
         name: "Lê Hoàng",
-        email: "customer@gmail.com",
+        email: "vudat9532@gmail.com",
         phone: "0912345678",
         address: "45 Lê Lợi, Q.1",
         paymentMethod: "bank_transfer",

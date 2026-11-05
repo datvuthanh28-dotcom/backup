@@ -205,7 +205,7 @@ export default function AdminLogin() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@maisonrue.com"
+                placeholder="vanhung29993@gmail.com"
                 style={{
                   width: "100%",
                   padding: "12px 14px",
@@ -284,7 +284,7 @@ export default function AdminLogin() {
 
             <button
               type="button"
-              onClick={() => quickFill("admin@maisonrue.com", "admin123")}
+              onClick={() => quickFill("vanhung29993@gmail.com", "admin123")}
               style={{
                 width: "100%",
                 padding: "10px 14px",
@@ -302,7 +302,7 @@ export default function AdminLogin() {
             >
               <div>
                 <strong style={{ color: "#FFF" }}>👔 Quản Trị Viên Cấp Cao</strong>
-                <div style={{ fontSize: "11.5px", color: "#B89B5E" }}>admin@maisonrue.com (pass: admin123)</div>
+                <div style={{ fontSize: "11.5px", color: "#B89B5E" }}>vanhung29993@gmail.com (pass: admin123)</div>
               </div>
               <span style={{ fontSize: "11px", color: "#8A5A36", fontWeight: "600" }}>Điền thông tin</span>
             </button>

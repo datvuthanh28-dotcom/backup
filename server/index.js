@@ -2,6 +2,9 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 import { connectDB, isConnectedToSqlServer } from "./config/db.js";
 
 // Routes
@@ -75,6 +78,19 @@ app.use("/api/admin/reports", reportRoutes);
 app.use("/api/engagement", engagementRoutes);
 app.use("/api/customer", customerRoutes);
 app.use("/api/promotions", promotionRoutes);
+
+// Phục vụ frontend static build (SPA) khi deploy production
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const distPath = path.resolve(__dirname, "..", "dist");
+
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api")) return next();
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+}
 
 // Global Error Handler
 // eslint-disable-next-line no-unused-vars
