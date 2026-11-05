@@ -30,7 +30,7 @@ export default function Home() {
       <div className="home-note">THE ART OF QUIET LUXURY <span>·</span> MADE TO BE KEPT</div>
 
       <section className="home-hero">
-        <img src="/image/hero-image/hero-image.png" alt="Bộ sưu tập Maison Rue giữa khung cảnh thiên nhiên" />
+        <img src="/image/hero-image/saigon-tailoring-hero.png" alt="The Saigon Tailoring collection in a warm atelier" />
         <div className="home-hero-copy">
           <span className="home-eyebrow">FALL/WINTER 2026–2027</span>
           <h1>The Saigon<br />Tailoring Edit.</h1>
@@ -47,7 +47,6 @@ export default function Home() {
         <span className="home-eyebrow">A HOUSE OF MATERIALS</span>
         <h2>Luxury begins with<br />what nature gives us.</h2>
         <p>We believe the most beautiful things are never hurried. From the softness of cashmere to the easy touch of linen, every Maison Rue piece begins with a considered choice of fibre.</p>
-        <Link className="home-link" to="/women">EXPLORE MAISON RUE <span>→</span></Link>
       </section>
 
       <section className="home-edit">

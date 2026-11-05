@@ -2478,13 +2478,13 @@ header.store-header.is-hidden{transform:translateY(-100%)}
 .home-hero{height:min(690px,72vw);min-height:470px;position:relative;overflow:hidden;background:#b9b3a6}
 .home-hero:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(25,25,20,.43),rgba(25,25,20,.04) 70%)}
 .home-hero>img{width:100%;height:100%;object-fit:cover;display:block}
-.home-hero-copy{position:absolute;z-index:1;left:9%;top:50%;transform:translateY(-50%);max-width:470px;color:white}
+.home-hero-copy{position:absolute;z-index:1;left:9%;top:50%;transform:translateY(-50%);max-width:470px;color:#eee2cf}
 .home-eyebrow{display:block;font:500 10px/1.4 Inter,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#8a775a}
 .home-hero-copy .home-eyebrow{color:#f3eee4}
 .home-hero-copy h1,.home-intro h2,.home-edit-copy h2,.home-craft-copy h2,.home-material h2{font:400 clamp(42px,6vw,76px)/.98 'Cormorant Garamond',Georgia,serif;letter-spacing:-.025em}
-.home-hero-copy h1{margin:24px 0 18px}
+.home-hero-copy h1{margin:24px 0 18px;font-size:clamp(48px,6vw,78px);font-weight:400;line-height:.98;letter-spacing:-.02em;text-shadow:0 1px 18px rgba(25,20,15,.12)}
 .home-hero-copy p,.home-intro p,.home-edit-copy p,.home-craft-copy p,.home-material p{font:300 14px/1.9 Inter,sans-serif;max-width:390px}
-.home-hero-copy p{color:rgba(255,255,255,.9);margin-bottom:28px}
+.home-hero-copy p{color:rgba(244,233,215,.92);margin-bottom:28px;font:italic 300 17px/1.65 'Cormorant Garamond',Georgia,serif;letter-spacing:.01em}
 .home-link{display:inline-flex;align-items:center;gap:20px;margin-top:23px;color:#504638;text-decoration:none;font:500 9px/1.4 Inter,sans-serif;letter-spacing:.15em;border-bottom:1px solid #9b8c73;padding-bottom:8px}
 .home-link span{font-size:15px;transition:transform .2s}.home-link:hover span{transform:translateX(4px)}
 .home-link-light{color:white;border-color:rgba(255,255,255,.7)}
@@ -2661,3 +2661,46 @@ button, input, select, textarea { max-width: 100%; }
 @media(max-width:1100px){.revenue-metrics{grid-template-columns:repeat(2,minmax(190px,1fr))}.revenue-header{align-items:flex-start;flex-direction:column}.revenue-filters{justify-content:flex-start}.revenue-grid{grid-template-columns:1fr}.revenue-panel--wide{grid-row:auto}}
 @media(max-width:650px){.revenue-report{padding-inline:2px}.revenue-header h1{font-size:31px}.revenue-filters{width:100%}.revenue-filters label{flex:1;min-width:135px}.revenue-filters select,.revenue-filters input{width:100%;min-width:0}.revenue-metrics{grid-template-columns:1fr}.revenue-tabs{overflow-x:auto}.revenue-tabs button{white-space:nowrap}.revenue-waterfall__row{grid-template-columns:115px 1fr}.revenue-waterfall__row strong{grid-column:2}.revenue-panel{padding:15px}}
 .offer-list{display:grid;gap:16px}.offer-card{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;padding:22px 24px;border:1px solid #ded1c1;border-radius:14px;background:#fff}.offer-card h3{margin:5px 0;font:600 25px "Cormorant Garamond",serif}.offer-card p{margin:8px 0;color:#6b5a4b}.offer-card small{color:#8a7350}.offer-card__type{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#a27b42}.offer-card__code{display:grid;justify-items:center;gap:8px;min-width:150px}.offer-card__code code{padding:9px 14px;border:1px dashed #a27b42;border-radius:7px;font:700 15px Arial,sans-serif;letter-spacing:.08em}.offer-card__code button,.offer-card__code a{border:0;background:none;color:#5b3529;text-decoration:underline;cursor:pointer;font:inherit}.offer-card.is-used{opacity:.58}.offer-card.is-used .offer-card__code code{text-decoration:line-through}@media(max-width:700px){.offer-card{grid-template-columns:1fr}.offer-card__code{justify-items:start}}
+
+/* Maison Rue storefront footer */
+.site-footer{background:#e8e3d9;color:#2b211c;border-top:1px solid #d8cec1;text-align:left}
+.footer-newsletter{padding:68px 24px 72px;text-align:center;border-bottom:1px solid #d3c8b9}
+.footer-kicker{margin:0 0 12px;color:#8a7350;font:500 9px/1.5 Inter,sans-serif;letter-spacing:.2em;text-transform:uppercase}
+.footer-newsletter h2{margin:0;color:#2b211c;font:400 clamp(30px,3.4vw,42px)/1.1 'Cormorant Garamond',Georgia,serif}
+.footer-newsletter-copy{margin:13px auto 28px;color:#6b5a4b;font:300 14px/1.7 Inter,sans-serif}
+.footer-newsletter-form{display:flex;width:min(100%,520px);height:52px;margin:0 auto;border:1px solid #9b8c73;background:#f8f5f0}
+.footer-newsletter-form input{flex:1;min-width:0;border:0;outline:0;background:transparent;padding:0 17px;color:#2b211c;font:300 14px Inter,sans-serif}
+.footer-newsletter-form input::placeholder{color:#81776b}
+.footer-newsletter-form button{width:58px;border:0;background:#4e4034;color:#f8f5f0;font:24px/1 'Cormorant Garamond',serif;cursor:pointer;transition:background .2s}
+.footer-newsletter-form button:hover{background:#2b211c}
+.footer-success{color:#6b5a4b;font:400 14px Inter,sans-serif}
+.footer-main{padding:52px max(6vw,24px) 24px}
+.footer-links-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:36px;max-width:1320px;margin:0 auto 58px}
+.footer-link-group{display:flex;flex-direction:column;align-items:flex-start;gap:11px}
+.footer-link-group h3{margin:0 0 8px;color:#8a7350;font:500 10px/1.4 Inter,sans-serif;letter-spacing:.16em;text-transform:uppercase}
+.footer-link-group>a{color:#4e4034;text-decoration:none;font:300 14px/1.5 Inter,sans-serif;transition:color .2s}
+.footer-link-group>a:hover,.footer-portals a:hover{color:#9b7953}
+.footer-social-links{display:flex;gap:10px}
+.footer-social-links a{display:grid;width:34px;height:34px;place-items:center;border:1px solid #9b8c73;border-radius:50%;color:#4e4034;text-decoration:none;font:500 13px Inter,sans-serif;transition:all .2s}
+.footer-social-links a:hover{background:#4e4034;color:#f8f5f0}
+.footer-portals{display:flex;justify-content:center;flex-wrap:wrap;gap:14px 28px;padding:22px 0;border-top:1px solid #d3c8b9;border-bottom:1px solid #d3c8b9}
+.footer-portals a{color:#6b5a4b;text-decoration:none;font:500 9px/1.5 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase}
+.copyright{margin:22px 0 0;text-align:center;color:#8a7350;font:300 11px/1.7 Inter,sans-serif}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:700px){.footer-newsletter{padding:52px 22px}.footer-main{padding:40px 24px 22px}.footer-links-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:34px 24px;margin-bottom:38px}.footer-link-group h3{font-size:9px}.footer-link-group>a{font-size:13px}.footer-portals{gap:12px 18px}.footer-portals a{font-size:8px}}
+
+/* Editorial information pages linked from the storefront footer */
+.store-info-page{min-height:60vh;padding:84px 24px 110px;background:#f6f4ef;color:#2b211c}
+.store-info-header{max-width:850px;margin:0 auto 58px;text-align:center}
+.store-info-header h1{margin:16px 0 18px;font:400 clamp(44px,6vw,68px)/1 'Cormorant Garamond',Georgia,serif;letter-spacing:-.025em}
+.store-info-header>p{max-width:680px;margin:0 auto;color:#6b5a4b;font:300 15px/1.85 Inter,sans-serif}
+.store-info-sections{max-width:850px;margin:0 auto}
+.store-info-sections section{padding:26px 0;border-top:1px solid #ded7cd}
+.store-info-sections h2{margin:0 0 12px;font:400 28px/1.2 'Cormorant Garamond',Georgia,serif;color:#3e3329}
+.store-info-sections p{margin:0 0 12px;color:#655b50;font:300 14px/1.85 Inter,sans-serif}
+.store-info-links{display:flex;flex-wrap:wrap;gap:12px 25px;margin-top:15px}
+.store-info-links a{color:#6b5a4b;text-decoration:none;border-bottom:1px solid #a99578;padding-bottom:5px;font:500 10px/1.5 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase}
+.store-info-links a span{margin-left:8px;font-size:14px}
+.store-info-links a:hover{color:#9b7953}
+.store-info-sections .store-info-note{margin-top:24px;padding:18px 20px;background:#ece7de;color:#6b5a4b;font-size:12px}
+@media(max-width:700px){.store-info-page{padding:60px 22px 76px}.store-info-header{margin-bottom:40px}.store-info-header h1{font-size:46px}.store-info-header>p{font-size:14px}.store-info-sections section{padding:22px 0}.store-info-sections h2{font-size:25px}}
