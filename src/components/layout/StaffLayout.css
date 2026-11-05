@@ -214,3 +214,27 @@
   .staff-orders-table td:last-child > div { width: 100%; min-width: 0 !important; }
   .staff-orders-pagination{align-items:flex-start!important;flex-direction:column}
 }
+
+/* Bell Ring Animation */
+@keyframes staffBellRing {
+  0% { transform: rotate(0); }
+  10% { transform: rotate(14deg); }
+  20% { transform: rotate(-14deg); }
+  30% { transform: rotate(10deg); }
+  40% { transform: rotate(-10deg); }
+  50% { transform: rotate(6deg); }
+  60% { transform: rotate(-6deg); }
+  70% { transform: rotate(2deg); }
+  100% { transform: rotate(0); }
+}
+
+.staff-bell-active {
+  display: inline-block;
+  animation: staffBellRing 1.4s ease-in-out infinite;
+  transform-origin: top center;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}

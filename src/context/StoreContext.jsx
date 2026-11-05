@@ -1,5 +1,10 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { productsAPI, ordersAPI, promotionAPI, reportAPI } from "../services/api";
+import {
+  sendOrderConfirmationEmail,
+  sendOrderStatusEmail,
+  sendLowStockAlertEmail,
+} from "../services/emailService";
 import { allProducts as staticProducts } from "../data/products";
 import { useAuth } from "./AuthContext";
 
@@ -175,6 +180,21 @@ export function StoreProvider({ children }) {
       if (res.success) {
         await refreshProducts();
         await refreshOrders();
+
+        // Gửi email xác nhận đặt hàng cho khách
+        sendOrderConfirmationEmail(res.order).catch((e) =>
+          console.warn("[EmailService] Order confirmation email failed:", e)
+        );
+
+        // Gửi cảnh báo kho nếu có SKU chạm mức tối thiểu
+        if (res.order?.lowStockAlerts?.length > 0) {
+          for (const alertItem of res.order.lowStockAlerts) {
+            sendLowStockAlertEmail(alertItem).catch((e) =>
+              console.warn("[EmailService] Low stock alert email failed:", e)
+            );
+          }
+        }
+
         return { success: true, order: res.order };
       }
       return { success: false, error: res.error || "Không thể tạo đơn hàng." };
@@ -193,6 +213,14 @@ export function StoreProvider({ children }) {
         if (currentUser?.role === "admin") {
           await refreshRevenueReport();
         }
+
+        // Gửi email thông báo trạng thái đơn hàng cho khách
+        if (res.order) {
+          sendOrderStatusEmail(res.order, newStatus, note).catch((e) =>
+            console.warn("[EmailService] Status email failed:", e)
+          );
+        }
+
         return { success: true, order: res.order };
       }
       return { success: false, error: res.error || "Không thể cập nhật trạng thái." };
@@ -211,6 +239,14 @@ export function StoreProvider({ children }) {
         if (currentUser?.role === "admin") {
           await refreshRevenueReport();
         }
+
+        // Gửi email thông báo hủy đơn cho khách hàng
+        if (res.order) {
+          sendOrderStatusEmail(res.order, "cancelled", note).catch((e) =>
+            console.warn("[EmailService] Cancel email failed:", e)
+          );
+        }
+
         return { success: true, order: res.order };
       }
       return { success: false, error: res.error || "Không thể hủy đơn hàng." };

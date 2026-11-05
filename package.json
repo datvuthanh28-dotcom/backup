@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev.js",
+    "client": "vite",
     "setup": "node scripts/setup-project.js",
     "build": "vite build",
     "lint": "eslint .",

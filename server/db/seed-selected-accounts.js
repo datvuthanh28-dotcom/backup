@@ -2,10 +2,10 @@ import bcrypt from "bcryptjs";
 import { connectDB, db } from "../config/db.js";
 
 const accounts = [
-  ["usr_admin_01", "Quản Trị Viên Maison Rue", "admin@maisonrue.com", "admin123", "admin"],
-  ["usr_staff_01", "Nhân Viên Maison Rue", "staff@maisonrue.com", "staff123", "staff"],
-  ["usr_staff_02", "Nhân Viên Maison Rue 2", "staff2@maisonrue.com", "staff123", "staff"],
-  ["usr_cust_01", "Khách Hàng Maison Rue", "customer@gmail.com", "customer123", "customer"],
+  ["usr_admin_01", "Quản Trị Viên Maison Rue", "vanhung29993@gmail.com", "admin123", "admin"],
+  ["usr_staff_01", "Nhân Viên Maison Rue", "staffmaisonrue@gmail.com", "staff123", "staff"],
+  ["usr_staff_02", "Nhân Viên Maison Rue 2", "maisonruestaff2@gmail.com", "staff123", "staff"],
+  ["usr_cust_01", "Khách Hàng Maison Rue", "vudat9532@gmail.com", "customer123", "customer"],
 ];
 
 await connectDB();
