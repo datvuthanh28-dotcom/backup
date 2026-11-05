@@ -8,14 +8,16 @@ const processes = [
   {
     name: "Backend",
     script: path.join(root, "server", "index.js"),
+    args: [],
   },
   {
     name: "Frontend",
     script: path.join(root, "node_modules", "vite", "bin", "vite.js"),
+    args: ["--host"],
   },
-].map(({ name, script }) => ({
+].map(({ name, script, args = [] }) => ({
   name,
-  process: spawn(process.execPath, [script], {
+  process: spawn(process.execPath, [script, ...args], {
     cwd: root,
     stdio: "inherit",
   }),
