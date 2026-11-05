@@ -9,6 +9,7 @@ import StorefrontLayout from "./components/layout/StorefrontLayout";
 import StaffLayout from "./components/layout/StaffLayout";
 import AdminLayout from "./components/layout/AdminLayout";
 import ProtectedRoute from "./components/common/ProtectedRoute";
+import ScrollToTop from "./components/common/ScrollToTop";
 
 // Storefront & Customer Pages
 import Home from "./pages/Home";
@@ -49,6 +50,7 @@ function App() {
         <FavoritesProvider>
           <CartProvider>
           <BrowserRouter>
+            <ScrollToTop />
             <Routes>
               {/* 1. CUSTOMER PORTAL & STOREFRONT */}
               <Route element={<StorefrontLayout />}>
