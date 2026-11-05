@@ -5,14 +5,13 @@ import "./Chatbox.css";
 import foxLogo from "../assets/fox-logo.png";
 import { getCatalogForPrompt, getProductById } from "../data/products";
 
-// NOTE: Đây là API key demo, gọi trực tiếp từ trình duyệt (client-side).
-// Chỉ phù hợp để chạy local / thuyết trình — không dùng cho production
-// vì key sẽ lộ ra ngoài. Giữ nguyên theo yêu cầu deploy local.
-const CHAT_API_KEY = import.meta.env.VITE_CHAT_API_KEY || "";
+// NOTE: API key cho trợ lý Rue
+const CHAT_API_KEY = (import.meta.env.VITE_CHAT_API_KEY || "").trim();
 
-// Giữ nguyên service/template EmailJS demo cũ — đổi lại nếu bạn có tài khoản riêng.
-const EMAILJS_SERVICE_ID = "service_vcg7qrh";
-const EMAILJS_TEMPLATE_ID = "template_7nlbd8c";
+// Cấu hình EmailJS từ .env cho quy trình hỗ trợ đổi trả
+const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || "service_az46k1f";
+const EMAILJS_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_ORDER_TEMPLATE_ID || "template_20zssht";
+const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || "ZjQM0mkSjz2NACdA9";
 
 const RETURN_REASONS = {
   1: "Sản phẩm bị lỗi / hư hỏng",
@@ -50,7 +49,7 @@ async function callOpenAI(systemPrompt, userMessage) {
       Authorization: `Bearer ${CHAT_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userMessage },
@@ -60,7 +59,10 @@ async function callOpenAI(systemPrompt, userMessage) {
     }),
   });
 
-  if (!res.ok) throw new Error(`OpenAI API lỗi: ${res.statusText}`);
+  if (!res.ok) {
+    const errorBody = await res.json().catch(() => ({}));
+    throw new Error(errorBody.error?.message || `OpenAI API lỗi: ${res.statusText}`);
+  }
   const data = await res.json();
   if (data.choices && data.choices.length > 0) {
     return data.choices[0].message.content.trim();
@@ -219,13 +221,19 @@ export default function Chatbox() {
     });
 
     try {
-      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-        email: f.email,
-        subject: isApproved
-          ? `Maison Rue - Yêu cầu đổi trả "${f.item}" đã được duyệt`
-          : `Maison Rue - Cập nhật yêu cầu đổi trả "${f.item}"`,
-        message: emailHtml,
-      });
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        {
+          to_email: f.email,
+          email: f.email,
+          subject: isApproved
+            ? `Maison Rue - Yêu cầu đổi trả "${f.item}" đã được duyệt`
+            : `Maison Rue - Cập nhật yêu cầu đổi trả "${f.item}"`,
+          message: emailHtml,
+        },
+        { publicKey: EMAILJS_PUBLIC_KEY }
+      );
       pushBot(
         `🤖 Rue đã gửi email xác nhận về sản phẩm "${f.item}" tới ${f.email}. ` +
           (isApproved
