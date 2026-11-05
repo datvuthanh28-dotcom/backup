@@ -13,6 +13,7 @@ export default function ProductListPage({ gender, audience, collection, productT
   const isHeritageCashmere = collection === "Heritage Cashmere";
   const isFallWinterEdit = collection === "Fall/Winter 2026–2027";
   const isAudienceCollection = isHeritageCashmere || isFallWinterEdit;
+  const isSuedeCollection = collection === "Suede Essentials";
   const [cashmereAudience, setCashmereAudience] = useState("women");
   const audienceTabs = isHeritageCashmere ? ["women", "men", "kids"] : ["women", "men"];
   const requestedAudience = searchParams.get("audience");
@@ -35,7 +36,10 @@ export default function ProductListPage({ gender, audience, collection, productT
     return !gender || product.gender === gender;
   };
   const matchesProduct = (product) => matchesAudience(product) && (!requestedProductType || product.productType === requestedProductType);
-  const belongsToCollection = (product) => !collection || product.collection === collection || product.collections?.includes(collection);
+  const belongsToCollection = (product) => {
+    if (isSuedeCollection) return /suede/i.test(product.name);
+    return !collection || product.collection === collection || product.collections?.includes(collection);
+  };
   const types = [...new Set(products.filter((p) => matchesProduct(p) && belongsToCollection(p)).map((p) => p.subcategory))];
   const items = useMemo(() => {
     const filtered = products.filter((p) => matchesProduct(p)
