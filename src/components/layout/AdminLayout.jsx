@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import "./AdminLayout.css";
 
 export default function AdminLayout() {
   const { currentUser, logout } = useAuth();
@@ -11,9 +12,10 @@ export default function AdminLayout() {
   };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#F8F5F0" }}>
+    <div className="admin-shell" style={{ display: "flex", minHeight: "100vh", backgroundColor: "#F8F5F0" }}>
       {/* Dedicated Executive Admin Sidebar */}
       <aside
+        className="admin-sidebar"
         style={{
           width: "280px",
           minWidth: "280px",
@@ -24,10 +26,17 @@ export default function AdminLayout() {
           borderRight: "1px solid #33261F",
           boxShadow: "4px 0 18px rgba(0,0,0,0.12)",
           zIndex: 20,
+          position: "sticky",
+          top: 0,
+          height: "100dvh",
+          maxHeight: "100dvh",
+          alignSelf: "flex-start",
+          overflow: "hidden",
+          boxSizing: "border-box",
         }}
       >
         {/* Brand Header */}
-        <div style={{ padding: "28px 24px", borderBottom: "1px solid rgba(255, 255, 255, 0.08)" }}>
+        <div className="admin-sidebar-brand" style={{ padding: "28px 24px", borderBottom: "1px solid rgba(255, 255, 255, 0.08)" }}>
           <Link to="/" style={{ textDecoration: "none", color: "#F8F5F0" }}>
             <h1
               style={{
@@ -61,6 +70,7 @@ export default function AdminLayout() {
 
         {/* Admin User Card */}
         <div
+          className="admin-user-card"
           style={{
             padding: "18px 24px",
             backgroundColor: "rgba(255, 255, 255, 0.03)",
@@ -79,7 +89,7 @@ export default function AdminLayout() {
         </div>
 
         {/* Sidebar Navigation */}
-        <nav style={{ padding: "20px 14px", flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
+        <nav className="admin-sidebar-nav" style={{ padding: "20px 14px", flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: "6px" }}>
           <NavLink
             to="/admin"
             end
@@ -174,6 +184,14 @@ export default function AdminLayout() {
             <span>Quan Tâm & Đánh Giá</span>
           </NavLink>
 
+          <NavLink
+            to="/admin/promotions"
+            style={({ isActive }) => ({ display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", borderRadius: "6px", textDecoration: "none", fontSize: "13.5px", fontWeight: isActive ? "600" : "400", backgroundColor: isActive ? "#8A5A36" : "transparent", color: isActive ? "#FFF" : "#D8CEC1", transition: "background 0.2s, color 0.2s" })}
+          >
+            <i className="fas fa-tags" style={{ width: "18px" }}></i>
+            <span>Quản Lý Khuyến Mãi</span>
+          </NavLink>
+
           <div style={{ margin: "15px 0", borderTop: "1px solid rgba(255, 255, 255, 0.08)" }} />
 
           <Link
@@ -195,7 +213,7 @@ export default function AdminLayout() {
         </nav>
 
         {/* Sidebar Footer */}
-        <div style={{ padding: "18px", borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}>
+        <div className="admin-sidebar-footer" style={{ padding: "18px", flexShrink: 0, borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}>
           <button
             onClick={handleLogout}
             style={{
@@ -220,9 +238,10 @@ export default function AdminLayout() {
       </aside>
 
       {/* Main Workspace Canvas */}
-      <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflowX: "hidden" }}>
+      <main className="admin-main" style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflowX: "hidden" }}>
         {/* Workspace Top Header Bar */}
         <header
+          className="admin-workspace-header"
           style={{
             backgroundColor: "#FFFFFF",
             borderBottom: "1px solid #D8CEC1",
@@ -242,7 +261,7 @@ export default function AdminLayout() {
         </header>
 
         {/* Body Content */}
-        <div style={{ padding: "30px 35px", flex: 1, maxWidth: "1400px", width: "100%", boxSizing: "border-box" }}>
+        <div className="admin-workspace-body" style={{ padding: "30px 35px", flex: 1, maxWidth: "1400px", width: "100%", boxSizing: "border-box" }}>
           <Outlet />
         </div>
       </main>

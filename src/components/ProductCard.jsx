@@ -43,7 +43,7 @@ export default function ProductCard({ product }) {
       <div className="product-card-meta">{product.productType || product.category}</div>
       <h3>{product.name}</h3>
       <p className="product-card-fit">{product.subcategory} · {stockLabel}</p>
-      <p className="product-price">{product.price.toLocaleString("vi-VN")}đ</p>
+      {product.promotionDiscount > 0 ? <div className="product-price-sale"><span>{product.price.toLocaleString("vi-VN")}đ</span><strong>{Number(product.promotionPrice).toLocaleString("vi-VN")}đ</strong></div> : <p className="product-price">{product.price.toLocaleString("vi-VN")}đ</p>}
       {product.colorOptions && <div className="card-swatches">{product.colorOptions.slice(0, 4).map((color) => <span key={color.name} title={color.name} style={{ background: color.hex }} />)}</div>}
       </Link>
     </article>

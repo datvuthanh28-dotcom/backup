@@ -52,7 +52,7 @@ export default function StaffDashboard() {
     ["shipping", "Đang vận chuyển", shipping.length, "#C05A22", "fa-shipping-fast"],
   ];
 
-  return <div>
+  return <div className="staff-dashboard-page">
     <div style={{ marginBottom: 25 }}>
       <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 32, color: "#2B211C", margin: 0 }}>TỔNG QUAN VẬN HÀNH</h1>
     </div>
@@ -69,24 +69,24 @@ export default function StaffDashboard() {
       </Link>
     </div>
 
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.5fr) minmax(280px,1fr)", gap: 22 }}>
-      <section style={{ background: "#FFF", border: "1px solid #D8CEC1", borderRadius: 8, padding: 22 }}>
+    <div className="staff-dashboard-content" style={{ display: "grid", gridTemplateColumns: "minmax(0,1.5fr) minmax(280px,1fr)", gap: 22 }}>
+      <section className="staff-dashboard-panel" style={{ background: "#FFF", border: "1px solid #D8CEC1", borderRadius: 8, padding: 22 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #E8E1D6", paddingBottom: 12, marginBottom: 12 }}>
           <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 23, margin: 0 }}>Ưu Tiên Xử Lý</h2>
           <Link to="/staff/orders" style={{ color: "#4E342E", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>Tất cả đơn →</Link>
         </div>
         {workQueue.length === 0 ? <div style={{ padding: 28, textAlign: "center", color: "#2E8B57" }}><i className="fas fa-circle-check" aria-hidden="true" /> Hiện không có đơn cần xử lý.</div> : workQueue.slice(0, 7).map((order) => {
           const status = getStatus(order); const meta = STATUS_LABELS[status] || { label: status, color: "#555", bg: "#EEE" }; const age = getAge(order);
-          return <div key={order.id} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12, alignItems: "center", padding: "12px 2px", borderBottom: "1px solid #F0EAE1" }}>
+          return <Link to={`/staff/orders?status=${status}&order=${encodeURIComponent(order.id)}`} key={order.id} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12, alignItems: "center", padding: "12px 2px", borderBottom: "1px solid #F0EAE1", color: "inherit", textDecoration: "none", cursor: "pointer" }}>
             <div><div style={{ fontWeight: 700, color: "#2B211C", fontSize: 13.5 }}>#{order.id} · {order.customer_name || order.customerName}</div><div style={{ fontSize: 12, color: "#6B5A4B" }}>{formatPrice(order.total_amount || order.totalAmount)} · {formatDate(order.created_at || order.createdAt)}</div><div style={{ fontSize: 11.5, color: age >= 24 ? "#C0392B" : "#8A7350", marginTop: 3 }}>{age >= 24 ? `Ưu tiên cao · đã chờ ${age} giờ` : `Đã chờ ${age} giờ`}</div></div>
-            <div style={{ display: "flex", alignItems: "center", gap: 9 }}><span style={{ fontSize: 11, padding: "4px 9px", borderRadius: 12, color: meta.color, background: meta.bg, fontWeight: 700 }}>{meta.label}</span><Link to={`/staff/orders?status=${status}&order=${encodeURIComponent(order.id)}`} style={{ background: "#2B211C", color: "#FFF", textDecoration: "none", padding: "7px 11px", borderRadius: 5, fontSize: 12, fontWeight: 700 }}>Mở đơn</Link></div>
-          </div>;
+            <div style={{ display: "flex", alignItems: "center", gap: 9 }}><span style={{ fontSize: 11, padding: "4px 9px", borderRadius: 12, color: meta.color, background: meta.bg, fontWeight: 700 }}>{meta.label}</span><span style={{ background: "#2B211C", color: "#FFF", padding: "7px 11px", borderRadius: 5, fontSize: 12, fontWeight: 700 }}>Mở đơn</span></div>
+          </Link>;
         })}
       </section>
 
-      <section style={{ background: "#FFF", border: "1px solid #D8CEC1", borderRadius: 8, padding: 22 }}>
+      <section className="staff-dashboard-panel" style={{ background: "#FFF", border: "1px solid #D8CEC1", borderRadius: 8, padding: 22 }}>
         <div style={{ borderBottom: "1px solid #E8E1D6", paddingBottom: 12, marginBottom: 12 }}><h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 23, margin: 0 }}>Kho Cần Chú Ý</h2></div>
-        {[...outOfStock, ...lowStock, ...overStock].slice(0, 7).map((product) => { const stock = getProductStock(product.id); const summary = variantSummary(product); const label = summary.out > 0 || stock === 0 ? "Hết hàng" : summary.low > 0 ? "Sắp hết" : "Vượt mức tồn"; const color = label === "Hết hàng" ? "#A94442" : label === "Sắp hết" ? "#9B691E" : "#2C6BA0"; return <div key={product.id} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: 12, padding: "10px 0", borderBottom: "1px solid #F0EAE1", fontSize: 12.5 }}><span>{product.name}</span><strong style={{ color, textAlign: "right" }}>{label}</strong></div>; })}
+        {[...outOfStock, ...lowStock, ...overStock].slice(0, 7).map((product) => { const stock = getProductStock(product.id); const summary = variantSummary(product); const label = summary.out > 0 || stock === 0 ? "Hết hàng" : summary.low > 0 ? "Sắp hết" : "Vượt mức tồn"; const color = label === "Hết hàng" ? "#A94442" : label === "Sắp hết" ? "#9B691E" : "#2C6BA0"; const stockFilter = label === "Hết hàng" ? "out_of_stock" : label === "Sắp hết" ? "low_stock" : "overstock"; return <Link to={`/staff/inventory?stock=${stockFilter}&search=${encodeURIComponent(product.name)}`} key={product.id} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: 12, padding: "10px 0", borderBottom: "1px solid #F0EAE1", color: "inherit", textDecoration: "none", fontSize: 12.5, cursor: "pointer" }}><span>{product.name}</span><strong style={{ color, textAlign: "right" }}>{label}</strong></Link>; })}
         <Link to="/staff/inventory?stock=attention" style={{ display: "block", marginTop: 16, color: "#4E342E", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>Mở quản lý tồn kho →</Link>
       </section>
     </div>

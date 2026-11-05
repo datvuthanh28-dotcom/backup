@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useStore, STATUS_LABELS, VALID_STATUS_TRANSITIONS } from "../../context/StoreContext";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
+import OrderItemLine from "../../components/OrderItemLine";
+import OrderFinancialBreakdown from "../../components/OrderFinancialBreakdown";
+
+const ORDERS_PER_PAGE = 15;
 
 export const PAYMENT_STATUS_META = {
   paid: { label: "Đã thanh toán", color: "#2E8B57", bg: "#EAF7EE" },
@@ -35,6 +39,7 @@ export default function StaffOrders() {
 
   const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [statusModalOrder, setStatusModalOrder] = useState(null);
   const [newStatus, setNewStatus] = useState("");
@@ -72,9 +77,10 @@ export default function StaffOrders() {
   };
 
   const canConfirmPaymentFor = (order) => {
+    if (!order.payment) return false;
     const status = order.order_status || order.status;
-    const paymentStatus = order.payment?.payment_status || "unpaid";
-    const method = order.payment?.payment_method || order.paymentMethod || "cod";
+    const paymentStatus = order.payment.payment_status;
+    const method = order.payment.payment_method;
     if (!["unpaid", "pending_verification"].includes(paymentStatus) || status === "cancelled") return false;
     return method === "cod" ? status === "delivered" : true;
   };
@@ -112,6 +118,16 @@ export default function StaffOrders() {
       custPhone.includes(term);
     return matchesStatus && matchesSearch;
   });
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ORDERS_PER_PAGE));
+  const paginatedOrders = filteredOrders.slice((page - 1) * ORDERS_PER_PAGE, page * ORDERS_PER_PAGE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, searchTerm]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   const handleOpenStatusModal = (order) => {
     setStatusModalOrder(order);
@@ -152,9 +168,13 @@ export default function StaffOrders() {
   };
 
   const handleOpenPaymentConfirm = (order) => {
+    if (!order.payment) {
+      alert("Đơn hàng chưa có hồ sơ thanh toán nên chưa thể xác nhận thu tiền.");
+      return;
+    }
     setPaymentModalOrder(order);
-    setPaymentReference(order.payment?.payment_method === "cod" ? "TIEN-MAT-COD" : "");
-    setPaymentModalNote(order.payment?.payment_method === "cod" ? "Đã thu đủ tiền mặt khi giao hàng" : "Đã đối soát số dư ngân hàng");
+    setPaymentReference("");
+    setPaymentModalNote("");
   };
 
   const handleSavePaymentAction = async () => {
@@ -175,9 +195,12 @@ export default function StaffOrders() {
     }
   };
 
+  const paymentModalIsCod = paymentModalOrder?.payment?.payment_method === "cod";
+
   return (
-    <div>
+    <div className="staff-orders-page">
       <div
+        className="staff-orders-filters"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -301,8 +324,8 @@ export default function StaffOrders() {
           boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
         }}
       >
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13.5px" }}>
+        <div className="staff-orders-table-scroll" style={{ overflowX: "auto" }}>
+          <table className="staff-orders-table" style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13.5px" }}>
             <thead>
               <tr style={{ backgroundColor: "#FAF6F0", borderBottom: "1px solid #D8CEC1", color: "#4E342E" }}>
                 <th style={{ padding: "14px 18px", fontWeight: "600" }}>Mã Đơn Hàng</th>
@@ -315,14 +338,14 @@ export default function StaffOrders() {
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.length === 0 ? (
+              {paginatedOrders.length === 0 ? (
                 <tr>
                   <td colSpan="7" style={{ padding: "40px", textAlign: "center", color: "#6B5A4B" }}>
                     Không tìm thấy đơn hàng nào phù hợp với bộ lọc hiện tại.
                   </td>
                 </tr>
               ) : (
-                filteredOrders.map((order, idx) => {
+                paginatedOrders.map((order, idx) => {
                   const currentStatus = order.order_status || order.status;
                   const meta = STATUS_LABELS[currentStatus] || {
                     label: currentStatus,
@@ -335,10 +358,10 @@ export default function StaffOrders() {
                   const total = order.total_amount || order.totalAmount;
                   const dateStr = order.created_at || order.createdAt;
 
-                  const pmt = order.payment || {};
-                  const pmtStatus = pmt.payment_status || "unpaid";
-                  const pmtMethod = (pmt.payment_method || order.paymentMethod || "cod").toUpperCase();
-                  const pmtMeta = PAYMENT_STATUS_META[pmtStatus] || {
+                  const pmt = order.payment;
+                  const pmtStatus = pmt?.payment_status;
+                  const pmtMethod = pmt?.payment_method?.toUpperCase();
+                  const pmtMeta = !pmt ? { label: "Thiếu dữ liệu", color: "#A94442", bg: "#FFF0F0" } : PAYMENT_STATUS_META[pmtStatus] || {
                     label: pmtStatus,
                     color: "#666",
                     bg: "#f0f0f0",
@@ -354,17 +377,17 @@ export default function StaffOrders() {
                         backgroundColor: idx % 2 === 0 ? "#FFFFFF" : "#FCFBF9",
                       }}
                     >
-                      <td style={{ padding: "14px 18px" }}>
+                      <td data-label="Mã đơn" style={{ padding: "14px 18px" }}>
                         <strong style={{ color: "#2B211C", letterSpacing: "0.5px" }}>#{order.id}</strong>
                         <div style={{ fontSize: "11.5px", color: "#8A7350" }}>{formatDate(dateStr)}</div>
                       </td>
 
-                      <td style={{ padding: "14px 18px" }}>
+                      <td data-label="Khách hàng" style={{ padding: "14px 18px" }}>
                         <div style={{ fontWeight: "600", color: "#2B211C" }}>{custName}</div>
                         <div style={{ fontSize: "12px", color: "#6B5A4B" }}>{custPhone}</div>
                       </td>
 
-                      <td style={{ padding: "14px 18px" }}>
+                      <td data-label="Sản phẩm" style={{ padding: "14px 18px" }}>
                         <span style={{ fontWeight: "600", color: "#2B211C" }}>
                           {items.reduce((s, i) => s + (i.quantity || 1), 0)} món
                         </span>
@@ -373,11 +396,11 @@ export default function StaffOrders() {
                         </div>
                       </td>
 
-                      <td style={{ padding: "14px 18px", fontWeight: "700", color: "#B89B5E" }}>
+                      <td data-label="Tổng tiền" style={{ padding: "14px 18px", fontWeight: "700", color: "#B89B5E" }}>
                         {formatPrice(total)}
                       </td>
 
-                      <td style={{ padding: "14px 18px" }}>
+                      <td data-label="Trạng thái" style={{ padding: "14px 18px" }}>
                         <span
                           style={{
                             display: "inline-flex",
@@ -395,7 +418,7 @@ export default function StaffOrders() {
                         </span>
                       </td>
 
-                      <td style={{ padding: "14px 18px" }}>
+                      <td data-label="Thanh toán" style={{ padding: "14px 18px" }}>
                         <span
                           style={{
                             display: "inline-block",
@@ -412,11 +435,11 @@ export default function StaffOrders() {
                           ● {pmtMeta.label}
                         </span>
                         <div style={{ fontSize: "11px", color: "#8A7350", marginTop: "3px" }}>
-                          {pmtMethod === "COD" ? "COD (Tiền mặt)" : "Chuyển khoản"}
+                          {!pmt ? "Chưa có hồ sơ thanh toán" : pmtMethod === "COD" ? "COD (Tiền mặt)" : "Chuyển khoản"}
                         </div>
                       </td>
 
-                      <td style={{ padding: "14px 18px", textAlign: "right" }}>
+                      <td data-label="Thao tác" style={{ padding: "14px 18px", textAlign: "right" }}>
                         <div style={{ display: "inline-flex", minWidth: "145px", flexDirection: "column", gap: "7px", alignItems: "stretch" }}>
                           <button
                             onClick={() => setSelectedOrder(order)}
@@ -468,6 +491,34 @@ export default function StaffOrders() {
             </tbody>
           </table>
         </div>
+        {filteredOrders.length > 0 && (
+          <div style={{ display: "flex", minHeight: "54px", boxSizing: "border-box", alignItems: "center", justifyContent: "space-between", gap: "16px", padding: "8px 18px", borderTop: "1px solid #EEE7DE", color: "#6B5A4B", fontSize: "12.5px" }}>
+            <span>
+              {((page - 1) * ORDERS_PER_PAGE) + 1}–{Math.min(page * ORDERS_PER_PAGE, filteredOrders.length)} trên {filteredOrders.length} đơn hàng
+            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <button
+                type="button"
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                disabled={page === 1}
+                aria-label="Trang đơn hàng trước"
+                style={{ width: "36px", height: "36px", border: "1px solid #D8CEC1", borderRadius: "6px", background: "#FFF", color: "#4E342E", cursor: page === 1 ? "not-allowed" : "pointer", opacity: page === 1 ? 0.38 : 1 }}
+              >
+                <i className="fas fa-chevron-left" aria-hidden="true" />
+              </button>
+              <span>Trang {page}/{totalPages}</span>
+              <button
+                type="button"
+                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                disabled={page === totalPages}
+                aria-label="Trang đơn hàng sau"
+                style={{ width: "36px", height: "36px", border: "1px solid #D8CEC1", borderRadius: "6px", background: "#FFF", color: "#4E342E", cursor: page === totalPages ? "not-allowed" : "pointer", opacity: page === totalPages ? 0.38 : 1 }}
+              >
+                <i className="fas fa-chevron-right" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Status Transition Modal */}
@@ -617,11 +668,11 @@ export default function StaffOrders() {
             <div style={{ backgroundColor: "#FAF6F0", padding: "14px 16px", borderRadius: "6px", marginBottom: "20px", fontSize: "13px" }}>
               <div><strong>Khách hàng:</strong> {paymentModalOrder.customer_name || paymentModalOrder.customerName}</div>
               <div><strong>Số tiền:</strong> <span style={{ color: "#B89B5E", fontWeight: "700" }}>{formatPrice(paymentModalOrder.total_amount || paymentModalOrder.totalAmount)}</span></div>
-              <div><strong>Hình thức:</strong> {paymentModalOrder.payment?.payment_method === "cod" ? "Thu hộ COD (Tiền mặt)" : "Chuyển khoản"}</div>
+              <div><strong>Hình thức:</strong> {paymentModalIsCod ? "Thu hộ COD (Tiền mặt)" : "Chuyển khoản"}</div>
               <div><strong>Trạng thái thanh toán hiện tại:</strong> {PAYMENT_STATUS_META[paymentModalOrder.payment?.payment_status || "unpaid"]?.label}</div>
             </div>
 
-            <div className="form-group">
+            {!paymentModalIsCod && <div className="form-group">
               <label style={{ fontSize: "13px", fontWeight: "600" }}>
                 Mã giao dịch / Mã tham chiếu ngân hàng
               </label>
@@ -639,9 +690,9 @@ export default function StaffOrders() {
                   outline: "none",
                 }}
               />
-            </div>
+            </div>}
 
-            <div className="form-group" style={{ marginTop: "15px" }}>
+            {!paymentModalIsCod && <div className="form-group" style={{ marginTop: "15px" }}>
               <label style={{ fontSize: "13px", fontWeight: "600" }}>
                 Ghi chú xác minh thanh toán
               </label>
@@ -659,7 +710,13 @@ export default function StaffOrders() {
                   outline: "none",
                 }}
               />
-            </div>
+            </div>}
+
+            {paymentModalIsCod && (
+              <div style={{ padding: "12px 14px", borderRadius: "6px", border: "1px solid #C3E6CB", background: "#F0FFF4", color: "#276749", fontSize: "13px", lineHeight: 1.5 }}>
+                Xác nhận rằng đơn đã giao thành công và đã thu đủ <strong>{formatPrice(paymentModalOrder.total_amount || paymentModalOrder.totalAmount)}</strong>. Hệ thống sẽ tự tạo mã biên nhận và lưu người cùng thời gian xác nhận.
+              </div>
+            )}
 
             <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "25px" }}>
               <button
@@ -684,7 +741,7 @@ export default function StaffOrders() {
                   cursor: loadingPayment ? "not-allowed" : "pointer",
                 }}
               >
-                {loadingPayment ? "Đang xử lý..." : "Xác Nhận Đã Thu Tiền"}
+                {loadingPayment ? "Đang xử lý..." : paymentModalIsCod ? "Xác Nhận Đã Thu COD" : "Xác Minh Chuyển Khoản"}
               </button>
             </div>
           </div>
@@ -745,6 +802,7 @@ export default function StaffOrders() {
               </div>
               <div>
                 <div><strong>Địa chỉ:</strong> {selectedOrder.shipping_address || selectedOrder.shippingAddress}</div>
+                {selectedOrder.notes && <div><strong>Ghi chú giao hàng:</strong> {selectedOrder.notes}</div>}
                 <div><strong>Trạng thái:</strong> {STATUS_LABELS[selectedOrder.order_status || selectedOrder.status]?.label}</div>
               </div>
             </div>
@@ -760,20 +818,26 @@ export default function StaffOrders() {
                   borderRadius: "12px",
                   fontSize: "12px",
                   fontWeight: "700",
-                  color: PAYMENT_STATUS_META[selectedOrder.payment?.payment_status || "unpaid"]?.color,
-                  backgroundColor: PAYMENT_STATUS_META[selectedOrder.payment?.payment_status || "unpaid"]?.bg,
+                  color: selectedOrder.payment ? PAYMENT_STATUS_META[selectedOrder.payment.payment_status]?.color : "#A94442",
+                  backgroundColor: selectedOrder.payment ? PAYMENT_STATUS_META[selectedOrder.payment.payment_status]?.bg : "#FFF0F0",
                 }}>
-                  ● {PAYMENT_STATUS_META[selectedOrder.payment?.payment_status || "unpaid"]?.label}
+                  ● {selectedOrder.payment ? PAYMENT_STATUS_META[selectedOrder.payment.payment_status]?.label : "Thiếu dữ liệu"}
                 </span>
               </div>
+              {!selectedOrder.payment && (
+                <div style={{ marginBottom: "10px", padding: "10px 12px", border: "1px solid #EBC4C4", borderRadius: "5px", background: "#FFF0F0", color: "#A94442" }}>
+                  Đơn hàng chưa có hồ sơ thanh toán. Hệ thống đã khóa thao tác thu tiền để tránh ghi nhận sai doanh thu.
+                </div>
+              )}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                <div><strong>Phương thức:</strong> {selectedOrder.payment?.payment_method === "cod" ? "Thanh toán khi nhận hàng (COD)" : "Chuyển khoản"}</div>
+                <div><strong>Phương thức:</strong> {!selectedOrder.payment ? "Chưa xác định" : selectedOrder.payment.payment_method === "cod" ? "Thanh toán khi nhận hàng (COD)" : "Chuyển khoản"}</div>
                 <div><strong>Tổng tiền:</strong> <span style={{ color: "#B89B5E", fontWeight: "700" }}>{formatPrice(selectedOrder.total_amount)}</span></div>
+                {Number(selectedOrder.product_discount_total || 0) + Number(selectedOrder.code_discount_total || 0) > 0 && <div className="order-promotion-breakdown"><div><strong>Giá trị ban đầu:</strong> {formatPrice(selectedOrder.original_subtotal)}</div><div><strong>Khuyến mãi sản phẩm:</strong> −{formatPrice(selectedOrder.product_discount_total)}</div><div><strong>Mã {selectedOrder.promotion_code || "—"}:</strong> −{formatPrice(selectedOrder.code_discount_total)}</div></div>}
                 {selectedOrder.payment?.verified_at && (
                   <>
                     <div><strong>Xác nhận bởi:</strong> {selectedOrder.payment.verified_by || "Hệ thống"}</div>
                     <div><strong>Ngày xác nhận:</strong> {formatDate(selectedOrder.payment.verified_at)}</div>
-                    <div><strong>Mã giao dịch:</strong> {selectedOrder.payment.transaction_reference || "N/A"}</div>
+                    <div><strong>{selectedOrder.payment.payment_method === "cod" ? "Mã biên nhận:" : "Mã giao dịch:"}</strong> {selectedOrder.payment.transaction_reference || "N/A"}</div>
                   </>
                 )}
                 {selectedOrder.payment?.refunded_at && (
@@ -815,28 +879,8 @@ export default function StaffOrders() {
               Danh sách sản phẩm trong đơn:
             </h4>
             <div style={{ marginBottom: "25px" }}>
-              {(selectedOrder.items || []).map((it, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "10px 0",
-                    borderBottom: "1px dashed #E8E1D6",
-                    fontSize: "13.5px",
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: "600" }}>{it.product_name || it.name}</div>
-                    <div style={{ fontSize: "12px", color: "#8A7350" }}>Màu: {it.selected_color || it.selectedColor} × {it.quantity}</div>
-                  </div>
-                  <strong style={{ color: "#B89B5E" }}>{formatPrice((it.unit_price || it.price) * it.quantity)}</strong>
-                </div>
-              ))}
-              <div style={{ textAlign: "right", marginTop: "12px", fontSize: "16px", fontWeight: "700", color: "#2B211C" }}>
-                Tổng thanh toán: <span style={{ color: "#B89B5E" }}>{formatPrice(selectedOrder.total_amount || selectedOrder.totalAmount)}</span>
-              </div>
+              {(selectedOrder.items || []).map((it, idx) => <OrderItemLine key={it.id || `${it.product_id}-${idx}`} item={it} formatPrice={formatPrice} />)}
+              <OrderFinancialBreakdown order={selectedOrder} formatPrice={formatPrice} />
             </div>
 
             <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px", marginBottom: "12px" }}>

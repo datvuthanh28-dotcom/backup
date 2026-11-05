@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useStore, STATUS_LABELS } from "../../context/StoreContext";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
+import OrderItemLine from "../../components/OrderItemLine";
+import OrderFinancialBreakdown from "../../components/OrderFinancialBreakdown";
 
 export const PAYMENT_STATUS_META = {
   paid: { label: "Đã thu tiền (Paid)", color: "#2E8B57", bg: "#EAF7EE" },
@@ -41,6 +43,17 @@ export default function AdminOrders() {
   const [paymentModalNote, setPaymentModalNote] = useState("");
   const [loadingPayment, setLoadingPayment] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+
+  useEffect(() => {
+    if (!selectedOrder && !paymentModalOrder) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key !== "Escape") return;
+      if (paymentModalOrder && !loadingPayment) setPaymentModalOrder(null);
+      else if (selectedOrder) setSelectedOrder(null);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [selectedOrder, paymentModalOrder, loadingPayment]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -403,6 +416,9 @@ export default function AdminOrders() {
       {/* Audit Detail Modal */}
       {selectedOrder && (
         <div
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setSelectedOrder(null);
+          }}
           style={{
             position: "fixed",
             top: 0,
@@ -418,6 +434,7 @@ export default function AdminOrders() {
           }}
         >
           <div
+            onClick={(event) => event.stopPropagation()}
             style={{
               backgroundColor: "#FFF",
               padding: "35px",
@@ -450,7 +467,9 @@ export default function AdminOrders() {
               <div><strong>Khách hàng:</strong> {selectedOrder.customer_name || selectedOrder.customerName} ({selectedOrder.customer_phone || selectedOrder.customerPhone})</div>
               <div><strong>Email:</strong> {selectedOrder.customer_email || selectedOrder.customerEmail}</div>
               <div><strong>Địa chỉ:</strong> {selectedOrder.shipping_address || selectedOrder.shippingAddress}</div>
+              {selectedOrder.notes && <div><strong>Ghi chú giao hàng:</strong> {selectedOrder.notes}</div>}
               <div><strong>Tổng tiền:</strong> {formatPrice(selectedOrder.total_amount || selectedOrder.totalAmount)}</div>
+              {Number(selectedOrder.product_discount_total || 0) + Number(selectedOrder.code_discount_total || 0) > 0 && <div className="order-promotion-breakdown"><div><strong>Giá trị hàng ban đầu:</strong> {formatPrice(selectedOrder.original_subtotal)}</div><div><strong>Giảm trực tiếp:</strong> −{formatPrice(selectedOrder.product_discount_total)}</div><div><strong>Mã {selectedOrder.promotion_code || "—"}:</strong> −{formatPrice(selectedOrder.code_discount_total)}</div></div>}
             </div>
 
             {/* Payment Audit Box */}
@@ -539,12 +558,8 @@ export default function AdminOrders() {
               Sản phẩm trong đơn:
             </h4>
             <div style={{ marginBottom: "20px" }}>
-              {(selectedOrder.items || []).map((it, idx) => (
-                <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px dashed #E8E1D6", fontSize: "13px" }}>
-                  <span>{it.product_name || it.name} ({it.selected_color || it.selectedColor}) × {it.quantity}</span>
-                  <strong>{formatPrice((it.unit_price || it.price) * it.quantity)}</strong>
-                </div>
-              ))}
+              {(selectedOrder.items || []).map((it, idx) => <OrderItemLine key={it.id || `${it.product_id}-${idx}`} item={it} formatPrice={formatPrice} showCost />)}
+              <OrderFinancialBreakdown order={selectedOrder} formatPrice={formatPrice} />
             </div>
 
             <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px", marginBottom: "12px" }}>
@@ -572,6 +587,9 @@ export default function AdminOrders() {
       {/* Payment Confirmation & Refund Action Modal */}
       {paymentModalOrder && (
         <div
+          onClick={(event) => {
+            if (event.target === event.currentTarget && !loadingPayment) setPaymentModalOrder(null);
+          }}
           style={{
             position: "fixed",
             top: 0,
@@ -587,6 +605,7 @@ export default function AdminOrders() {
           }}
         >
           <div
+            onClick={(event) => event.stopPropagation()}
             style={{
               backgroundColor: "#FFF",
               padding: "30px",

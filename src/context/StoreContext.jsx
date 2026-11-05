@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { productsAPI, ordersAPI, reportAPI } from "../services/api";
+import { productsAPI, ordersAPI, promotionAPI, reportAPI } from "../services/api";
 import { allProducts as staticProducts } from "../data/products";
 import { useAuth } from "./AuthContext";
 
@@ -33,7 +33,7 @@ export function StoreProvider({ children }) {
   // Fetch Products & Stock from Backend
   const refreshProducts = useCallback(async () => {
     try {
-      const res = await productsAPI.getAll();
+      const [res, promotionPrices] = await Promise.all([productsAPI.getAll(), promotionAPI.getCatalogPrices().catch(() => ({ prices: {} }))]);
       if (res.success && Array.isArray(res.products) && res.products.length > 0) {
         // The approved assortment is the storefront source of truth. Ignore legacy
         // products that may still be returned by an older or unsynchronized API.
@@ -49,6 +49,9 @@ export function StoreProvider({ children }) {
               gender: catalogProduct.gender,
               productType: catalogProduct.productType,
               subcategory: catalogProduct.subcategory,
+              promotionPrice: promotionPrices.prices?.[Number(product.id)]?.salePrice ?? Number(product.price),
+              promotionDiscount: promotionPrices.prices?.[Number(product.id)]?.discount || 0,
+              promotionName: promotionPrices.prices?.[Number(product.id)]?.promotionName || null,
               collection: catalogProduct.collection,
               collections: catalogProduct.collections,
               material: catalogProduct.material,
@@ -82,10 +85,10 @@ export function StoreProvider({ children }) {
   }, [isAuthenticated]);
 
   // Fetch Revenue Report from Backend (Admin only)
-  const refreshRevenueReport = useCallback(async () => {
+  const refreshRevenueReport = useCallback(async (filters = {}) => {
     if (currentUser?.role !== "admin") return;
     try {
-      const res = await reportAPI.getRevenue();
+      const res = await reportAPI.getRevenue(filters);
       if (res.success) {
         setRevenueReport(res.report);
       }
@@ -154,6 +157,7 @@ export function StoreProvider({ children }) {
     paymentMethod = "cod",
     items,
     notes = "",
+    promotionCode = "",
   }) => {
     try {
       const payload = {
@@ -164,6 +168,7 @@ export function StoreProvider({ children }) {
         paymentMethod,
         items,
         notes,
+        promotionCode,
       };
 
       const res = await ordersAPI.create(payload);
@@ -265,7 +270,7 @@ export function StoreProvider({ children }) {
           (revenueReport.ordersByStatus?.processing || 0) +
           (revenueReport.ordersByStatus?.shipping || 0),
         cancelledOrdersCount: revenueReport.ordersByStatus?.cancelled || 0,
-        totalDeliveredRevenue: revenueReport.actualCollectedRevenue || 0,
+        totalDeliveredRevenue: revenueReport.recognizedRevenue || 0,
         inFlightRevenue: revenueReport.pendingVerificationRevenue + revenueReport.unpaidRevenue || 0,
         cancelledAmount: revenueReport.refundedRevenue || 0,
         averageOrderValue: revenueReport.averageOrderValue || 0,
