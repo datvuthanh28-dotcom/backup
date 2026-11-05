@@ -235,7 +235,7 @@ export default function StaffInventory() {
           variantInfo: `${variant?.color || ""} - ${variant?.size || ""}`.trim(),
           currentStock: stockNum,
           minStock: minStockNum,
-          note: `Nhân viên vừa cập nhật tồn kho thủ công trên hệ thống xuống mức cảnh báo (${stockNum}/${minStockNum}).`,
+          note: `Staff manually updated inventory on system to warning threshold (${stockNum}/${minStockNum} units).`,
         }).catch((e) => console.warn("[EmailService] Inventory alert failed:", e));
       }
 

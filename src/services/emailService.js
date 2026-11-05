@@ -142,7 +142,7 @@ export async function sendOrderStatusEmail(order, newStatus, note = "") {
 }
 
 /**
- * 3. Gửi cảnh báo kho cho Admin/Staff khi SKU chạm mức tối thiểu
+ * 3. Gửi cảnh báo kho cho Admin/Staff khi SKU chạm mức tối thiểu (English format)
  */
 export async function sendLowStockAlertEmail({
   productName,
@@ -158,16 +158,17 @@ export async function sendLowStockAlertEmail({
   }
 
   const recipients = ALERT_EMAILS.split(",").map((e) => e.trim()).filter(Boolean);
-  const alertTime = new Date().toLocaleString("vi-VN", { hour12: false });
-  const actionNote = note || "Vui lòng kiểm tra tồn kho vật lý tại kho và lên kế hoạch nhập hàng hoặc điều chuyển kho kịp thời để tránh gián đoạn kinh doanh.";
+  const alertTime = new Date().toLocaleString("en-US", { hour12: false });
+  const actionNote = note || "Please inspect physical warehouse inventory and initiate replenishment or SKU transfer immediately to avoid out-of-stock disruption.";
 
   const results = [];
   for (const to_email of recipients) {
     const templateParams = {
       to_email,
-      product_name: productName || "Sản phẩm Maison Rue",
-      sku_code: sku || "Chưa có mã SKU",
-      variant_info: variantInfo || "Biến thể tiêu chuẩn",
+      subject: `[INVENTORY ALERT] Low Stock for SKU: ${sku || productName}`,
+      product_name: productName || "Maison Rue Item",
+      sku_code: sku || "N/A",
+      variant_info: variantInfo || "Standard Specification",
       current_stock: currentStock,
       min_stock: minStock,
       alert_time: alertTime,
