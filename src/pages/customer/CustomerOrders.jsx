@@ -647,6 +647,7 @@ export default function CustomerOrders() {
               <div><strong>Hình thức thanh toán:</strong> {selectedOrder.payment?.payment_method === "cod" ? "Thanh toán khi nhận hàng (COD)" : "Chuyển khoản"}</div>
               <div><strong>Trạng thái đơn:</strong> {STATUS_LABELS[selectedOrder.order_status || selectedOrder.status]?.label}</div>
               <div><strong>Trạng thái thanh toán:</strong> {PAYMENT_STATUS_META[selectedOrder.payment?.payment_status || "unpaid"]?.label}</div>
+              {Number(selectedOrder.product_discount_total || 0) + Number(selectedOrder.code_discount_total || 0) > 0 && <div className="order-promotion-breakdown"><div><strong>Tạm tính ban đầu:</strong> {formatPrice(selectedOrder.original_subtotal)}</div>{Number(selectedOrder.product_discount_total) > 0 && <div><strong>Khuyến mãi sản phẩm:</strong> −{formatPrice(selectedOrder.product_discount_total)}</div>}{Number(selectedOrder.code_discount_total) > 0 && <div><strong>Mã {selectedOrder.promotion_code}:</strong> −{formatPrice(selectedOrder.code_discount_total)}</div>}<div><strong>Thực thanh toán:</strong> {formatPrice(selectedOrder.total_amount)}</div></div>}
               {selectedOrder.payment?.transaction_reference && (
                 <div><strong>Mã giao dịch:</strong> {selectedOrder.payment.transaction_reference}</div>
               )}

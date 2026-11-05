@@ -10,7 +10,9 @@ import productRoutes from "./routes/productRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import employeeRoutes from "./routes/employeeRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
+import engagementRoutes from "./routes/engagementRoutes.js";
 import customerRoutes from "./routes/customerRoutes.js";
+import promotionRoutes from "./routes/promotionRoutes.js";
 
 dotenv.config();
 
@@ -70,7 +72,9 @@ app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/admin/employees", employeeRoutes);
 app.use("/api/admin/reports", reportRoutes);
+app.use("/api/engagement", engagementRoutes);
 app.use("/api/customer", customerRoutes);
+app.use("/api/promotions", promotionRoutes);
 
 // Global Error Handler
 // eslint-disable-next-line no-unused-vars

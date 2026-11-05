@@ -10,6 +10,12 @@
   .staff-sidebar {
     width: 100% !important;
     min-width: 0 !important;
+    position: static !important;
+    top: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    align-self: stretch !important;
+    overflow: visible !important;
     min-height: auto;
     flex-direction: row !important;
     align-items: stretch;
@@ -37,9 +43,11 @@
 
   .staff-sidebar-nav {
     min-width: 0;
+    min-height: auto !important;
     flex-direction: row !important;
     align-items: center;
     overflow-x: auto;
+    overflow-y: hidden !important;
     padding: 10px !important;
   }
 
@@ -68,6 +76,10 @@
   .staff-workspace-body {
     padding: 24px 20px !important;
   }
+}
+
+@media (max-width: 1100px) {
+  .staff-dashboard-content { grid-template-columns: 1fr !important; }
 }
 
 @media (max-width: 680px) {
@@ -116,4 +128,26 @@
   .staff-workspace-body {
     padding: 20px 14px !important;
   }
+
+  .staff-workspace-body h1 { font-size: clamp(25px, 8vw, 32px) !important; }
+  .staff-dashboard-panel { padding: 16px !important; }
+  .staff-orders-filters { align-items: stretch !important; padding: 14px !important; }
+  .staff-orders-filters > div { width: 100% !important; }
+  .staff-orders-filters input { box-sizing: border-box; min-height: 42px; }
+  .staff-orders-page > div:first-child { margin-bottom: 18px !important; }
+
+  .staff-orders-table-scroll { overflow: visible !important; }
+  .staff-orders-table, .staff-orders-table tbody, .staff-orders-table tr, .staff-orders-table td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .staff-orders-table { min-width: 0 !important; }
+  .staff-orders-table thead { display: none; }
+  .staff-orders-table tbody { padding: 10px; }
+  .staff-orders-table tr { margin-bottom: 12px; border: 1px solid #e8e1d6 !important; border-radius: 8px; overflow: hidden; background: #fff !important; }
+  .staff-orders-table td { display: grid; grid-template-columns: 96px minmax(0,1fr); gap: 12px; padding: 9px 12px !important; border-bottom: 1px solid #f0eae1; text-align: left !important; }
+  .staff-orders-table td::before { content: attr(data-label); color: #8a7350; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+  .staff-orders-table td:last-child { border-bottom: 0; }
+  .staff-orders-table td:last-child > div { width: 100%; min-width: 0 !important; }
 }

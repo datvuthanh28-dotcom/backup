@@ -38,6 +38,7 @@ const STOCK_OPTIONS = [
   { id: "stable", label: "Ổn định" },
   { id: "overstock", label: "Vượt mức tồn" },
 ];
+const STOCK_FILTER_IDS = new Set(STOCK_OPTIONS.map((option) => option.id));
 
 function normalizeGender(value) {
   const gender = String(value || "").toLowerCase();
@@ -55,23 +56,6 @@ function getVariantState(variant) {
   if (stock <= min) return { id: "low", label: "Sắp hết" };
   if (stock >= max) return { id: "over", label: "Vượt mức tồn" };
   return { id: "stable", label: "Ổn định" };
-}
-
-function getVariantSummary(product) {
-  const variants = Array.isArray(product.variants) ? product.variants : [];
-  return {
-    total: variants.length,
-    out: variants.filter((variant) => getVariantState(variant).id === "out").length,
-    low: variants.filter((variant) => getVariantState(variant).id === "low").length,
-    stable: variants.filter((variant) => getVariantState(variant).id === "stable").length,
-    over: variants.filter((variant) => getVariantState(variant).id === "over").length,
-  };
-}
-
-function formatVariantName(variant) {
-  const color = variant.color || "Chưa xác định màu";
-  const size = variant.size ? `Size ${variant.size}` : "Chưa xác định kích cỡ";
-  return `${color} · ${size}`;
 }
 
 function formatPrice(v) {
@@ -97,8 +81,9 @@ export default function StaffInventory() {
 
   const [genderFilter, setGenderFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [stockStatusFilter, setStockStatusFilter] = useState(searchParams.get("stock") === "attention" ? "attention" : "all");
-  const [searchTerm, setSearchTerm] = useState("");
+  const initialStockFilter = STOCK_FILTER_IDS.has(searchParams.get("stock")) ? searchParams.get("stock") : "all";
+  const [stockStatusFilter, setStockStatusFilter] = useState(initialStockFilter);
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [sortBy, setSortBy] = useState("stock_asc");
   const [page, setPage] = useState(1);
   const [editProduct, setEditProduct] = useState(null);
@@ -109,8 +94,6 @@ export default function StaffInventory() {
   const [stockNote, setStockNote] = useState("");
   const [toastMessage, setToastMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [stockAlertProduct, setStockAlertProduct] = useState(null);
-
   // Movements modal
   const [selectedProductMovements, setSelectedProductMovements] = useState(null);
   const [movementsList, setMovementsList] = useState([]);
@@ -126,19 +109,26 @@ export default function StaffInventory() {
     [products]
   );
 
-  const filteredProducts = useMemo(() => products.filter((product) => {
-    const currentStock = Number(getProductStock(product.id));
-    const variantSummary = getVariantSummary(product);
+  const inventoryRows = useMemo(() => products.flatMap((product) =>
+    (product.variants || []).map((variant) => ({
+      product,
+      variant,
+      stock: Number(variant.stock),
+      state: getVariantState(variant),
+    }))
+  ), [products]);
+
+  const filteredRows = useMemo(() => inventoryRows.filter((row) => {
+    const { product, variant, state } = row;
     const matchesGender = genderFilter === "all" || normalizeGender(product.gender) === genderFilter;
     const matchesType = typeFilter === "all" || (product.productType || product.category) === typeFilter;
 
     let matchesStock = true;
-    const hasVariants = variantSummary.total > 0;
-    if (stockStatusFilter === "attention") matchesStock = hasVariants ? variantSummary.out > 0 || variantSummary.low > 0 || variantSummary.over > 0 : currentStock <= 5;
-    else if (stockStatusFilter === "out_of_stock") matchesStock = hasVariants ? variantSummary.out > 0 : currentStock === 0;
-    else if (stockStatusFilter === "low_stock") matchesStock = hasVariants ? variantSummary.low > 0 : currentStock > 0 && currentStock <= 5;
-    else if (stockStatusFilter === "stable") matchesStock = hasVariants ? variantSummary.stable === variantSummary.total : currentStock > 5;
-    else if (stockStatusFilter === "overstock") matchesStock = hasVariants && variantSummary.over > 0;
+    if (stockStatusFilter === "attention") matchesStock = state.id !== "stable";
+    else if (stockStatusFilter === "out_of_stock") matchesStock = state.id === "out";
+    else if (stockStatusFilter === "low_stock") matchesStock = state.id === "low";
+    else if (stockStatusFilter === "stable") matchesStock = state.id === "stable";
+    else if (stockStatusFilter === "overstock") matchesStock = state.id === "over";
 
     const term = searchTerm.trim().toLowerCase();
     const searchable = [
@@ -147,27 +137,34 @@ export default function StaffInventory() {
       product.category,
       product.productType,
       product.gender,
-      ...(product.colors || []),
-      ...(product.variants || []).map((variant) => variant.sku),
+      variant.sku,
+      variant.color,
+      variant.size,
     ].join(" ").toLowerCase();
     const matchesSearch = !term || searchable.includes(term);
 
     return matchesGender && matchesType && matchesStock && matchesSearch;
-  }), [products, genderFilter, typeFilter, stockStatusFilter, searchTerm, getProductStock]);
+  }), [inventoryRows, genderFilter, typeFilter, stockStatusFilter, searchTerm]);
 
-  const sortedProducts = useMemo(() => [...filteredProducts].sort((a, b) => {
-    if (sortBy === "stock_desc") return getProductStock(b.id) - getProductStock(a.id);
-    if (sortBy === "name_asc") return a.name.localeCompare(b.name, "vi");
-    if (sortBy === "name_desc") return b.name.localeCompare(a.name, "vi");
-    return getProductStock(a.id) - getProductStock(b.id);
-  }), [filteredProducts, sortBy, getProductStock]);
+  const sortedRows = useMemo(() => [...filteredRows].sort((a, b) => {
+    if (sortBy === "stock_desc") return b.stock - a.stock;
+    if (sortBy === "name_asc") return a.product.name.localeCompare(b.product.name, "vi") || String(a.variant.sku).localeCompare(String(b.variant.sku));
+    if (sortBy === "name_desc") return b.product.name.localeCompare(a.product.name, "vi") || String(a.variant.sku).localeCompare(String(b.variant.sku));
+    return a.stock - b.stock;
+  }), [filteredRows, sortBy]);
 
-  const totalPages = Math.max(1, Math.ceil(sortedProducts.length / PAGE_SIZE));
-  const paginatedProducts = sortedProducts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / PAGE_SIZE));
+  const paginatedRows = sortedRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   useEffect(() => {
     setPage(1);
   }, [genderFilter, typeFilter, stockStatusFilter, searchTerm, sortBy]);
+
+  useEffect(() => {
+    const requestedStock = searchParams.get("stock");
+    setStockStatusFilter(STOCK_FILTER_IDS.has(requestedStock) ? requestedStock : "all");
+    setSearchTerm(searchParams.get("search") || "");
+  }, [searchParams]);
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
@@ -331,7 +328,7 @@ export default function StaffInventory() {
           <span className="inventory-filter-label">Tìm kiếm</span>
           <span className="inventory-input-icon">
             <i className="fas fa-magnifying-glass" aria-hidden="true" />
-            <input type="search" placeholder="Tên, mã sản phẩm, màu sắc…" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
+            <input type="search" placeholder="Tên, mã SKU, màu hoặc kích cỡ…" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
           </span>
         </label>
 
@@ -347,7 +344,7 @@ export default function StaffInventory() {
       </section>
 
       <div className="inventory-result-summary">
-        <span>Hiển thị <strong>{sortedProducts.length}</strong> sản phẩm phù hợp</span>
+        <span>Hiển thị <strong>{sortedRows.length}</strong> SKU phù hợp</span>
         {(genderFilter !== "all" || typeFilter !== "all" || stockStatusFilter !== "all" || searchTerm) && (
           <button type="button" onClick={resetFilters}><i className="fas fa-rotate-left" aria-hidden="true" /> Xóa bộ lọc</button>
         )}
@@ -360,8 +357,8 @@ export default function StaffInventory() {
             <thead>
               <tr style={{ backgroundColor: "#FAF6F0", borderBottom: "1px solid #D8CEC1", color: "#4E342E" }}>
                 <th style={{ padding: "14px 18px", fontWeight: "600", width: "80px" }}>Hình Ảnh</th>
-                <th style={{ padding: "14px 18px", fontWeight: "600" }}>Tên Sản Phẩm</th>
-                <th style={{ padding: "14px 18px", fontWeight: "600" }}>Loại / Đối Tượng</th>
+                <th style={{ padding: "14px 18px", fontWeight: "600" }}>Sản Phẩm</th>
+                <th style={{ padding: "14px 18px", fontWeight: "600" }}>SKU / Thuộc Tính</th>
                 <th style={{ padding: "14px 18px", fontWeight: "600" }}>Đơn Giá</th>
                 <th style={{ padding: "14px 18px", fontWeight: "600" }}>Tồn Kho</th>
                 <th style={{ padding: "14px 18px", fontWeight: "600" }}>Tình Trạng</th>
@@ -369,7 +366,7 @@ export default function StaffInventory() {
               </tr>
             </thead>
             <tbody>
-              {paginatedProducts.length === 0 ? (
+              {paginatedRows.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="inventory-empty-state">
                     <i className="fas fa-box-open" aria-hidden="true" />
@@ -379,27 +376,18 @@ export default function StaffInventory() {
                   </td>
                 </tr>
               ) : (
-                paginatedProducts.map((p, idx) => {
-                  const stock = getProductStock(p.id);
+                paginatedRows.map(({ product: p, variant, stock, state }, idx) => {
                   const firstImg = p.images ? p.images[0] : "";
-                  const variantSummary = getVariantSummary(p);
-                  const productStatus = variantSummary.out > 0
-                    ? { id: "out", label: "Hết hàng" }
-                    : variantSummary.low > 0
-                    ? { id: "low", label: "Sắp hết" }
-                    : variantSummary.over > 0
-                    ? { id: "over", label: "Vượt mức tồn" }
-                    : { id: "stable", label: "Ổn định" };
 
                   return (
                     <tr
-                      key={p.id}
+                      key={variant.id}
                       style={{
                         borderBottom: "1px solid #F0EAE1",
                         backgroundColor: idx % 2 === 0 ? "#FFFFFF" : "#FCFBF9",
                       }}
                     >
-                      <td style={{ padding: "12px 18px" }}>
+                      <td data-label="Hình ảnh" style={{ padding: "12px 18px" }}>
                         {firstImg && (
                           <img
                             src={`/${firstImg}`}
@@ -409,68 +397,43 @@ export default function StaffInventory() {
                         )}
                       </td>
 
-                      <td style={{ padding: "12px 18px" }}>
+                      <td data-label="Sản phẩm" style={{ padding: "12px 18px" }}>
                         <strong style={{ color: "#2B211C" }}>{p.name}</strong>
-                        <div style={{ fontSize: "12px", color: "#8A7350" }}>
-                          Màu: {(p.colors || []).join(", ")}
-                        </div>
                         <div className="inventory-variant-summary">Mã sản phẩm: {p.productCode || p.product_code || `MR-${String(p.id).padStart(3, "0")}`}</div>
+                        <div style={{ marginTop: 3, fontSize: 11.5, color: "#8A7350" }}>{TYPE_LABELS[p.productType] || TYPE_LABELS[p.category] || p.productType || p.category} · {normalizeGender(p.gender) === "nam" ? "Nam" : normalizeGender(p.gender) === "nữ" ? "Nữ" : "Trẻ em"}</div>
                       </td>
 
-                      <td style={{ padding: "12px 18px", textTransform: "capitalize", color: "#6B5A4B" }}>
-                        {TYPE_LABELS[p.productType] || TYPE_LABELS[p.category] || p.productType || p.category}
-                        <div style={{ marginTop: 3, fontSize: 11.5, color: "#8A7350" }}>{normalizeGender(p.gender) === "nam" ? "Nam" : normalizeGender(p.gender) === "nữ" ? "Nữ" : "Trẻ em"}</div>
+                      <td data-label="SKU / Thuộc tính" style={{ padding: "12px 18px" }}>
+                        <strong className="inventory-sku-code">{variant.sku}</strong>
+                        <div style={{ marginTop: 4, fontSize: "12px", color: "#6B5A4B" }}>{variant.color || "Mặc định"} · Size {variant.size || "ONE SIZE"}</div>
                       </td>
 
-                      <td style={{ padding: "12px 18px", fontWeight: "600", color: "#B89B5E" }}>
-                        {formatPrice(p.price)}
+                      <td data-label="Đơn giá" style={{ padding: "12px 18px", fontWeight: "600", color: "#B89B5E" }}>
+                        {formatPrice(variant.price ?? p.price)}
                       </td>
 
-                      <td style={{ padding: "12px 18px" }}>
+                      <td data-label="Tồn kho" style={{ padding: "12px 18px" }}>
                         <span
                           style={{
                             fontSize: "16px",
                             fontWeight: "700",
-                            color: productStatus.id === "out" ? "#D9534F" : productStatus.id === "low" ? "#B8860B" : productStatus.id === "over" ? "#2C6BA0" : "#2B211C",
+                            color: state.id === "out" ? "#D9534F" : state.id === "low" ? "#B8860B" : state.id === "over" ? "#2C6BA0" : "#2B211C",
                           }}
                         >
                           {stock}
                         </span>{" "}
                         <span style={{ fontSize: "12px", color: "#8A7350" }}>sản phẩm</span>
+                        <div style={{ marginTop: 2, fontSize: "10.5px", color: "#A09384" }}>Min {variant.lowStockThreshold ?? 3} · Max {variant.maxStockThreshold ?? 20}</div>
                       </td>
 
-                      <td style={{ padding: "12px 18px" }}>
-                        {productStatus.id !== "stable" ? (
-                          <button
-                            type="button"
-                            onClick={() => setStockAlertProduct(p)}
-                            className={`inventory-stock-alert is-${productStatus.id}`}
-                            aria-label={`Xem chi tiết tồn kho cần xử lý của ${p.name}`}
-                          >
-                            {productStatus.label}
-                          </button>
-                        ) : (
-                          <span
-                            style={{
-                              display: "inline-block",
-                              padding: "4px 10px",
-                              borderRadius: "12px",
-                              fontSize: "11.5px",
-                              fontWeight: "600",
-                              backgroundColor: "#F0FFF0",
-                              color: "#2E8B57",
-                              border: "1px solid #C3E6CB",
-                            }}
-                          >
-                            Ổn định
-                          </span>
-                        )}
+                      <td data-label="Tình trạng" style={{ padding: "12px 18px" }}>
+                        <span className={`inventory-stock-status is-${state.id}`}>{state.label}</span>
                       </td>
 
-                      <td style={{ padding: "12px 18px", textAlign: "right" }}>
+                      <td data-label="Thao tác" style={{ padding: "12px 18px", textAlign: "right" }}>
                         <div className="inventory-row-actions">
                           <button
-                            onClick={() => handleOpenEdit(p)}
+                            onClick={() => handleOpenEdit(p, variant.id)}
                             className="inventory-adjust-button"
                           >
                             Điều chỉnh
@@ -493,10 +456,10 @@ export default function StaffInventory() {
             </tbody>
           </table>
         </div>
-        {sortedProducts.length > 0 && (
+        {sortedRows.length > 0 && (
           <div className="inventory-pagination">
             <span>
-              {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, sortedProducts.length)} trên {sortedProducts.length}
+              {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, sortedRows.length)} trên {sortedRows.length} SKU
             </span>
             <div>
               <button type="button" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page === 1} aria-label="Trang trước">
@@ -510,54 +473,6 @@ export default function StaffInventory() {
           </div>
         )}
       </div>
-
-      {stockAlertProduct && (
-        <div className="inventory-modal-backdrop" role="presentation" onMouseDown={() => setStockAlertProduct(null)}>
-          <section className="inventory-alert-modal" role="dialog" aria-modal="true" aria-labelledby="stock-alert-title" onMouseDown={(event) => event.stopPropagation()}>
-            <div className="inventory-alert-modal__header">
-              <div>
-                <span>Chi tiết tồn kho cần xử lý</span>
-                <h3 id="stock-alert-title">{stockAlertProduct.name}</h3>
-              </div>
-              <button type="button" onClick={() => setStockAlertProduct(null)} aria-label="Đóng">×</button>
-            </div>
-
-            <div className="inventory-alert-list">
-              {(stockAlertProduct.variants || [])
-                .map((variant) => {
-                  const state = getVariantState(variant);
-                  const min = variant.lowStockThreshold ?? variant.low_stock_threshold ?? 3;
-                  const max = variant.maxStockThreshold ?? variant.max_stock_threshold ?? 20;
-                  return (
-                    <div className="inventory-alert-item" key={variant.id || `${variant.color}-${variant.size}`}>
-                      <div>
-                        <strong>{formatVariantName(variant)}</strong>
-                        {variant.sku && <span>SKU: {variant.sku}</span>}
-                        <span>Tối thiểu: {min} · Tối đa: {max}</span>
-                      </div>
-                      <div className="inventory-alert-item__status">
-                        <b className={`is-${state.id}`}>{state.label}</b>
-                        <span>{variant.stock} sản phẩm</span>
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-
-            <div className="inventory-alert-modal__actions">
-              <button type="button" className="btn-secondary" onClick={() => setStockAlertProduct(null)}>Đóng</button>
-              <button type="button" className="btn-primary" onClick={() => {
-                const product = stockAlertProduct;
-                const firstAlertVariant = (product.variants || []).find((variant) => {
-                  return getVariantState(variant).id !== "stable";
-                });
-                setStockAlertProduct(null);
-                handleOpenEdit(product, firstAlertVariant?.id);
-              }}>Điều chỉnh tồn kho</button>
-            </div>
-          </section>
-        </div>
-      )}
 
       {/* Edit Stock Modal */}
       {editProduct && (

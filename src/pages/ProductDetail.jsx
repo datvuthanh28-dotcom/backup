@@ -4,6 +4,10 @@ import { useCart } from "../hooks/useCart";
 import { useStore } from "../hooks/useStore";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import ProductCard from "../components/ProductCard";
+import ProductReviews from "../components/ProductReviews";
+import { useFavorites } from "../context/FavoritesContext";
+import { useAuth } from "../context/AuthContext";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const money = (value) => `${Number(value).toLocaleString("vi-VN")}đ`;
 
@@ -12,6 +16,10 @@ export default function ProductDetail() {
   const { products } = useStore();
   const product = products.find((item) => item.id === Number(id));
   const { addToCart } = useCart();
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   useDocumentTitle(product ? product.name : "Sản phẩm");
   const [selectedColor, setSelectedColor] = useState(product?.colors?.[0] || "");
   const [selectedSize, setSelectedSize] = useState("");
@@ -84,8 +92,8 @@ export default function ProductDetail() {
           <div className="gallery-thumbnails">{galleryImages.map((item, index) => <button key={`${item.color}-${item.image}`} className={`${activeImage === index ? "active" : ""} ${selectedColor === item.color ? "selected-color" : ""}`} onClick={() => chooseImage(index)} title={item.color}><img src={`/${item.image}`} alt={`${product.name} — ${item.color}`} /></button>)}</div>
         </div>
         <div className="product-info">
-          <p className="product-category">{product.collection}</p><h1>{product.name}</h1>
-          <p className="product-subtitle">{product.fit} · {product.material}</p><p className="product-price">{money(product.price)}</p>
+          <p className="product-category">{product.collection}</p><div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start" }}><h1>{product.name}</h1><button type="button" className="account-outline" aria-pressed={isFavorite(product.id)} onClick={async () => { const result = await toggleFavorite(product.id); if (result?.requiresLogin || currentUser?.role !== "customer") navigate(`/login?returnTo=${encodeURIComponent(location.pathname)}`); }}><i className={isFavorite(product.id) ? "fas fa-heart" : "far fa-heart"} /> {isFavorite(product.id) ? "Đã yêu thích" : "Yêu thích"}</button></div>
+          <p className="product-subtitle">{product.fit} · {product.material}</p>{product.promotionDiscount > 0 ? <div className="detail-promotion-price"><span>{money(product.price)}</span><strong>{money(product.promotionPrice)}</strong><small>{product.promotionName} · Tự động áp dụng</small></div> : <p className="product-price">{money(product.price)}</p>}
           <div className="detail-selector"><div className="selector-heading"><strong>Colour</strong><span aria-live="polite">{selectedColor}</span></div><div className="color-swatches">{product.colorOptions.map((color) => <button key={color.name} className={selectedColor === color.name ? "active" : ""} onClick={() => chooseColor(color.name)} title={color.name} aria-label={`Choose colour ${color.name}`} aria-pressed={selectedColor === color.name}><span style={{ background: color.hex }} /></button>)}</div></div>
           <div className="detail-selector"><div className="selector-heading"><strong>Size</strong>{product.sizeGuide?.length > 0 && <button className="text-button" onClick={() => setSizeGuideOpen(true)}>Find my size · Size guide</button>}</div><div className="size-options">{colorVariants.map((variant) => <button key={variant.id} disabled={variant.stock < 1} className={selectedSize === variant.size ? "active" : ""} onClick={() => { setSelectedSize(variant.size); setQuantity(1); setMessage(""); }}>{variant.size}</button>)}</div></div>
           <div className={`variant-status ${selectedVariant && currentStock <= 3 ? "low" : ""}`}>{!selectedSize ? "Select a size to view availability" : currentStock > 3 ? `In stock · ${currentStock} available` : currentStock > 0 ? `Low stock · only ${currentStock} remaining` : "Unavailable"}</div>
@@ -98,6 +106,7 @@ export default function ProductDetail() {
       {product.sizeGuide?.length > 0 && <section id="size-guide" className="size-guide-section"><p className="eyebrow">Fit notes</p><h2>Size Guide</h2><div className="size-table-wrap"><table><thead><tr><th>Size</th>{isFootwear ? <th>Foot length</th> : <><th>Chest</th><th>Waist</th><th>Length</th></>}</tr></thead><tbody>{product.sizeGuide.map((row) => <tr key={row.size}><td>{row.size}</td>{isFootwear ? <td>{row.footLength} cm</td> : <><td>{row.chest} cm</td><td>{row.waist} cm</td><td>{row.length} cm</td></>}</tr>)}</tbody></table></div></section>}
       {sizeGuideOpen && product.sizeGuide?.length > 0 && <div className="size-guide-overlay" role="dialog" aria-modal="true" aria-labelledby="size-guide-title" onClick={() => setSizeGuideOpen(false)}><div className="size-guide-modal" onClick={(event) => event.stopPropagation()}><button className="size-guide-close" onClick={() => setSizeGuideOpen(false)} aria-label="Close size guide">×</button><p className="eyebrow">Maison Rue fit service</p><h2 id="size-guide-title">Find your size</h2><p className="size-guide-intro">{isFootwear ? "Measure from the back of the heel to the longest toe." : "Measure over a light layer. Keep the tape relaxed and parallel to the floor."}</p><div className="measurement-grid">{isFootwear ? <label>Foot length (cm)<input type="number" min="0" step="0.1" value={measurement.footLength} onChange={(event) => setMeasurement((current) => ({ ...current, footLength: event.target.value }))} placeholder="e.g. 25.4" /></label> : <><label>Chest / bust (cm)<input type="number" min="0" value={measurement.chest} onChange={(event) => setMeasurement((current) => ({ ...current, chest: event.target.value }))} placeholder="e.g. 96" /></label><label>Waist (cm)<input type="number" min="0" value={measurement.waist} onChange={(event) => setMeasurement((current) => ({ ...current, waist: event.target.value }))} placeholder="e.g. 80" /></label></>}</div>{recommendedSize && <div className="size-recommendation"><strong>Recommended size: {recommendedSize}</strong><span>{isFootwear ? "If between sizes, choose the larger size." : "Choose the next size up if you prefer a relaxed fit."}</span></div>}<h3>How to measure</h3>{isFootwear ? <ol className="measure-steps"><li>Stand on a sheet of paper with your heel against a wall.</li><li>Mark the longest toe and measure the distance to the wall.</li><li>Measure both feet and use the larger measurement.</li></ol> : <ol className="measure-steps"><li><strong>Chest:</strong> measure around the fullest part.</li><li><strong>Waist:</strong> measure the narrowest part without pulling tight.</li><li><strong>Between sizes:</strong> size up for ease, size down for a closer fit.</li></ol>}<div className="size-table-wrap"><table><thead><tr><th>Size</th>{isFootwear ? <th>Foot length</th> : <><th>Chest</th><th>Waist</th><th>Length</th></>}</tr></thead><tbody>{product.sizeGuide.map((row) => <tr key={row.size}><td>{row.size}</td>{isFootwear ? <td>{row.footLength} cm</td> : <><td>{row.chest} cm</td><td>{row.waist} cm</td><td>{row.length} cm</td></>}</tr>)}</tbody></table></div></div></div>}
       {relatedProducts.length > 0 && <section className="related-section"><p className="eyebrow">Curated for you</p><h2>Complete the Look</h2><div className="related-grid">{relatedProducts.map((item) => <ProductCard key={item.id} product={item} />)}</div></section>}
+      <ProductReviews productId={product.id} />
     </main>
   );
 }

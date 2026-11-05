@@ -232,6 +232,25 @@ async function runTests() {
     }
 
     // ----------------------------------------------------
+    // TEST 4.2: Promotion administration, preview and RBAC
+    // ----------------------------------------------------
+    console.log("\n--- Testing Promotion Administration & Pricing Preview ---");
+    const testCode = `E2E${Date.now()}`;
+    const startAt = new Date(Date.now() - 60_000).toISOString();
+    const endAt = new Date(Date.now() + 86_400_000).toISOString();
+    const automaticPromotion = await makeRequest("POST", "/api/promotions/admin", { name: "E2E Automatic 5%", discountType: "percentage", discountValue: 5, minimumOrderValue: 0, isAutomatic: true, stackingPolicy: "allowed", priority: 1, customerRequirement: "any", startAt, endAt, status: "active", targets: [{ type: "product", value: "109" }] }, adminCookie);
+    assert(automaticPromotion.status === 201, "Admin created an automatic product promotion");
+    const codePromotion = await makeRequest("POST", "/api/promotions/admin", { name: "E2E Voucher 10%", discountType: "percentage", discountValue: 10, maximumDiscount: 1000000, minimumOrderValue: 1000000, isAutomatic: false, stackingPolicy: "allowed", customerRequirement: "authenticated", usageLimitTotal: 3, usageLimitPerCustomer: 1, startAt, endAt, status: "active", code: testCode, codeUsageLimit: 3, targets: [{ type: "product", value: "109" }] }, adminCookie);
+    assert(codePromotion.status === 201, "Admin created a limited voucher promotion");
+    const staffPromotions = await makeRequest("GET", "/api/promotions/admin", null, staffCookie);
+    assert(staffPromotions.status === 403, "Staff cannot access promotion administration");
+    const preview = await makeRequest("POST", "/api/promotions/preview", { code: testCode.toLowerCase(), items: [{ id: 109, variantId: "v-109-beige-s", quantity: 2 }] }, custCookie);
+    assert(preview.status === 200 && preview.body.pricing.productDiscountTotal > 0, "Preview selected the best automatic promotion");
+    assert(preview.body.pricing.codeDiscountTotal > 0 && preview.body.pricing.code === testCode, "Voucher is case-insensitive and stacks when allowed");
+    const catalogPrices = await makeRequest("GET", "/api/promotions/catalog-prices");
+    assert(catalogPrices.status === 200 && catalogPrices.body.prices[109].salePrice < catalogPrices.body.prices[109].originalPrice, "Storefront catalog receives the active automatic sale price");
+
+    // ----------------------------------------------------
     // TEST 5: Complete Business Workflow & Payment Decoupling
     // ----------------------------------------------------
     console.log("\n--- Testing End-to-End Business Workflow & Payment Decoupling ---");
@@ -248,6 +267,7 @@ async function runTests() {
       phone: "0901234567",
       address: "88 Lý Tự Trọng, Q.1, TP.HCM",
       paymentMethod: "cod",
+      promotionCode: testCode.toLowerCase(),
       items: [
         {
           id: 109,
@@ -280,6 +300,11 @@ async function runTests() {
       .input("order_id", sql.NVarChar, orderId)
       .query("SELECT * FROM Payments WHERE order_id = @order_id");
     assert(pmtInitial.recordset[0].payment_status === "unpaid", "Initial payment_status is 'unpaid'");
+    const promotionOrder = await pool.request().input("order_id", sql.NVarChar, orderId).query("SELECT original_subtotal,product_discount_total,code_discount_total,total_amount,promotion_code,promotion_snapshot_json FROM Orders WHERE id=@order_id");
+    assert(promotionOrder.recordset[0].product_discount_total > 0 && promotionOrder.recordset[0].code_discount_total > 0, "Order persisted automatic and voucher discounts separately");
+    assert(promotionOrder.recordset[0].promotion_code === testCode && !!promotionOrder.recordset[0].promotion_snapshot_json, "Order persisted normalized code and immutable promotion snapshot");
+    const promotionItems = await pool.request().input("order_id", sql.NVarChar, orderId).query("SELECT original_unit_price,automatic_discount_total,order_discount_allocated,final_line_total FROM OrderItems WHERE order_id=@order_id");
+    assert(promotionItems.recordset[0].final_line_total < promotionItems.recordset[0].original_unit_price * 2, "Order line persisted proportional discount allocation");
 
     // 5.5 Staff updates order through lifecycle: confirmed -> processing -> shipping -> delivered
     const s1 = await makeRequest("PATCH", `/api/orders/${orderId}/status`, { status: "confirmed", note: "" }, staffCookie);
@@ -339,13 +364,66 @@ async function runTests() {
       staffCookie
     );
     assert(dupPmtRes.status === 400, "Duplicate payment confirmation rejected (HTTP 400)");
+    await makeRequest("DELETE", `/api/promotions/admin/${automaticPromotion.body.id}`, null, adminCookie);
+    await makeRequest("DELETE", `/api/promotions/admin/${codePromotion.body.id}`, null, adminCookie);
+    const archivedPromotion = await pool.request().input("id", sql.Int, codePromotion.body.id).query("SELECT is_archived FROM Promotions WHERE id=@id");
+    assert(archivedPromotion.recordset[0].is_archived === true, "Promotion deletion is a soft archive and preserves usage history");
 
     // ----------------------------------------------------
-    // TEST 6: Unpaid Cancellation vs Paid Cancellation & Refund Lifecycle
+    // TEST 6: Favorites, Verified Reviews & Admin Product Insights
+    // ----------------------------------------------------
+    console.log("\n--- Testing Product Engagement Workflow ---");
+
+    const engagementTestUser = await pool.request().query("SELECT id FROM Users WHERE email='customer@gmail.com'");
+    const engagementUserId = engagementTestUser.recordset[0].id;
+    await pool.request().input("user_id", sql.NVarChar, engagementUserId).input("product_id", sql.Int, 109).query("DELETE FROM ProductFavoriteEvents WHERE user_id=@user_id AND product_id=@product_id; DELETE FROM ProductFavorites WHERE user_id=@user_id AND product_id=@product_id; DELETE FROM ProductReviews WHERE user_id=@user_id AND product_id=@product_id;");
+
+    const favoriteAdd = await makeRequest("PUT", "/api/customer/favorites/109", { active: true }, custCookie);
+    assert(favoriteAdd.status === 200 && favoriteAdd.body.active === true, "Customer added product to favorites");
+    const favoriteAddAgain = await makeRequest("PUT", "/api/customer/favorites/109", { active: true }, custCookie);
+    assert(favoriteAddAgain.status === 200 && favoriteAddAgain.body.changed === false, "Repeated favorite request is idempotent");
+    const favoriteList = await makeRequest("GET", "/api/customer/favorites", null, custCookie);
+    assert(favoriteList.status === 200 && favoriteList.body.productIds.includes(109), "Customer favorite list is persisted in MSSQL");
+    const favoriteEventCount = await pool.request().query("SELECT COUNT(*) total FROM ProductFavoriteEvents WHERE product_id=109 AND event_type='added'");
+    assert(favoriteEventCount.recordset[0].total === 1, "Duplicate favorite requests do not inflate analytics events");
+
+    const reviewSave = await makeRequest("PUT", "/api/customer/reviews/109", { rating: 5, title: "Chất liệu rất tốt", content: "Sản phẩm hoàn thiện đẹp, mặc thoải mái và đúng kích cỡ." }, custCookie);
+    assert(reviewSave.status === 200 && reviewSave.body.review?.is_verified_purchase, "Delivered customer created a verified-purchase review");
+    const reviewId = reviewSave.body.review.id;
+    const publicReviews = await makeRequest("GET", "/api/engagement/products/109/reviews");
+    assert(publicReviews.status === 200 && publicReviews.body.reviews.some((review) => review.id === reviewId), "Published review appears on product detail API");
+
+    const staffInsights = await makeRequest("GET", "/api/admin/reports/product-insights", null, staffCookie);
+    assert(staffInsights.status === 403, "Staff cannot access admin product engagement insights");
+    const adminInsights = await makeRequest("GET", "/api/admin/reports/product-insights", null, adminCookie);
+    assert(adminInsights.status === 200 && adminInsights.body.insights.some((item) => item.product_id === 109), "Admin can view product engagement insights");
+
+    const hideReview = await makeRequest("PATCH", `/api/admin/reports/reviews/${reviewId}`, { status: "hidden", note: "Kiểm tra cơ chế ẩn mềm" }, adminCookie);
+    assert(hideReview.status === 200, "Admin hid a review without deleting its record");
+    const hiddenPublicReviews = await makeRequest("GET", "/api/engagement/products/109/reviews");
+    assert(!hiddenPublicReviews.body.reviews.some((review) => review.id === reviewId), "Hidden review no longer appears publicly");
+    const hiddenRecord = await pool.request().input("id", sql.Int, reviewId).query("SELECT status FROM ProductReviews WHERE id=@id");
+    assert(hiddenRecord.recordset[0].status === "hidden", "Hidden review remains stored for audit");
+
+    await makeRequest("PATCH", `/api/admin/reports/reviews/${reviewId}`, { status: "published", note: "" }, adminCookie);
+    const softDeleteReview = await makeRequest("DELETE", "/api/customer/reviews/109", null, custCookie);
+    assert(softDeleteReview.status === 200, "Customer soft-deleted their review");
+    const deletedRecord = await pool.request().input("id", sql.Int, reviewId).query("SELECT status FROM ProductReviews WHERE id=@id");
+    assert(deletedRecord.recordset[0].status === "deleted", "Soft-deleted review remains in MSSQL with deleted status");
+
+    const favoriteRemove = await makeRequest("PUT", "/api/customer/favorites/109", { active: false }, custCookie);
+    assert(favoriteRemove.status === 200 && favoriteRemove.body.active === false, "Customer removed product from favorites through soft state change");
+    const favoriteRecord = await pool.request().query("SELECT is_active FROM ProductFavorites WHERE product_id=109");
+    assert(favoriteRecord.recordset[0].is_active === false, "Removed favorite remains in MSSQL as inactive");
+
+    // ----------------------------------------------------
+    // TEST 7: Unpaid Cancellation vs Paid Cancellation & Refund Lifecycle
     // ----------------------------------------------------
     console.log("\n--- Testing Unpaid Cancellation vs Paid Cancellation Refund Lifecycle ---");
 
     // 6.1 Cancellation of UNPAID order -> payment marked 'cancelled', NEVER 'refunded'
+    const cancelCode = `CANCEL${Date.now()}`;
+    const cancellablePromotion = await makeRequest("POST", "/api/promotions/admin", { name: "E2E Cancellation Voucher", discountType: "fixed_amount", discountValue: 100000, minimumOrderValue: 0, isAutomatic: false, stackingPolicy: "allowed", customerRequirement: "authenticated", usageLimitTotal: 1, usageLimitPerCustomer: 1, startAt: new Date(Date.now() - 60000).toISOString(), endAt: new Date(Date.now() + 86400000).toISOString(), status: "active", code: cancelCode, codeUsageLimit: 1, targets: [{ type: "product", value: "109" }] }, adminCookie);
     const unpaidOrderRes = await makeRequest(
       "POST",
       "/api/orders",
@@ -355,6 +433,7 @@ async function runTests() {
         phone: "0912345678",
         address: "45 Lê Lợi, Q.1",
         paymentMethod: "cod",
+        promotionCode: cancelCode,
         items: [{ id: 109, name: "Cashmere Button Cardigan", price: 4890000, quantity: 1, selectedColor: "Beige", selectedSize: "S", variantId: "v-109-beige-s", sku: "MR-109-BEIGE-S" }],
       },
       custCookie
@@ -372,6 +451,11 @@ async function runTests() {
       pmtCancelledUnpaid.recordset[0].payment_status === "cancelled",
       "CRITICAL: Cancelling UNPAID order marked payment as 'cancelled', NEVER 'refunded'"
     );
+    const releasedUsage = await pool.request().input("order_id", sql.NVarChar, unpaidOrderId).query("SELECT status,released_at FROM PromotionUsages WHERE order_id=@order_id");
+    assert(releasedUsage.recordset[0].status === "released" && !!releasedUsage.recordset[0].released_at, "Cancelling before shipping releases the voucher usage exactly once");
+    const releasedCounters = await pool.request().input("id", sql.Int, cancellablePromotion.body.id).query("SELECT p.used_count,pc.used_count code_used_count FROM Promotions p JOIN PromotionCodes pc ON pc.promotion_id=p.id WHERE p.id=@id");
+    assert(releasedCounters.recordset[0].used_count === 0 && releasedCounters.recordset[0].code_used_count === 0, "Cancellation restores promotion and code usage counters");
+    await makeRequest("DELETE", `/api/promotions/admin/${cancellablePromotion.body.id}`, null, adminCookie);
 
     // 6.2 Cancellation of PAID order -> payment marked 'refund_pending'
     const paidOrderRes = await makeRequest(
@@ -474,6 +558,7 @@ async function runTests() {
     assert(typeof report.pendingVerificationRevenue === "number", "Revenue report has numeric pendingVerificationRevenue");
     assert(typeof report.refundPendingRevenue === "number", "Revenue report has numeric refundPendingRevenue");
     assert(typeof report.refundedRevenue === "number", "Revenue report has numeric refundedRevenue");
+    assert(typeof report.productDiscountTotal === "number" && typeof report.codeDiscountTotal === "number", "Revenue report separates product and voucher discount costs");
     assert(report.paidOrdersCount >= 1, `Paid orders count accurately tracked: ${report.paidOrdersCount}`);
 
     console.log(`✓ Verified Collected Revenue: ${report.actualCollectedRevenue.toLocaleString()}đ`);

@@ -1,8 +1,57 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
 import { useAuth } from "../context/AuthContext";
 import { useStore } from "../hooks/useStore";
+
+const audienceMenus = {
+  men: {
+    label: "MEN",
+    clothing: ["Knitwear", "Shirts", "Trousers", "Outerwear"]
+  },
+  women: {
+    label: "WOMEN",
+    clothing: ["Knitwear", "Tops & Shirts", "Trousers & Skirts", "Dresses", "Outerwear"]
+  },
+  kids: {
+    label: "KIDS",
+    clothing: ["Baby Clothing", "Boys Clothing", "Girls Clothing"],
+    accessories: ["Bags", "Scarves", "Toys"]
+  }
+};
+
+function AudienceDropdown({ audience }) {
+  const menu = audienceMenus[audience];
+  const basePath = `/${audience}`;
+  const productTypePath = (type) => `${basePath}?type=${encodeURIComponent(type)}`;
+  const subcategoryPath = (subcategory) => `${basePath}?type=Clothing&subcategory=${encodeURIComponent(subcategory)}`;
+
+  return (
+    <div className="nav-dropdown audience-dropdown">
+      <Link to={basePath} className="nav-main">{menu.label}</Link>
+      <div className="dropdown-menu dropdown-categories">
+        <Link to={basePath}>ALL PRODUCTS</Link>
+        <div className="category-dropdown">
+          <Link to={productTypePath("Clothing")}>CLOTHING <span>›</span></Link>
+          <div className="category-submenu">
+            <Link to={productTypePath("Clothing")}>ALL CLOTHING</Link>
+            {menu.clothing.map((subcategory) => <Link key={subcategory} to={subcategoryPath(subcategory)}>{subcategory.toUpperCase()}</Link>)}
+          </div>
+        </div>
+        <Link to={productTypePath("Footwear")}>SHOES</Link>
+        {menu.accessories ? (
+          <div className="category-dropdown">
+            <Link to={productTypePath("Accessories")}>ACCESSORIES <span>›</span></Link>
+            <div className="category-submenu">
+              <Link to={productTypePath("Accessories")}>ALL ACCESSORIES</Link>
+              {menu.accessories.map((subcategory) => <Link key={subcategory} to={`${basePath}?type=Accessories&subcategory=${encodeURIComponent(subcategory)}`}>{subcategory.toUpperCase()}</Link>)}
+            </div>
+          </div>
+        ) : <Link to={productTypePath("Accessories")}>ACCESSORIES</Link>}
+      </div>
+    </div>
+  );
+}
 
 export default function Header() {
   const { cartCount } = useCart();
@@ -12,6 +61,22 @@ export default function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [headerHidden, setHeaderHidden] = useState(false);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    lastScrollY.current = window.scrollY;
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      const delta = currentY - lastScrollY.current;
+      if (currentY < 80) setHeaderHidden(false);
+      else if (delta > 3) setHeaderHidden(true);
+      else if (delta < -3) setHeaderHidden(false);
+      lastScrollY.current = currentY;
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleSearch = (event) => {
     event?.preventDefault();
@@ -35,32 +100,21 @@ export default function Header() {
   };
 
   return (
-    <header>
+    <header className={`store-header${headerHidden ? " is-hidden" : ""}`}>
+      <div className="header-announcement"><span>‹</span><p>E-Concierge · Monday to Sunday, 9 am – 7 pm</p><span>›</span></div>
+      <div className="header-brand-row">
+        <Link to="/" className="logo-link">
+          <img src="/image/logo.png" alt="Maison Rue logo" className="header-logo" />
+        </Link>
+      </div>
       <nav className="head-left">
-        <div className="nav-dropdown">
-          <Link to="/men" className="nav-main">MEN</Link>
-          <div className="dropdown-menu">
-            <Link to="/men">All pieces</Link>
-            <Link to="/men">Shirts & Trousers</Link>
-            <Link to="/collections/heritage-cashmere">Heritage Cashmere</Link>
-            <Link to="/collections/suede-essentials">Suede Essentials</Link>
-          </div>
-        </div>
-        <div className="nav-dropdown">
-          <Link to="/women" className="nav-main">WOMEN</Link>
-          <div className="dropdown-menu">
-            <Link to="/women">All pieces</Link>
-            <Link to="/women">Shirts & Trousers</Link>
-            <Link to="/collections/riviera-linen">Riviera Linen</Link>
-            <Link to="/collections/heritage-cashmere">Heritage Cashmere</Link>
-          </div>
-        </div>
-        <Link to="/kids" className="nav-main">KIDS</Link>
+        <Link to="/collections/fall-winter-2026-2027" className="nav-main nav-highlight">FALL/WINTER 2026–2027</Link>
+        <Link to="/collections/heritage-cashmere" className="nav-main nav-highlight">THE CASHMERE EDIT</Link>
+        <AudienceDropdown audience="men" />
+        <AudienceDropdown audience="women" />
+        <AudienceDropdown audience="kids" />
+        <Link to="/our-story" className="nav-main">OUR STORY</Link>
       </nav>
-
-      <Link to="/" className="logo-link">
-        <img src="/image/logo.png" alt="Maison Rue logo" className="header-logo" />
-      </Link>
 
       <nav className="head-right">
         <a href="#" id="searchBtn" onClick={(e) => { e.preventDefault(); setSearchOpen(true); }}>

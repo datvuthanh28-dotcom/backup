@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authenticateToken, requireRole } from "../middleware/auth.js";
 import { getAccount, addAddress, updateAddress, deleteAddress, updatePreferences, updateProfile } from "../controllers/customerController.js";
+import { deleteReview, getFavorites, getReviewEligibility, saveReview, setFavorite } from "../controllers/engagementController.js";
 const router = Router();
 router.use(authenticateToken, requireRole("customer"));
 router.get("/account", getAccount);
@@ -9,4 +10,9 @@ router.patch("/addresses/:id", updateAddress);
 router.delete("/addresses/:id", deleteAddress);
 router.patch("/preferences", updatePreferences);
 router.patch("/profile", updateProfile);
+router.get("/favorites", getFavorites);
+router.put("/favorites/:productId", setFavorite);
+router.get("/reviews/:productId/eligibility", getReviewEligibility);
+router.put("/reviews/:productId", saveReview);
+router.delete("/reviews/:productId", deleteReview);
 export default router;

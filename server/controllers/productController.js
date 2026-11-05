@@ -76,6 +76,15 @@ export async function updateVariantStock(req, res) {
   }
 }
 
+export async function updateVariantPricing(req, res) {
+  try {
+    const costPrice = Number(req.body.costPrice), floorPrice = Number(req.body.floorPrice);
+    if (!Number.isFinite(costPrice) || !Number.isFinite(floorPrice)) return res.status(400).json({ success: false, error: "Giá vốn và giá sàn phải là số hợp lệ." });
+    const result = await db.updateVariantPricing(req.params.id, req.params.variantId, costPrice, floorPrice);
+    return res.json({ success: true, message: "Đã cập nhật giá vốn và giá sàn.", ...result });
+  } catch (err) { return res.status(400).json({ success: false, error: err.message }); }
+}
+
 export async function getInventoryMovements(req, res) {
   try {
     const productId = req.query.productId || null;

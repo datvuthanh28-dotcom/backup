@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
 import { useStore } from "../hooks/useStore";
 import { useAuth } from "../context/AuthContext";
 import useDocumentTitle from "../hooks/useDocumentTitle";
+import { promotionAPI } from "../services/api";
 
 function formatPrice(v) {
   return v.toLocaleString("vi-VN") + "đ";
@@ -27,6 +28,21 @@ export default function Checkout() {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(null);
+  const [codeInput, setCodeInput] = useState("");
+  const [appliedCode, setAppliedCode] = useState("");
+  const [pricing, setPricing] = useState(null);
+  const [promotionMessage, setPromotionMessage] = useState("");
+  const [previewing, setPreviewing] = useState(false);
+
+  const previewPricing = useCallback(async (code = "") => {
+    if (!cart.length) return;
+    setPreviewing(true); setPromotionMessage("");
+    try { const result = await promotionAPI.preview(cart, code); setPricing(result.pricing); if (code) setPromotionMessage(`Đã áp dụng mã ${result.pricing.code}.`); }
+    catch (error) { setPromotionMessage(error.message); if (code) { setAppliedCode(""); setPricing(null); } }
+    finally { setPreviewing(false); }
+  }, [cart]);
+
+  useEffect(() => { previewPricing(appliedCode); }, [appliedCode, previewPricing]);
 
   if (cart.length === 0 && !orderSuccess) {
     return (
@@ -65,6 +81,7 @@ export default function Checkout() {
       paymentMethod: formData.paymentMethod,
       items: cart,
       notes: formData.notes,
+      promotionCode: appliedCode,
     });
 
     if (!result.success) {
@@ -427,15 +444,18 @@ export default function Checkout() {
 
               <div className="summary-row">
                 <span>Tạm tính:</span>
-                <span>{formatPrice(cartTotal)}</span>
+                <span>{formatPrice(pricing?.originalSubtotal ?? cartTotal)}</span>
               </div>
+              {Number(pricing?.productDiscountTotal || 0) > 0 && <div className="summary-row promotion-saving"><span>Khuyến mãi sản phẩm:</span><span>−{formatPrice(pricing.productDiscountTotal)}</span></div>}
+              {Number(pricing?.codeDiscountTotal || 0) > 0 && <div className="summary-row promotion-saving"><span>Mã {pricing.code}:</span><span>−{formatPrice(pricing.codeDiscountTotal)}</span></div>}
               <div className="summary-row">
                 <span>Phí vận chuyển:</span>
                 <span style={{ color: "#2E8B57", fontWeight: "600" }}>MIỄN PHÍ</span>
               </div>
+              <div className="checkout-promotion"><label>Mã giảm giá</label><div><input value={codeInput} onChange={(event) => setCodeInput(event.target.value.toUpperCase())} placeholder="Nhập mã ưu đãi" disabled={Boolean(appliedCode)} /><button type="button" onClick={() => appliedCode ? (setAppliedCode(""), setCodeInput("")) : setAppliedCode(codeInput.trim().toUpperCase())} disabled={previewing || (!appliedCode && !codeInput.trim())}>{appliedCode ? "Xóa mã" : previewing ? "Đang kiểm tra" : "Áp dụng"}</button></div>{promotionMessage && <p className={pricing?.code ? "success" : "error"}>{promotionMessage}</p>}</div>
               <div className="summary-row total" style={{ fontSize: "20px" }}>
                 <span>Tổng cộng:</span>
-                <span>{formatPrice(cartTotal)}</span>
+                <span>{formatPrice(pricing?.finalTotal ?? cartTotal)}</span>
               </div>
 
               <button

@@ -63,7 +63,25 @@ export const authAPI = {
 
   getMe: () => request("/auth/me"),
 };
-export const customerAPI = { getAccount: () => request("/customer/account"), addAddress: (address, isDefault = false) => request("/customer/addresses", { method: "POST", body: JSON.stringify({ address, isDefault }) }), updateAddress: (id, address, isDefault = false) => request(`/customer/addresses/${id}`, { method: "PATCH", body: JSON.stringify({ address, isDefault }) }), deleteAddress: (id) => request(`/customer/addresses/${id}`, { method: "DELETE" }), updatePreferences: (marketingEmail) => request("/customer/preferences", { method: "PATCH", body: JSON.stringify({ marketingEmail }) }), updateProfile: (payload) => request("/customer/profile", { method: "PATCH", body: JSON.stringify(payload) }) };
+export const customerAPI = { getAccount: () => request("/customer/account"), addAddress: (address, isDefault = false) => request("/customer/addresses", { method: "POST", body: JSON.stringify({ address, isDefault }) }), updateAddress: (id, address, isDefault = false) => request(`/customer/addresses/${id}`, { method: "PATCH", body: JSON.stringify({ address, isDefault }) }), deleteAddress: (id) => request(`/customer/addresses/${id}`, { method: "DELETE" }), updatePreferences: (marketingEmail) => request("/customer/preferences", { method: "PATCH", body: JSON.stringify({ marketingEmail }) }), updateProfile: (payload) => request("/customer/profile", { method: "PATCH", body: JSON.stringify(payload) }), getFavorites: () => request("/customer/favorites"), setFavorite: (productId, active) => request(`/customer/favorites/${productId}`, { method: "PUT", body: JSON.stringify({ active }) }), getReviewEligibility: (productId) => request(`/customer/reviews/${productId}/eligibility`), saveReview: (productId, payload) => request(`/customer/reviews/${productId}`, { method: "PUT", body: JSON.stringify(payload) }), deleteReview: (productId) => request(`/customer/reviews/${productId}`, { method: "DELETE" }) };
+
+export const engagementAPI = {
+  getReviews: (productId) => request(`/engagement/products/${productId}/reviews`),
+};
+
+export const promotionAPI = {
+  preview: (items, code = "", shippingFee = 0) => request("/promotions/preview", { method: "POST", body: JSON.stringify({ items, code, shippingFee }) }),
+  getCatalogPrices: () => request("/promotions/catalog-prices"),
+  getAll: () => request("/promotions/admin"),
+  getSuggestions: () => request("/promotions/admin/suggestions"),
+  simulate: (payload) => request("/promotions/admin/simulate", { method: "POST", body: JSON.stringify(payload) }),
+  create: (payload) => request("/promotions/admin", { method: "POST", body: JSON.stringify(payload) }),
+  update: (id, payload) => request(`/promotions/admin/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
+  setStatus: (id, status) => request(`/promotions/admin/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+  approve: (id, status, note = "") => request(`/promotions/admin/${id}/approval`, { method: "PATCH", body: JSON.stringify({ status, note }) }),
+  archive: (id) => request(`/promotions/admin/${id}`, { method: "DELETE" }),
+  report: () => request("/promotions/admin-report"),
+};
 
 export const productsAPI = {
   getAll: () => request("/products"),
@@ -78,6 +96,7 @@ export const productsAPI = {
       method: "PATCH",
       body: JSON.stringify({ stock, minStock, maxStock, note }),
     }),
+  updateVariantPricing: (id, variantId, costPrice, floorPrice) => request(`/products/${id}/variants/${encodeURIComponent(variantId)}/pricing`, { method: "PATCH", body: JSON.stringify({ costPrice, floorPrice }) }),
   getMovements: (productId) =>
     request(`/products/inventory/movements${productId ? `?productId=${productId}` : ""}`),
 };
@@ -131,6 +150,12 @@ export const employeeAPI = {
 };
 
 export const reportAPI = {
-  getRevenue: () => request("/admin/reports/revenue"),
+  getRevenue: (filters = {}) => {
+    const params = new URLSearchParams(Object.entries(filters).filter(([, value]) => value));
+    return request(`/admin/reports/revenue${params.size ? `?${params.toString()}` : ""}`);
+  },
+  getProductInsights: () => request("/admin/reports/product-insights"),
+  getReviews: () => request("/admin/reports/reviews"),
+  moderateReview: (id, payload) => request(`/admin/reports/reviews/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
 };
 

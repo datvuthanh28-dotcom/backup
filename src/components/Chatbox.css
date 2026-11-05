@@ -185,3 +185,25 @@
     padding: 0 12px 8px;
     font-style: italic;
 }
+
+@media (max-width: 520px) {
+    #chat-toggle {
+        right: 14px;
+        bottom: 14px;
+        width: 52px;
+        height: 52px;
+    }
+
+    #chat-box {
+        left: 10px;
+        right: 10px;
+        bottom: 76px;
+        width: auto;
+        min-height: 300px;
+        max-height: min(68vh, 500px);
+        border-radius: 12px;
+    }
+
+    #chat-input { min-width: 0; font-size: 16px; }
+    #chat-send { padding: 10px 14px; }
+}
