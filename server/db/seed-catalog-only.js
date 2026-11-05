@@ -1,5 +1,6 @@
 import { connectDB } from "../config/db.js";
 import { allProducts } from "../../src/data/products.js";
+import { initialVariantStock } from "./catalog-stock-policy.js";
 
 const pool = await connectDB();
 try {
@@ -7,8 +8,10 @@ try {
   await tx.begin();
   try {
     await tx.request().query("UPDATE ProductVariants SET is_active = 0, updated_at = GETDATE(); UPDATE Products SET is_active = 0, updated_at = GETDATE();");
-    for (const product of allProducts) {
+    for (const [productIndex, product] of allProducts.entries()) {
       const productCode = `MR-${String(product.id).padStart(3, "0")}`;
+      const starterStocks = product.variants.map((_,variantIndex)=>initialVariantStock(productIndex,variantIndex));
+      const starterTotal = starterStocks.reduce((sum,value)=>sum+value,0);
       const req = tx.request()
         .input("id", product.id)
         .input("product_code", productCode)
@@ -23,6 +26,7 @@ try {
         .input("collection_name", product.collection)
         .input("collections_json", JSON.stringify(product.collections))
         .input("material", product.material);
+      req.input("starter_stock",starterTotal);
       await req.query(`
         IF EXISTS (SELECT 1 FROM Products WHERE id=@id)
           UPDATE Products SET product_code=@product_code, name=@name, price=@price, category=@category, gender=@gender,
@@ -30,9 +34,9 @@ try {
             description=@description, collection_name=@collection_name, collections_json=@collections_json, material=@material, is_active=1, updated_at=GETDATE() WHERE id=@id;
         ELSE
           INSERT INTO Products (id, product_code, name, price, category, gender, images_json, colors_json, color_images_json, description, collection_name, collections_json, material, stock, min_alert, is_active, created_at, updated_at)
-          VALUES (@id, @product_code, @name, @price, @category, @gender, @images_json, @colors_json, @color_images_json, @description, @collection_name, @collections_json, @material, 0, 5, 1, GETDATE(), GETDATE());
+          VALUES (@id, @product_code, @name, @price, @category, @gender, @images_json, @colors_json, @color_images_json, @description, @collection_name, @collections_json, @material, @starter_stock, 5, 1, GETDATE(), GETDATE());
       `);
-      for (const variant of product.variants) {
+      for (const [variantIndex,variant] of product.variants.entries()) {
         await tx.request()
           .input("id", variant.id)
           .input("product_id", product.id)
@@ -40,15 +44,22 @@ try {
           .input("color_name", variant.color)
           .input("size_name", variant.size)
           .input("price", variant.price)
+          .input("starter_stock",starterStocks[variantIndex])
+          .input("min_stock",variant.lowStockThreshold ?? 3)
+          .input("max_stock",variant.maxStockThreshold ?? 20)
           .query(`
             MERGE ProductVariants AS target
             USING (SELECT @product_id AS product_id, @color_name AS color_name, @size_name AS size_name) AS source
               ON target.product_id=source.product_id AND target.color_name=source.color_name AND target.size_name=source.size_name
             WHEN MATCHED THEN UPDATE SET sku=@sku, price=@price, is_active=1, updated_at=GETDATE()
             WHEN NOT MATCHED THEN INSERT (id, product_id, sku, color_name, size_name, price, stock_quantity, low_stock_threshold, max_stock_threshold, is_active)
-              VALUES (@id, @product_id, @sku, @color_name, @size_name, @price, 0, 3, 20, 1);
+              VALUES (@id, @product_id, @sku, @color_name, @size_name, @price, @starter_stock, @min_stock, @max_stock, 1);
           `);
       }
+      await tx.request().input("product_id",product.id).query(`
+        UPDATE Products SET stock=(SELECT COALESCE(SUM(stock_quantity),0) FROM ProductVariants WHERE product_id=@product_id AND is_active=1),updated_at=GETDATE()
+        WHERE id=@product_id;
+      `);
     }
     await tx.commit();
   } catch (error) {

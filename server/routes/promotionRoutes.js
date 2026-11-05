@@ -1,11 +1,12 @@
 import { Router } from "express";
-import { approvePromotion, archivePromotion, catalogPromotionPrices, createPromotion, listPromotions, previewPromotion, promotionReport, promotionSuggestions, simulatePromotion, updatePromotion, updatePromotionStatus } from "../controllers/promotionController.js";
+import { approvePromotion, archivePromotion, catalogPromotionPrices, createPromotion, listPromotions, myPromotionOffers, previewPromotion, promotionReport, promotionSuggestions, simulatePromotion, updatePromotion, updatePromotionStatus } from "../controllers/promotionController.js";
 import { authenticateToken, optionalAuthenticateToken, requireRole } from "../middleware/auth.js";
 
 const router = Router();
 const safe = (handler) => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
 router.post("/preview", optionalAuthenticateToken, previewPromotion);
 router.get("/catalog-prices", catalogPromotionPrices);
+router.get("/my-offers", authenticateToken, requireRole("customer"), safe(myPromotionOffers));
 router.get("/admin", authenticateToken, requireRole("admin"), safe(listPromotions));
 router.get("/admin/suggestions", authenticateToken, requireRole("admin"), safe(promotionSuggestions));
 router.post("/admin/simulate", authenticateToken, requireRole("admin"), safe(simulatePromotion));

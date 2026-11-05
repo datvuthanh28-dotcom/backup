@@ -45,6 +45,26 @@ export async function catalogPromotionPrices(req, res) {
   } catch (error) { return res.status(500).json({ success: false, error: error.message }); }
 }
 
+export async function myPromotionOffers(req, res) {
+  const result = await getPool().request().input("user_id", sql.NVarChar, req.user.id).query(`
+    SELECT pc.id code_id,pc.code,pc.distribution_type,pc.display_description,pc.usage_limit,pc.used_count,
+      p.id promotion_id,p.name,p.description,p.discount_type,p.discount_value,p.maximum_discount,
+      p.minimum_order_value,p.start_at,p.end_at,p.stacking_policy,p.usage_limit_per_customer,
+      a.status assignment_status,a.assigned_at,a.used_at,
+      CASE WHEN EXISTS(SELECT 1 FROM PromotionUsages u WHERE u.promotion_code_id=pc.id AND u.customer_id=@user_id AND u.status='consumed') THEN 1 ELSE 0 END used_by_customer
+    FROM PromotionCodes pc JOIN Promotions p ON p.id=pc.promotion_id
+    LEFT JOIN PromotionCodeAssignments a ON a.promotion_code_id=pc.id AND a.user_id=@user_id
+    WHERE pc.is_active=1 AND p.is_archived=0 AND p.status='active' AND p.approval_status='approved'
+      AND p.start_at<=GETDATE() AND (p.end_at IS NULL OR p.end_at>GETDATE())
+      AND (p.usage_limit_total IS NULL OR p.used_count<p.usage_limit_total)
+      AND (pc.usage_limit IS NULL OR pc.used_count<pc.usage_limit)
+      AND (pc.distribution_type='public' OR (pc.distribution_type='targeted' AND a.status IN ('available','used')))
+    ORDER BY CASE WHEN pc.distribution_type='targeted' THEN 0 ELSE 1 END,p.end_at,pc.id DESC
+  `);
+  await getPool().request().input("user_id",sql.NVarChar,req.user.id).query("UPDATE PromotionCodeAssignments SET viewed_at=COALESCE(viewed_at,GETDATE()) WHERE user_id=@user_id AND status='available'");
+  return res.json({ success:true, offers:result.recordset });
+}
+
 export async function listPromotions(req, res) {
   const pool = getPool();
   const rows = await pool.request().query(`SELECT p.*, (SELECT STRING_AGG(CONCAT(target_type,':',target_value),', ') FROM PromotionTargets WHERE promotion_id=p.id AND is_excluded=0) targets, (SELECT STRING_AGG(code,', ') FROM PromotionCodes WHERE promotion_id=p.id AND is_active=1) codes FROM Promotions p ORDER BY p.created_at DESC`);
@@ -74,7 +94,19 @@ async function persistPromotion(req, res, id = null) {
     }
     const targets = Array.isArray(body.targets) && body.targets.length ? body.targets : [{ type: "store", value: "all" }];
     for (const target of targets) await transaction.request().input("id", sql.Int, promotionId).input("type", sql.NVarChar, target.type).input("value", sql.NVarChar, String(target.value)).input("excluded", sql.Bit, target.excluded ? 1 : 0).query("INSERT INTO PromotionTargets(promotion_id,target_type,target_value,is_excluded) VALUES(@id,@type,@value,@excluded)");
-    if (!id && body.code) await transaction.request().input("id", sql.Int, promotionId).input("code", sql.NVarChar, normalizeCode(body.code)).input("limit", sql.Int, body.codeUsageLimit || null).query("INSERT INTO PromotionCodes(promotion_id,code,usage_limit) VALUES(@id,@code,@limit)");
+    if (!id && body.code) {
+      const distribution = ["public","targeted","private"].includes(body.codeDistribution) ? body.codeDistribution : "public";
+      const insertedCode = await transaction.request().input("id", sql.Int, promotionId).input("code", sql.NVarChar, normalizeCode(body.code)).input("limit", sql.Int, body.codeUsageLimit || null).input("distribution",sql.NVarChar,distribution).input("display",sql.NVarChar,body.codeDescription || body.description || null).query("INSERT INTO PromotionCodes(promotion_id,code,usage_limit,distribution_type,display_description) OUTPUT INSERTED.id VALUES(@id,@code,@limit,@distribution,@display)");
+      if (distribution === "targeted") {
+        const emails=[...new Set(String(body.assignedCustomerEmails||"").split(/[;,\\n]/).map((value)=>value.trim().toLowerCase()).filter(Boolean))];
+        if (!emails.length) throw new Error("Mã được gán riêng cần ít nhất một email khách hàng.");
+        for (const email of emails) {
+          const user=await transaction.request().input("email",sql.NVarChar,email).query("SELECT id FROM Users WHERE LOWER(email)=@email AND role='customer' AND is_active=1");
+          if (!user.recordset.length) throw new Error(`Không tìm thấy khách hàng đang hoạt động: ${email}`);
+          await transaction.request().input("code_id",sql.Int,insertedCode.recordset[0].id).input("user_id",sql.NVarChar,user.recordset[0].id).input("actor",sql.NVarChar,`${req.user.name} (${req.user.role})`).query("INSERT INTO PromotionCodeAssignments(promotion_code_id,user_id,assigned_by) VALUES(@code_id,@user_id,@actor)");
+        }
+      }
+    }
     await transaction.request().input("id", sql.Int, promotionId).input("action", sql.NVarChar, id ? "updated" : "created").input("data", sql.NVarChar, JSON.stringify(body)).input("actor", sql.NVarChar, `${req.user.name} (${req.user.role})`).query("INSERT INTO PromotionAuditLogs(promotion_id,action,new_data,performed_by) VALUES(@id,@action,@data,@actor)");
     await transaction.commit();
     return res.status(id ? 200 : 201).json({ success: true, id: promotionId });

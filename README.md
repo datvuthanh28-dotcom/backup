@@ -61,14 +61,16 @@ DB_PASSWORD=YourStrongPassword123!
 DB_TRUST_SERVER_CERTIFICATE=true
 ```
 
-### Bước 3: Khởi tạo CSDL & Nạp tài khoản Seed (Chạy 1 lần ban đầu)
+### Bước 3: Khởi tạo toàn bộ dữ liệu dự án (chạy một lần trên máy mới)
 ```bash
-# Thực thi DDL Schema tạo 7 bảng quan hệ trên SQL Server
-npm run db:migrate
-
-# Nạp dữ liệu Seed mẫu (Admin, Staff, Customer, Sản phẩm, Đơn mẫu)
-npm run db:seed
+# Tạo schema, migration, catalog, tồn kho, giá vốn và dữ liệu phân tích 90 ngày
+npm run setup
 ```
+
+Lệnh `setup` là quy trình chuẩn khi clone/pull dự án sang máy mới. Tồn kho nằm trong
+MSSQL cục bộ và không được Git truyền sang máy khác. Không chạy riêng
+`db:replace-catalog` để sửa tồn kho; lệnh này chỉ đồng bộ catalog và luôn giữ nguyên
+tồn kho của SKU đã tồn tại.
 
 ### Bước 4: Kiểm thử toàn diện hệ thống (38 test cases tự động)
 ```bash
@@ -91,11 +93,14 @@ Mở trình duyệt truy cập:
 
 ### Các lệnh bổ sung cho Database:
 ```bash
-# Thực thi migration DDL tạo bảng SQL Server
+# Chỉ dùng khi phát triển từng phần; cài máy mới nên dùng npm run setup
 npm run db:migrate
 
 # Nạp dữ liệu tài khoản và sản phẩm mẫu vào SQL Server
 npm run db:seed
+
+# Phân bổ lại dữ liệu tồn kho demo theo bốn trạng thái vận hành
+npm run db:seed-metrics
 ```
 
 ---

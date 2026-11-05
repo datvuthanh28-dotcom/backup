@@ -475,6 +475,7 @@ export const db = {
           if (budgetTotal && budgetUsed + budgetAmount > budgetTotal) throw new Error("Ngân sách chương trình không còn đủ cho đơn hàng này.");
           await transaction.request().input("id", sql.Int, entry.promotion.id).input("budget", sql.Decimal(18,0), budgetAmount).query("UPDATE Promotions SET used_count=used_count+1,budget_reserved=budget_reserved+@budget,updated_at=GETDATE() WHERE id=@id");
           await transaction.request().input("promotion_id", sql.Int, entry.promotion.id).input("code_id", sql.Int, entry.code?.promotion_code_id || null).input("order_id", sql.NVarChar, orderData.id).input("customer_id", sql.NVarChar, orderData.customer_id).input("discount", sql.Decimal(18,0), discountAmount).input("shipping", sql.Decimal(18,0), shippingAmount).input("budget", sql.Decimal(18,0), budgetAmount).query("INSERT INTO PromotionUsages(promotion_id,promotion_code_id,order_id,customer_id,discount_amount,shipping_discount,status,budget_status,budget_amount) VALUES(@promotion_id,@code_id,@order_id,@customer_id,@discount,@shipping,'consumed','reserved',@budget)");
+          if (entry.code?.promotion_code_id && orderData.customer_id) await transaction.request().input("code_id",sql.Int,entry.code.promotion_code_id).input("user_id",sql.NVarChar,orderData.customer_id).query("UPDATE PromotionCodeAssignments SET status='used',used_at=GETDATE() WHERE promotion_code_id=@code_id AND user_id=@user_id AND status='available'");
         }
       }
 
@@ -581,7 +582,10 @@ export const db = {
           await transaction.request().input("id", sql.Int, usage.promotion_id).input("budget", sql.Decimal(18,0), usage.budget_amount || 0).query(`UPDATE Promotions SET used_count=CASE WHEN used_count>0 THEN used_count-1 ELSE 0 END,
             budget_reserved=CASE WHEN @budget<=budget_reserved THEN budget_reserved-@budget ELSE 0 END,
             budget_spent=CASE WHEN '${usage.budget_status}'='spent' AND @budget<=budget_spent THEN budget_spent-@budget ELSE budget_spent END,updated_at=GETDATE() WHERE id=@id`);
-          if (usage.promotion_code_id) await transaction.request().input("id", sql.Int, usage.promotion_code_id).query("UPDATE PromotionCodes SET used_count=CASE WHEN used_count>0 THEN used_count-1 ELSE 0 END,updated_at=GETDATE() WHERE id=@id");
+          if (usage.promotion_code_id) {
+            await transaction.request().input("id", sql.Int, usage.promotion_code_id).query("UPDATE PromotionCodes SET used_count=CASE WHEN used_count>0 THEN used_count-1 ELSE 0 END,updated_at=GETDATE() WHERE id=@id");
+            await transaction.request().input("code_id",sql.Int,usage.promotion_code_id).input("user_id",sql.NVarChar,currentOrder.customer_id).query("UPDATE PromotionCodeAssignments SET status='available',used_at=NULL WHERE promotion_code_id=@code_id AND user_id=@user_id AND status='used'");
+          }
         }
       }
 

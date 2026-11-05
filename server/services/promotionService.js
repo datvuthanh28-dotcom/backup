@@ -35,7 +35,7 @@ export async function loadPromotion(poolOrTransaction, normalizedCode = "") {
   const request = poolOrTransaction.request();
   request.input("code", sql.NVarChar, normalizedCode || null);
   const result = await request.query(`
-    SELECT DISTINCT p.*,pc.id promotion_code_id,pc.code,pc.usage_limit code_usage_limit,pc.used_count code_used_count,pc.is_active code_is_active
+    SELECT DISTINCT p.*,pc.id promotion_code_id,pc.code,pc.usage_limit code_usage_limit,pc.used_count code_used_count,pc.is_active code_is_active,pc.distribution_type
     FROM Promotions p LEFT JOIN PromotionCodes pc ON pc.promotion_id=p.id AND pc.normalized_code=@code
     WHERE p.is_archived=0 AND p.status='active' AND p.approval_status='approved' AND p.start_at<=GETDATE() AND (p.end_at IS NULL OR p.end_at>GETDATE())
       AND (p.usage_limit_total IS NULL OR p.used_count<p.usage_limit_total)
@@ -55,6 +55,12 @@ export async function calculatePromotions({ items, code = "", customerId = null,
   const codePromotion = normalizedCode ? promotions.find((promotion) => promotion.promotion_code_id) : null;
   if (normalizedCode && !codePromotion) throw new Error("Mã giảm giá không tồn tại, đã hết hạn hoặc đã hết lượt sử dụng.");
   if (codePromotion?.customer_requirement === "authenticated" && !customerId) throw new Error("Mã giảm giá này yêu cầu đăng nhập.");
+  if (codePromotion?.distribution_type === "targeted") {
+    if (!customerId) throw new Error("Mã ưu đãi này được cấp riêng và yêu cầu đăng nhập.");
+    const assignment = await poolOrTransaction.request().input("code_id", sql.Int, codePromotion.promotion_code_id).input("customer_id", sql.NVarChar, customerId).query("SELECT status FROM PromotionCodeAssignments WHERE promotion_code_id=@code_id AND user_id=@customer_id");
+    if (!assignment.recordset.length || assignment.recordset[0].status !== "available") throw new Error("Mã ưu đãi này không được cấp cho tài khoản của bạn hoặc đã được sử dụng.");
+  }
+  if (codePromotion?.distribution_type === "private" && !customerId) throw new Error("Mã ưu đãi riêng tư yêu cầu đăng nhập.");
   if (codePromotion?.code_usage_limit && codePromotion.code_used_count >= codePromotion.code_usage_limit) throw new Error("Mã giảm giá đã hết lượt sử dụng.");
   if (codePromotion?.usage_limit_per_customer && customerId) {
     const usage = await poolOrTransaction.request().input("customer_id", sql.NVarChar, customerId).input("promotion_id", sql.Int, codePromotion.id).query("SELECT COUNT(*) total FROM PromotionUsages WHERE customer_id=@customer_id AND promotion_id=@promotion_id AND status='consumed'");

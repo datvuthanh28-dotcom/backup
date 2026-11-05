@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
 import { useStore } from "../hooks/useStore";
 import { useAuth } from "../context/AuthContext";
@@ -15,6 +15,8 @@ export default function Checkout() {
   const { cart, cartTotal, removeFromCart } = useCart();
   const { createOrder } = useStore();
   const { currentUser } = useAuth();
+  const [searchParams] = useSearchParams();
+  const suggestedCode = searchParams.get("promo")?.trim().toUpperCase() || "";
 
   const [formData, setFormData] = useState({
     name: currentUser?.name || "",
@@ -28,8 +30,8 @@ export default function Checkout() {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(null);
-  const [codeInput, setCodeInput] = useState("");
-  const [appliedCode, setAppliedCode] = useState("");
+  const [codeInput, setCodeInput] = useState(suggestedCode);
+  const [appliedCode, setAppliedCode] = useState(suggestedCode);
   const [pricing, setPricing] = useState(null);
   const [promotionMessage, setPromotionMessage] = useState("");
   const [previewing, setPreviewing] = useState(false);

@@ -20,6 +20,7 @@ import Login from "./pages/Login"; // Customer Login (/login)
 import CustomerOrders from "./pages/customer/CustomerOrders";
 import CustomerAccount from "./pages/customer/CustomerAccount";
 import CustomerFavorites from "./pages/customer/CustomerFavorites";
+import CustomerOffers from "./pages/customer/CustomerOffers";
 import AccessDenied from "./pages/AccessDenied";
 import SearchResultsPage from "./pages/SearchResultsPage";
 import OurStory from "./pages/OurStory";
@@ -80,6 +81,7 @@ function App() {
                 />
                 <Route path="/account/profile" element={<ProtectedRoute allowedRoles={["customer"]} loginRedirect="/login"><CustomerAccount /></ProtectedRoute>} />
                 <Route path="/account/favorites" element={<ProtectedRoute allowedRoles={["customer"]} loginRedirect="/login"><CustomerFavorites /></ProtectedRoute>} />
+                <Route path="/account/offers" element={<ProtectedRoute allowedRoles={["customer"]} loginRedirect="/login"><CustomerOffers /></ProtectedRoute>} />
               </Route>
 
               {/* 2. STAFF PORTAL (Dedicated Login & Workspace) */}

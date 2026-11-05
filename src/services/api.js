@@ -72,6 +72,7 @@ export const engagementAPI = {
 export const promotionAPI = {
   preview: (items, code = "", shippingFee = 0) => request("/promotions/preview", { method: "POST", body: JSON.stringify({ items, code, shippingFee }) }),
   getCatalogPrices: () => request("/promotions/catalog-prices"),
+  getMyOffers: () => request("/promotions/my-offers"),
   getAll: () => request("/promotions/admin"),
   getSuggestions: () => request("/promotions/admin/suggestions"),
   simulate: (payload) => request("/promotions/admin/simulate", { method: "POST", body: JSON.stringify(payload) }),
