@@ -226,7 +226,7 @@ export async function confirmOrderPayment(req, res) {
 
     const confirmedBy = `${req.user.name} (${req.user.role.toUpperCase()})`;
     const normalizedReference = paymentMethod === "cod"
-      ? `COD-${orderId}`
+      ? (transactionReference?.trim() || `COD-${orderId}`)
       : transactionReference.trim();
     const normalizedNote = note?.trim() || (paymentMethod === "cod" ? "Đã thu đủ tiền COD khi giao hàng" : "Đã đối soát giao dịch chuyển khoản");
     const updatedOrder = await db.confirmPayment({
