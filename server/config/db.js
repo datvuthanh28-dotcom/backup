@@ -419,7 +419,7 @@ export const db = {
           .input("image_url", sql.NVarChar, item.image || null)
           .query(`
             INSERT INTO OrderItems (order_id, product_id, product_name, selected_color, selected_size, variant_id, variant_sku, quantity, unit_price, total_price, image_url,original_unit_price,unit_cost_snapshot,automatic_discount_total,order_discount_allocated,final_line_total,promotion_snapshot_json, created_at)
-            VALUES (@order_id, @product_id, @product_name, @selected_color, @selected_size, @variant_id, @variant_sku, @quantity, @unit_price, @final_line_total, @image_url,@original_unit_price,@unit_cost_snapshot,@automatic_discount_total,@order_discount_allocated,@final_line_total,@promotion_snapshot_json, GETDATE())
+            VALUES (@order_id, @product_id, @product_name, @selected_color, @selected_size, @variant_id, @variant_sku, @quantity, @unit_price, @total_price, @image_url,@original_unit_price,@unit_cost_snapshot,@automatic_discount_total,@order_discount_allocated,@final_line_total,@promotion_snapshot_json, GETDATE())
           `);
 
         if (item.variantId) {
@@ -912,11 +912,12 @@ export const db = {
         for (const item of order.items || []) {
           const catalogProduct = catalogProducts.find((product) => product.id === Number(item.product_id));
           const category = ["men", "women", "kids"].includes(catalogProduct?.audience) ? catalogProduct.audience : "unknown";
-          categorySales[category] += amount(item.total_price);
+          const lineRevenue = amount(item.final_line_total ?? item.total_price);
+          categorySales[category] += lineRevenue;
           const key = item.variant_sku || `product-${item.product_id}`;
           const product = productSalesMap.get(key) || { id: item.product_id, sku: item.variant_sku || "Chưa có SKU", name: item.product_name, total_quantity: 0, total_revenue: 0, total_cost: 0, cost_complete: true, image_url: item.image_url };
           product.total_quantity += amount(item.quantity);
-          product.total_revenue += amount(item.total_price);
+          product.total_revenue += lineRevenue;
           if (item.unit_cost_snapshot == null) product.cost_complete = false;
           else product.total_cost += amount(item.unit_cost_snapshot) * amount(item.quantity);
           productSalesMap.set(key, product);
@@ -958,6 +959,12 @@ export const db = {
         discounts: amount(order.product_discount_total) + amount(order.code_discount_total) + amount(order.shipping_discount_total),
         shipping_fee: amount(order.shipping_fee), total_amount: amount(order.total_amount), items: order.items,
       })).sort((a, b) => new Date(b.recognized_at) - new Date(a.recognized_at));
+      summary.dataOriginBreakdown = recognizedOrders.reduce((result, order) => {
+        const origin = order.data_origin === "simulated" ? "simulated" : "actual";
+        result[origin].orders += 1;
+        result[origin].revenue += amount(order.total_amount);
+        return result;
+      }, { actual: { orders: 0, revenue: 0 }, simulated: { orders: 0, revenue: 0 } });
       return summary;
     };
 

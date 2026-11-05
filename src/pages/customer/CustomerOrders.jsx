@@ -4,6 +4,8 @@ import { useStore, STATUS_LABELS } from "../../context/StoreContext";
 import { useAuth } from "../../context/AuthContext";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
 import CustomerAccountSidebar from "../../components/CustomerAccountSidebar";
+import OrderItemLine from "../../components/OrderItemLine";
+import OrderFinancialBreakdown from "../../components/OrderFinancialBreakdown";
 
 function formatPrice(v) {
   return (v || 0).toLocaleString("vi-VN") + "đ";
@@ -430,49 +432,7 @@ export default function CustomerOrders() {
                 {/* Items preview */}
                 <div style={{ padding: "20px 24px" }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                    {orderItems.map((item, idx) => {
-                      const itemName = item.product_name || item.name;
-                      const itemColor = item.selected_color || item.selectedColor;
-                      const itemPrice = item.unit_price || item.price;
-                      const itemImg = item.image_url || item.image;
-
-                      return (
-                        <div
-                          key={idx}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            paddingBottom: idx === orderItems.length - 1 ? 0 : "12px",
-                            borderBottom: idx === orderItems.length - 1 ? "none" : "1px dashed #F0EAE1",
-                          }}
-                        >
-                          <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-                            {itemImg && (
-                              <img
-                                src={`/${itemImg}`}
-                                alt={itemName}
-                                style={{ width: "55px", height: "55px", objectFit: "cover", borderRadius: "4px" }}
-                              />
-                            )}
-                            <div>
-                              <div style={{ fontWeight: "600", color: "#2B211C", fontSize: "14px" }}>
-                                {itemName}
-                              </div>
-                              <div style={{ fontSize: "12.5px", color: "#8A7350" }}>
-                                Màu: {itemColor} | Số lượng: {item.quantity}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div style={{ textAlign: "right" }}>
-                            <span style={{ fontWeight: "600", color: "#B89B5E", fontSize: "14px" }}>
-                              {formatPrice(itemPrice * item.quantity)}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
+                    {orderItems.map((item, idx) => <OrderItemLine key={item.id || `${item.product_id}-${idx}`} item={item} formatPrice={formatPrice} linkProduct />)}
                   </div>
 
                   <div
@@ -644,6 +604,7 @@ export default function CustomerOrders() {
             <div style={{ marginBottom: "25px", fontSize: "13.5px", backgroundColor: "#FAF6F0", padding: "15px", borderRadius: "6px" }}>
               <div><strong>Người nhận:</strong> {selectedOrder.customer_name || selectedOrder.customerName} ({selectedOrder.customer_phone || selectedOrder.customerPhone})</div>
               <div><strong>Địa chỉ:</strong> {selectedOrder.shipping_address || selectedOrder.shippingAddress}</div>
+              {selectedOrder.notes && <div><strong>Ghi chú giao hàng:</strong> {selectedOrder.notes}</div>}
               <div><strong>Hình thức thanh toán:</strong> {selectedOrder.payment?.payment_method === "cod" ? "Thanh toán khi nhận hàng (COD)" : "Chuyển khoản"}</div>
               <div><strong>Trạng thái đơn:</strong> {STATUS_LABELS[selectedOrder.order_status || selectedOrder.status]?.label}</div>
               <div><strong>Trạng thái thanh toán:</strong> {PAYMENT_STATUS_META[selectedOrder.payment?.payment_status || "unpaid"]?.label}</div>
@@ -654,6 +615,14 @@ export default function CustomerOrders() {
               {selectedOrder.payment?.refund_reference && (
                 <div><strong>Mã hoàn tiền:</strong> {selectedOrder.payment.refund_reference} (Hoàn tất ngày {formatDate(selectedOrder.payment.refunded_at)})</div>
               )}
+            </div>
+
+            <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px", marginBottom: "8px" }}>
+              Sản phẩm trong đơn:
+            </h4>
+            <div style={{ marginBottom: "18px" }}>
+              {(selectedOrder.items || []).map((item, idx) => <OrderItemLine key={item.id || `${item.product_id}-${idx}`} item={item} formatPrice={formatPrice} linkProduct />)}
+              <OrderFinancialBreakdown order={selectedOrder} formatPrice={formatPrice} />
             </div>
 
             <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px", marginBottom: "12px" }}>

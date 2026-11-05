@@ -26,6 +26,11 @@ const productDiscount = (promotion, item) => {
   return 0;
 };
 
+const hasPromotionStockHeadroom = (item) => {
+  if (item.stock == null || item.lowStockThreshold == null) return true;
+  return Number(item.stock) - Number(item.quantity || 1) >= Number(item.lowStockThreshold);
+};
+
 export async function loadPromotion(poolOrTransaction, normalizedCode = "") {
   const request = poolOrTransaction.request();
   request.input("code", sql.NVarChar, normalizedCode || null);
@@ -58,7 +63,7 @@ export async function calculatePromotions({ items, code = "", customerId = null,
 
   const pricedItems = items.map((item) => {
     const originalLineTotal = roundMoney(item.price * item.quantity);
-    const candidates = automatic.filter((promotion) => targetMatches(promotion, item) && ["percentage", "fixed_amount"].includes(promotion.discount_type)).map((promotion) => {
+    const candidates = automatic.filter((promotion) => hasPromotionStockHeadroom(item) && targetMatches(promotion, item) && ["percentage", "fixed_amount"].includes(promotion.discount_type)).map((promotion) => {
       let discount = productDiscount(promotion, item);
       if (promotion.max_discount_per_order) discount = Math.min(discount, Number(promotion.max_discount_per_order));
       const floor = Number(item.floorPrice || 0);
@@ -83,7 +88,7 @@ export async function calculatePromotions({ items, code = "", customerId = null,
       if (!shippingCanStack) throw new Error("Mã vận chuyển không thể kết hợp với khuyến mãi hiện tại.");
       shippingDiscountTotal = codePromotion.discount_type === "free_shipping" ? shippingFee : Math.min(shippingFee, roundMoney(codePromotion.discount_value));
     } else {
-      const eligible = pricedItems.filter((item) => targetMatches(codePromotion, item) && (!item.automaticPromotion || (codePromotion.stacking_policy === "allowed" && item.automaticPromotion.stacking_policy === "allowed")));
+      const eligible = pricedItems.filter((item) => hasPromotionStockHeadroom(item) && targetMatches(codePromotion, item) && (!item.automaticPromotion || (codePromotion.stacking_policy === "allowed" && item.automaticPromotion.stacking_policy === "allowed")));
       const eligibleTotal = eligible.reduce((sum, item) => sum + item.originalLineTotal - item.automaticDiscount, 0);
       if (!eligibleTotal) throw new Error("Mã này không áp dụng cho sản phẩm trong giỏ hàng.");
       codeDiscountTotal = codePromotion.discount_type === "percentage" ? roundMoney(eligibleTotal * Number(codePromotion.discount_value) / 100) : Math.min(eligibleTotal, roundMoney(codePromotion.discount_value));

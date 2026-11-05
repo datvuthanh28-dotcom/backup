@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useStore, STATUS_LABELS, VALID_STATUS_TRANSITIONS } from "../../context/StoreContext";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
+import OrderItemLine from "../../components/OrderItemLine";
+import OrderFinancialBreakdown from "../../components/OrderFinancialBreakdown";
 
 const ORDERS_PER_PAGE = 15;
 
@@ -800,6 +802,7 @@ export default function StaffOrders() {
               </div>
               <div>
                 <div><strong>Địa chỉ:</strong> {selectedOrder.shipping_address || selectedOrder.shippingAddress}</div>
+                {selectedOrder.notes && <div><strong>Ghi chú giao hàng:</strong> {selectedOrder.notes}</div>}
                 <div><strong>Trạng thái:</strong> {STATUS_LABELS[selectedOrder.order_status || selectedOrder.status]?.label}</div>
               </div>
             </div>
@@ -876,28 +879,8 @@ export default function StaffOrders() {
               Danh sách sản phẩm trong đơn:
             </h4>
             <div style={{ marginBottom: "25px" }}>
-              {(selectedOrder.items || []).map((it, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "10px 0",
-                    borderBottom: "1px dashed #E8E1D6",
-                    fontSize: "13.5px",
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: "600" }}>{it.product_name || it.name}</div>
-                    <div style={{ fontSize: "12px", color: "#8A7350" }}>Màu: {it.selected_color || it.selectedColor} × {it.quantity}</div>
-                  </div>
-                  <strong style={{ color: "#B89B5E" }}>{formatPrice((it.unit_price || it.price) * it.quantity)}</strong>
-                </div>
-              ))}
-              <div style={{ textAlign: "right", marginTop: "12px", fontSize: "16px", fontWeight: "700", color: "#2B211C" }}>
-                Tổng thanh toán: <span style={{ color: "#B89B5E" }}>{formatPrice(selectedOrder.total_amount || selectedOrder.totalAmount)}</span>
-              </div>
+              {(selectedOrder.items || []).map((it, idx) => <OrderItemLine key={it.id || `${it.product_id}-${idx}`} item={it} formatPrice={formatPrice} />)}
+              <OrderFinancialBreakdown order={selectedOrder} formatPrice={formatPrice} />
             </div>
 
             <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px", marginBottom: "12px" }}>

@@ -15,6 +15,9 @@
     "db:engagement": "node server/db/apply-engagement-migration.js",
     "db:seed-metrics": "node server/db/seed-demo-metrics.js",
     "db:promotions": "node server/db/apply-promotion-migration.js",
+    "db:costs": "node server/db/initialize-standard-costs.js",
+    "db:metrics": "node server/db/refresh-sku-daily-metrics.js",
+    "db:seed-analytics": "node server/db/seed-analytics-orders.js",
     "test": "node server/test-rbac-workflow.js"
   },
   "dependencies": {
