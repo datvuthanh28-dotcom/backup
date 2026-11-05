@@ -129,6 +129,10 @@ export const db = {
       req.input("phone", sql.NVarChar, fields.phone);
       updates.push("phone = @phone");
     }
+    if (fields.password_hash !== undefined) {
+      req.input("password_hash", sql.NVarChar, fields.password_hash);
+      updates.push("password_hash = @password_hash");
+    }
     if (fields.is_active !== undefined) {
       req.input("is_active", sql.Bit, fields.is_active ? 1 : 0);
       updates.push("is_active = @is_active");

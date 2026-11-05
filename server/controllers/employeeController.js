@@ -55,7 +55,7 @@ export async function createEmployee(req, res) {
 
 export async function updateEmployee(req, res) {
   try {
-    const { name, phone } = req.body;
+    const { name, phone, password } = req.body;
     const staffId = req.params.id;
 
     const existing = await db.findUserById(staffId);
@@ -63,10 +63,19 @@ export async function updateEmployee(req, res) {
       return res.status(404).json({ success: false, error: "Không tìm thấy nhân viên." });
     }
 
-    const updated = await db.updateUser(staffId, {
+    const updateFields = {
       name: name ? name.trim() : existing.name,
       phone: phone ? phone.trim() : existing.phone,
-    });
+    };
+
+    if (password && password.trim()) {
+      if (password.trim().length < 6) {
+        return res.status(400).json({ success: false, error: "Mật khẩu mới phải có ít nhất 6 ký tự." });
+      }
+      updateFields.password_hash = bcrypt.hashSync(password.trim(), 10);
+    }
+
+    const updated = await db.updateUser(staffId, updateFields);
 
     const safeStaff = { ...updated };
     delete safeStaff.password_hash;

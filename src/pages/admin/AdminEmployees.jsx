@@ -119,16 +119,23 @@ export default function AdminEmployees() {
     const errs = {};
     if (!formData.name.trim()) errs.name = "Họ và tên là bắt buộc.";
     if (!formData.phone.trim()) errs.phone = "Số điện thoại là bắt buộc.";
+    if (formData.password?.trim() && formData.password.trim().length < 6) {
+      errs.password = "Mật khẩu mới phải có ít nhất 6 ký tự.";
+    }
 
     setFormErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
     try {
       setSubmitting(true);
-      const res = await employeeAPI.update(editingStaff.id, {
+      const payload = {
         name: formData.name.trim(),
         phone: formData.phone.trim(),
-      });
+      };
+      if (formData.password?.trim()) {
+        payload.password = formData.password.trim();
+      }
+      const res = await employeeAPI.update(editingStaff.id, payload);
 
       if (res.success) {
         showToast(res.message || `Đã cập nhật thông tin nhân viên ${formData.name}.`);
@@ -587,6 +594,20 @@ export default function AdminEmployees() {
                   disabled={submitting}
                 />
                 {formErrors.phone && <span className="error">{formErrors.phone}</span>}
+              </div>
+
+              <div className="form-group">
+                <label style={{ fontSize: "13px", fontWeight: "600" }}>
+                  Mật khẩu mới <span style={{ fontWeight: "normal", color: "#888", fontSize: "12px" }}>(để trống nếu giữ nguyên)</span>
+                </label>
+                <input
+                  type="password"
+                  placeholder="Nhập mật khẩu mới nếu muốn đổi (tối thiểu 6 ký tự)"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  disabled={submitting}
+                />
+                {formErrors.password && <span className="error">{formErrors.password}</span>}
               </div>
 
               <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "25px" }}>
