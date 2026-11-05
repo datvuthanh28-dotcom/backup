@@ -70,6 +70,25 @@ export async function getReviewEligibility(req, res) {
   return res.json({ success: true, eligible: purchase.recordset.length > 0, purchase: purchase.recordset[0] || null, review: existing.recordset[0] || null });
 }
 
+export async function getMyReviewEligibility(req, res) {
+  const pool = getPool();
+  const result = await pool.request().input("user_id", sql.NVarChar, req.user.id).query(`
+    WITH DeliveredPurchases AS (
+      SELECT oi.product_id,oi.id order_item_id,oi.order_id,oi.selected_color,oi.selected_size,
+             ROW_NUMBER() OVER (PARTITION BY oi.product_id ORDER BY COALESCE(o.delivered_at,o.updated_at) DESC,oi.id DESC) row_number
+      FROM OrderItems oi
+      JOIN Orders o ON o.id=oi.order_id
+      WHERE o.customer_id=@user_id AND o.order_status='delivered'
+    )
+    SELECT d.product_id,d.order_item_id,d.order_id,d.selected_color,d.selected_size,
+           r.id review_id,r.rating,r.title,r.content,r.status review_status,r.created_at review_created_at,r.updated_at review_updated_at
+    FROM DeliveredPurchases d
+    LEFT JOIN ProductReviews r ON r.user_id=@user_id AND r.product_id=d.product_id AND r.status<>'deleted'
+    WHERE d.row_number=1
+    ORDER BY d.order_id DESC,d.order_item_id`);
+  return res.json({ success: true, items: result.recordset });
+}
+
 export async function saveReview(req, res) {
   const productId = Number(req.params.productId);
   const rating = Number(req.body.rating);
@@ -77,7 +96,15 @@ export async function saveReview(req, res) {
   const content = String(req.body.content || "").trim();
   if (!productId || !Number.isInteger(rating) || rating < 1 || rating > 5 || content.length < 10) return res.status(400).json({ success: false, error: "Điểm đánh giá hoặc nội dung chưa hợp lệ (tối thiểu 10 ký tự)." });
   const pool = getPool();
-  const purchase = await pool.request().input("user_id", sql.NVarChar, req.user.id).input("product_id", sql.Int, productId).query(`SELECT TOP 1 oi.id order_item_id,oi.order_id,oi.selected_color,oi.selected_size FROM OrderItems oi JOIN Orders o ON o.id=oi.order_id WHERE o.customer_id=@user_id AND oi.product_id=@product_id AND o.order_status='delivered' ORDER BY o.updated_at DESC`);
+  const requestedOrderId = String(req.body.orderId || "").trim();
+  const requestedOrderItemId = Number(req.body.orderItemId) || null;
+  const purchaseRequest = pool.request().input("user_id", sql.NVarChar, req.user.id).input("product_id", sql.Int, productId)
+    .input("order_id", sql.NVarChar, requestedOrderId || null).input("order_item_id", sql.Int, requestedOrderItemId);
+  const purchase = await purchaseRequest.query(`SELECT TOP 1 oi.id order_item_id,oi.order_id,oi.selected_color,oi.selected_size
+    FROM OrderItems oi JOIN Orders o ON o.id=oi.order_id
+    WHERE o.customer_id=@user_id AND oi.product_id=@product_id AND o.order_status='delivered'
+      AND (@order_id IS NULL OR o.id=@order_id) AND (@order_item_id IS NULL OR oi.id=@order_item_id)
+    ORDER BY COALESCE(o.delivered_at,o.updated_at) DESC,oi.id DESC`);
   if (!purchase.recordset.length) return res.status(403).json({ success: false, error: "Chỉ khách đã nhận sản phẩm mới có thể đánh giá." });
   const item = purchase.recordset[0];
   await pool.request().input("product_id", sql.Int, productId).input("user_id", sql.NVarChar, req.user.id).input("order_id", sql.NVarChar, item.order_id).input("order_item_id", sql.Int, item.order_item_id).input("rating", sql.TinyInt, rating).input("title", sql.NVarChar, title || null).input("content", sql.NVarChar, content).input("color", sql.NVarChar, item.selected_color).input("size", sql.NVarChar, item.selected_size).query(`

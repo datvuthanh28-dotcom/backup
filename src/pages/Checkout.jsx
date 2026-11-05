@@ -12,7 +12,7 @@ function formatPrice(v) {
 
 export default function Checkout() {
   useDocumentTitle("Thanh Toán & Đặt Hàng");
-  const { cart, cartTotal, removeFromCart } = useCart();
+  const { cart, cartTotal, clearCart, cartLoading, cartError } = useCart();
   const { createOrder } = useStore();
   const { currentUser } = useAuth();
   const [searchParams] = useSearchParams();
@@ -46,12 +46,16 @@ export default function Checkout() {
 
   useEffect(() => { previewPricing(appliedCode); }, [appliedCode, previewPricing]);
 
+  if (cartLoading && !orderSuccess) {
+    return <main id="cart-container" style={{ padding: "60px 20px", textAlign: "center" }}>Đang tải giỏ hàng...</main>;
+  }
+
   if (cart.length === 0 && !orderSuccess) {
     return (
       <main id="cart-container" style={{ padding: "60px 20px", textAlign: "center" }}>
         <div className="empty-cart" style={{ maxWidth: "600px", margin: "0 auto" }}>
           <h2>Giỏ hàng chưa có sản phẩm</h2>
-          <p>Vui lòng chọn sản phẩm vào giỏ hàng trước khi tiến hành thanh toán.</p>
+          <p>{cartError || "Vui lòng chọn sản phẩm vào giỏ hàng trước khi tiến hành thanh toán."}</p>
           <Link to="/" className="btn-primary">Tiếp tục mua sắm</Link>
         </div>
       </main>
@@ -92,10 +96,8 @@ export default function Checkout() {
       return;
     }
 
-    // Clear cart
-    cart.forEach((item) => {
-      removeFromCart(item.cartItemId);
-    });
+    // Clear this customer's persisted cart only after order creation succeeds.
+    await clearCart();
 
     setOrderSuccess(result.order);
     setSubmitting(false);

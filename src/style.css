@@ -2542,6 +2542,34 @@ header.store-header.is-hidden{transform:translateY(-100%)}
 .review-form input, .review-form select, .review-form textarea { width: 100%; box-sizing: border-box; padding: 12px 14px; border: 1px solid #d8cec1; border-radius: 7px; background: #fff; font: inherit; }
 .review-form textarea { min-height: 110px; resize: vertical; }
 .review-form > div { display: flex; gap: 10px; }
+
+.order-review-item{position:relative;padding-bottom:8px;border-bottom:1px solid #eee7dd}
+.order-review-item:last-child{border-bottom:0}
+.order-review-button{display:inline-flex;align-items:center;gap:7px;margin:8px 0 0 68px;padding:7px 12px;border:1px solid #cbbca9;border-radius:6px;background:#fff;color:#4e342e;font:600 12px/1.2 inherit;cursor:pointer;transition:background .2s,border-color .2s}
+.order-review-button:hover{background:#faf6f0;border-color:#9f8565}
+.order-review-button span{color:#b68a3b;font-size:15px}
+.order-review-overlay{position:fixed;inset:0;z-index:3200;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(35,26,22,.62)}
+.order-review-modal{position:relative;width:min(560px,100%);box-sizing:border-box;padding:32px;border:1px solid #d8cec1;border-radius:12px;background:#fff;box-shadow:0 24px 70px rgba(31,22,18,.25)}
+.order-review-modal h2{margin:3px 0 5px;font-family:"Cormorant Garamond",serif;font-size:31px;font-weight:500;color:#2b211c}
+.order-review-product-name{margin:0 0 3px;font-weight:650;color:#2b211c}
+.order-review-modal>small{color:#7b6859}
+.order-review-close{position:absolute;top:13px;right:16px;border:0;background:none;color:#756255;font-size:28px;line-height:1;cursor:pointer}
+.order-review-rating{display:flex;align-items:center;gap:14px;margin:22px 0 17px;padding:0;border:0}
+.order-review-rating legend{margin-bottom:7px;font-size:13px;font-weight:650;color:#4e342e}
+.order-review-rating div{display:flex}
+.order-review-rating button{padding:0 3px;border:0;background:none;color:#b68a3b;font-size:29px;line-height:1;cursor:pointer}
+.order-review-rating span{font-size:13px;color:#6b5a4b}
+.order-review-modal>label{display:grid;gap:7px;margin-top:14px;color:#4e342e;font-size:13px;font-weight:600}
+.order-review-modal>label span{font-weight:400;color:#907d6e}
+.order-review-modal input,.order-review-modal textarea{box-sizing:border-box;width:100%;padding:11px 13px;border:1px solid #d8cec1;border-radius:7px;background:#fff;font:400 14px/1.5 inherit;color:#2b211c;outline:none}
+.order-review-modal input:focus,.order-review-modal textarea:focus{border-color:#8a7350;box-shadow:0 0 0 3px rgba(138,115,80,.12)}
+.order-review-modal textarea{min-height:125px;resize:vertical}
+.order-review-count{display:block;margin-top:5px;text-align:right}
+.order-review-error{margin:12px 0 0;padding:9px 11px;border:1px solid #efc0bd;border-radius:6px;background:#fff4f3;color:#b33b35;font-size:13px}
+.order-review-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+.order-review-actions button{width:auto;margin:0}
+.order-review-delete{margin-right:auto!important;border:0;background:none;color:#c34640;cursor:pointer}
+@media(max-width:640px){.order-review-button{margin-left:0}.order-review-modal{padding:27px 20px}.order-review-actions{flex-wrap:wrap}.order-review-delete{width:100%;text-align:left}.order-review-rating{align-items:flex-start;flex-direction:column;gap:7px}}
 .review-hint { margin: 20px 0; padding: 14px 18px; border-radius: 8px; background: #f3eee7; color: #6b5a4b; }
 .review-list { display: grid; gap: 14px; margin-top: 24px; }
 .review-list article { padding: 20px 22px; border: 1px solid #e1d8cd; border-radius: 9px; background: #fff; }

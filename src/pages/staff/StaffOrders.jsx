@@ -250,6 +250,7 @@ export default function StaffOrders() {
 
       {/* Filter and Search Bar */}
       <div
+        className="staff-orders-toolbar"
         style={{
           backgroundColor: "#FFFFFF",
           border: "1px solid #D8CEC1",
@@ -326,6 +327,15 @@ export default function StaffOrders() {
       >
         <div className="staff-orders-table-scroll" style={{ overflowX: "auto" }}>
           <table className="staff-orders-table" style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13.5px" }}>
+            <colgroup>
+              <col className="staff-order-col-id" />
+              <col className="staff-order-col-customer" />
+              <col className="staff-order-col-products" />
+              <col className="staff-order-col-total" />
+              <col className="staff-order-col-status" />
+              <col className="staff-order-col-payment" />
+              <col className="staff-order-col-actions" />
+            </colgroup>
             <thead>
               <tr style={{ backgroundColor: "#FAF6F0", borderBottom: "1px solid #D8CEC1", color: "#4E342E" }}>
                 <th style={{ padding: "14px 18px", fontWeight: "600" }}>Mã Đơn Hàng</th>
@@ -378,7 +388,7 @@ export default function StaffOrders() {
                       }}
                     >
                       <td data-label="Mã đơn" style={{ padding: "14px 18px" }}>
-                        <strong style={{ color: "#2B211C", letterSpacing: "0.5px" }}>#{order.id}</strong>
+                        <strong className="staff-order-code" style={{ color: "#2B211C", letterSpacing: "0.5px" }}>#{order.id}</strong>
                         <div style={{ fontSize: "11.5px", color: "#8A7350" }}>{formatDate(dateStr)}</div>
                       </td>
 
@@ -402,6 +412,7 @@ export default function StaffOrders() {
 
                       <td data-label="Trạng thái" style={{ padding: "14px 18px" }}>
                         <span
+                          className="staff-order-status-pill"
                           style={{
                             display: "inline-flex",
                             alignItems: "center",
@@ -420,6 +431,7 @@ export default function StaffOrders() {
 
                       <td data-label="Thanh toán" style={{ padding: "14px 18px" }}>
                         <span
+                          className="staff-order-payment-pill"
                           style={{
                             display: "inline-block",
                             padding: "3px 10px",
@@ -440,7 +452,7 @@ export default function StaffOrders() {
                       </td>
 
                       <td data-label="Thao tác" style={{ padding: "14px 18px", textAlign: "right" }}>
-                        <div style={{ display: "inline-flex", minWidth: "145px", flexDirection: "column", gap: "7px", alignItems: "stretch" }}>
+                        <div className="staff-order-actions" style={{ display: "inline-flex", minWidth: "145px", flexDirection: "column", gap: "7px", alignItems: "stretch" }}>
                           <button
                             onClick={() => setSelectedOrder(order)}
                             style={{
@@ -492,7 +504,7 @@ export default function StaffOrders() {
           </table>
         </div>
         {filteredOrders.length > 0 && (
-          <div style={{ display: "flex", minHeight: "54px", boxSizing: "border-box", alignItems: "center", justifyContent: "space-between", gap: "16px", padding: "8px 18px", borderTop: "1px solid #EEE7DE", color: "#6B5A4B", fontSize: "12.5px" }}>
+          <div className="staff-orders-pagination" style={{ display: "flex", minHeight: "54px", boxSizing: "border-box", alignItems: "center", justifyContent: "space-between", gap: "16px", padding: "8px 18px", borderTop: "1px solid #EEE7DE", color: "#6B5A4B", fontSize: "12.5px" }}>
             <span>
               {((page - 1) * ORDERS_PER_PAGE) + 1}–{Math.min(page * ORDERS_PER_PAGE, filteredOrders.length)} trên {filteredOrders.length} đơn hàng
             </span>

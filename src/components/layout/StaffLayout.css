@@ -2,6 +2,51 @@
   width: 100%;
 }
 
+.staff-orders-table{table-layout:auto}
+.staff-order-col-id{width:14%}
+.staff-order-col-customer{width:15%}
+.staff-order-col-products{width:21%}
+.staff-order-col-total{width:12%}
+.staff-order-col-status{width:13%}
+.staff-order-col-payment{width:14%}
+.staff-order-col-actions{width:11%}
+
+/* 1280–1366px laptops: preserve the operational table while reclaiming
+   enough width from the navigation and page gutters for every action. */
+@media (min-width: 1121px) and (max-width: 1366px) {
+  .staff-sidebar{width:220px!important;min-width:220px!important}
+  .staff-sidebar-brand{padding:20px 18px!important}
+  .staff-user-card{padding:14px 18px!important}
+  .staff-sidebar-nav{padding:14px 10px!important;gap:4px!important}
+  .staff-sidebar-nav a{padding:10px 12px!important;gap:9px!important;font-size:12.5px!important}
+  .staff-sidebar-footer{padding:12px!important}
+  .staff-workspace-header{padding:11px 20px!important}
+  .staff-workspace-body{padding:22px 20px!important;max-width:none!important}
+  .staff-orders-filters{margin-bottom:18px!important}
+  .staff-orders-toolbar{padding:14px 16px!important;margin-bottom:18px!important}
+  .staff-orders-table{table-layout:fixed!important;font-size:12px!important}
+  .staff-orders-table th,.staff-orders-table td{padding:11px 9px!important;vertical-align:middle}
+  .staff-order-col-id{width:13%}
+  .staff-order-col-customer{width:14%}
+  .staff-order-col-products{width:20%}
+  .staff-order-col-total{width:12%}
+  .staff-order-col-status{width:14%}
+  .staff-order-col-payment{width:14%}
+  .staff-order-col-actions{width:13%}
+  .staff-order-code{display:block;white-space:nowrap;font-size:11.5px;letter-spacing:0!important}
+  .staff-order-status-pill,.staff-order-payment-pill{padding:4px 7px!important;font-size:10.5px!important;white-space:normal;line-height:1.25}
+  .staff-order-actions{display:flex!important;width:100%;min-width:0!important}
+  .staff-order-actions button{padding:6px 7px!important;font-size:10.5px!important;line-height:1.2}
+}
+
+@media (max-height: 760px) and (min-width: 981px) {
+  .staff-sidebar-brand{padding-top:18px!important;padding-bottom:18px!important}
+  .staff-user-card{padding-top:13px!important;padding-bottom:13px!important}
+  .staff-sidebar-nav{padding-top:12px!important;padding-bottom:12px!important}
+  .staff-sidebar-nav a{padding-top:10px!important;padding-bottom:10px!important}
+  .staff-sidebar-footer{padding-top:10px!important;padding-bottom:10px!important}
+}
+
 @media (max-width: 980px) {
   .staff-shell {
     flex-direction: column;
@@ -82,6 +127,22 @@
   .staff-dashboard-content { grid-template-columns: 1fr !important; }
 }
 
+/* Medium tablets and narrow laptop split screens use readable order cards
+   instead of forcing staff to hunt for a horizontal scrollbar. */
+@media (min-width: 681px) and (max-width: 1120px) {
+  .staff-orders-table-scroll{overflow:visible!important}
+  .staff-orders-table,.staff-orders-table tbody,.staff-orders-table tr,.staff-orders-table td{display:block;width:100%;box-sizing:border-box}
+  .staff-orders-table{min-width:0!important}
+  .staff-orders-table colgroup,.staff-orders-table thead{display:none}
+  .staff-orders-table tbody{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:14px}
+  .staff-orders-table tr{margin:0;border:1px solid #e8e1d6!important;border-radius:8px;overflow:hidden;background:#fff!important}
+  .staff-orders-table td{display:grid;grid-template-columns:105px minmax(0,1fr);align-items:center;gap:10px;padding:9px 12px!important;border-bottom:1px solid #f0eae1;text-align:left!important}
+  .staff-orders-table td::before{content:attr(data-label);color:#8a7350;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+  .staff-orders-table td:last-child{border-bottom:0}
+  .staff-order-actions{display:grid!important;grid-template-columns:1fr;min-width:0!important;width:100%}
+  .staff-order-code{white-space:nowrap}
+}
+
 @media (max-width: 680px) {
   .staff-sidebar {
     flex-wrap: wrap;
@@ -143,6 +204,7 @@
     box-sizing: border-box;
   }
   .staff-orders-table { min-width: 0 !important; }
+  .staff-orders-table colgroup { display: none; }
   .staff-orders-table thead { display: none; }
   .staff-orders-table tbody { padding: 10px; }
   .staff-orders-table tr { margin-bottom: 12px; border: 1px solid #e8e1d6 !important; border-radius: 8px; overflow: hidden; background: #fff !important; }
@@ -150,4 +212,5 @@
   .staff-orders-table td::before { content: attr(data-label); color: #8a7350; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
   .staff-orders-table td:last-child { border-bottom: 0; }
   .staff-orders-table td:last-child > div { width: 100%; min-width: 0 !important; }
+  .staff-orders-pagination{align-items:flex-start!important;flex-direction:column}
 }

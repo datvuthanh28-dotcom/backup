@@ -20,6 +20,7 @@
     "db:metrics": "node server/db/refresh-sku-daily-metrics.js",
     "db:seed-analytics": "node server/db/seed-analytics-orders.js",
     "db:promotion-distribution": "node server/db/apply-promotion-distribution-migration.js",
+    "db:cart": "node server/db/apply-cart-migration.js",
     "test": "node server/test-rbac-workflow.js"
   },
   "dependencies": {

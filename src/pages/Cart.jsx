@@ -9,13 +9,18 @@ function formatPrice(v) {
 
 export default function Cart() {
   useDocumentTitle("Giỏ Hàng");
-  const { cart, removeFromCart, updateQuantity, cartCount, cartTotal } = useCart();
+  const { cart, removeFromCart, updateQuantity, cartCount, cartTotal, cartLoading, cartError } = useCart();
   const { getProductStock } = useStore();
+
+  if (cartLoading) {
+    return <main id="cart-container"><div className="empty-cart"><p>Đang tải giỏ hàng...</p></div></main>;
+  }
 
   if (cart.length === 0) {
     return (
       <main id="cart-container">
         <div className="empty-cart">
+          {cartError && <p className="form-error">{cartError}</p>}
           <h2>Giỏ Hàng Trống</h2>
           <p>Hãy thêm sản phẩm vào giỏ hàng của bạn để trải nghiệm dịch vụ</p>
           <Link to="/" className="btn-primary">Tiếp Tục Mua Sắm</Link>
