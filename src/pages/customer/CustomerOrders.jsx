@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useStore, STATUS_LABELS } from "../../context/StoreContext";
 import { useAuth } from "../../context/AuthContext";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
 import CustomerAccountSidebar from "../../components/CustomerAccountSidebar";
+import OrderItemLine from "../../components/OrderItemLine";
+import OrderFinancialBreakdown from "../../components/OrderFinancialBreakdown";
+import { customerAPI } from "../../services/api";
 
 function formatPrice(v) {
   return (v || 0).toLocaleString("vi-VN") + "đ";
@@ -42,6 +45,71 @@ export default function CustomerOrders() {
   const [actionNotice, setActionNotice] = useState("");
   const [loadingCancel, setLoadingCancel] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [reviewEligibility, setReviewEligibility] = useState({});
+  const [reviewTarget, setReviewTarget] = useState(null);
+  const [reviewForm, setReviewForm] = useState({ rating: 5, title: "", content: "" });
+  const [reviewSaving, setReviewSaving] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    customerAPI.getMyReviewEligibility().then((result) => {
+      if (!active) return;
+      setReviewEligibility(Object.fromEntries((result.items || []).map((item) => [Number(item.product_id), item])));
+    }).catch(() => {
+      // Orders remain usable if review metadata cannot be loaded temporarily.
+    });
+    return () => { active = false; };
+  }, []);
+
+  const openReview = (order, item) => {
+    const productId = Number(item.product_id || item.productId || item.id);
+    const current = reviewEligibility[productId];
+    setReviewTarget({ order, item, productId, current });
+    setReviewForm({ rating: Number(current?.rating || 5), title: current?.title || "", content: current?.content || "" });
+    setReviewError("");
+  };
+
+  const submitReview = async (event) => {
+    event.preventDefault();
+    if (!reviewTarget) return;
+    setReviewSaving(true);
+    setReviewError("");
+    try {
+      const wasEditing = Boolean(reviewTarget.current?.review_id);
+      const result = await customerAPI.saveReview(reviewTarget.productId, {
+        ...reviewForm,
+        orderId: reviewTarget.order.id,
+        orderItemId: reviewTarget.item.id,
+      });
+      const next = { ...(result.purchase || reviewTarget.current || {}), ...(result.review || {}), product_id: reviewTarget.productId };
+      setReviewEligibility((previous) => ({ ...previous, [reviewTarget.productId]: next }));
+      setReviewTarget(null);
+      setActionNotice(wasEditing ? "Đã cập nhật đánh giá sản phẩm." : "Đã gửi đánh giá sản phẩm.");
+    } catch (error) {
+      setReviewError(error.message || "Không thể lưu đánh giá.");
+    } finally {
+      setReviewSaving(false);
+    }
+  };
+
+  const deleteCurrentReview = async () => {
+    if (!reviewTarget || !window.confirm("Bạn muốn xóa đánh giá này?")) return;
+    setReviewSaving(true);
+    try {
+      await customerAPI.deleteReview(reviewTarget.productId);
+      setReviewEligibility((previous) => ({
+        ...previous,
+        [reviewTarget.productId]: { ...previous[reviewTarget.productId], review_id: null, rating: null, title: null, content: null, review_status: null },
+      }));
+      setReviewTarget(null);
+      setActionNotice("Đã xóa đánh giá sản phẩm.");
+    } catch (error) {
+      setReviewError(error.message || "Không thể xóa đánh giá.");
+    } finally {
+      setReviewSaving(false);
+    }
+  };
 
   // Filter orders for the logged-in customer (backend already scopes, but we also ensure on client)
   const customerOrders = orders.filter((o) => {
@@ -431,47 +499,17 @@ export default function CustomerOrders() {
                 <div style={{ padding: "20px 24px" }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                     {orderItems.map((item, idx) => {
-                      const itemName = item.product_name || item.name;
-                      const itemColor = item.selected_color || item.selectedColor;
-                      const itemPrice = item.unit_price || item.price;
-                      const itemImg = item.image_url || item.image;
-
-                      return (
-                        <div
-                          key={idx}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            paddingBottom: idx === orderItems.length - 1 ? 0 : "12px",
-                            borderBottom: idx === orderItems.length - 1 ? "none" : "1px dashed #F0EAE1",
-                          }}
-                        >
-                          <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-                            {itemImg && (
-                              <img
-                                src={`/${itemImg}`}
-                                alt={itemName}
-                                style={{ width: "55px", height: "55px", objectFit: "cover", borderRadius: "4px" }}
-                              />
-                            )}
-                            <div>
-                              <div style={{ fontWeight: "600", color: "#2B211C", fontSize: "14px" }}>
-                                {itemName}
-                              </div>
-                              <div style={{ fontSize: "12.5px", color: "#8A7350" }}>
-                                Màu: {itemColor} | Số lượng: {item.quantity}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div style={{ textAlign: "right" }}>
-                            <span style={{ fontWeight: "600", color: "#B89B5E", fontSize: "14px" }}>
-                              {formatPrice(itemPrice * item.quantity)}
-                            </span>
-                          </div>
-                        </div>
-                      );
+                      const productId = Number(item.product_id || item.productId || item.id);
+                      const review = reviewEligibility[productId];
+                      return <div className="order-review-item" key={item.id || `${item.product_id}-${idx}`}>
+                        <OrderItemLine item={item} formatPrice={formatPrice} linkProduct />
+                        {currentStatus === "delivered" && (
+                          <button type="button" className="order-review-button" onClick={() => openReview(order, item)}>
+                            <span aria-hidden="true">{review?.review_id ? "★" : "☆"}</span>
+                            {review?.review_id ? "Sửa đánh giá" : "Đánh giá sản phẩm"}
+                          </button>
+                        )}
+                      </div>;
                     })}
                   </div>
 
@@ -499,6 +537,36 @@ export default function CustomerOrders() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {reviewTarget && (
+        <div className="order-review-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setReviewTarget(null); }}>
+          <form className="order-review-modal" onSubmit={submitReview}>
+            <button type="button" className="order-review-close" aria-label="Đóng" onClick={() => setReviewTarget(null)}>×</button>
+            <p className="eyebrow">Đơn hàng #{reviewTarget.order.id}</p>
+            <h2>{reviewTarget.current?.review_id ? "Chỉnh sửa đánh giá" : "Đánh giá sản phẩm"}</h2>
+            <p className="order-review-product-name">{reviewTarget.item.product_name || reviewTarget.item.productName || reviewTarget.item.name}</p>
+            <small>SKU: {reviewTarget.item.variant_sku || reviewTarget.item.sku || "—"} · {reviewTarget.item.selected_color || reviewTarget.item.selectedColor} · Size {reviewTarget.item.selected_size || reviewTarget.item.selectedSize}</small>
+            <fieldset className="order-review-rating">
+              <legend>Mức độ hài lòng</legend>
+              <div>{[1, 2, 3, 4, 5].map((rating) => (
+                <button key={rating} type="button" aria-label={`${rating} sao`} aria-pressed={reviewForm.rating === rating} onClick={() => setReviewForm((form) => ({ ...form, rating }))}>
+                  {rating <= reviewForm.rating ? "★" : "☆"}
+                </button>
+              ))}</div>
+              <span>{reviewForm.rating}/5 sao</span>
+            </fieldset>
+            <label>Tiêu đề <span>(không bắt buộc)</span><input maxLength="120" value={reviewForm.title} onChange={(event) => setReviewForm({ ...reviewForm, title: event.target.value })} placeholder="Tóm tắt trải nghiệm của bạn" /></label>
+            <label>Nội dung đánh giá<textarea required minLength="10" maxLength="1500" value={reviewForm.content} onChange={(event) => setReviewForm({ ...reviewForm, content: event.target.value })} placeholder="Chia sẻ về chất liệu, phom dáng, kích cỡ hoặc trải nghiệm sử dụng..." /></label>
+            <small className="order-review-count">{reviewForm.content.length}/1500 ký tự · tối thiểu 10 ký tự</small>
+            {reviewError && <p className="order-review-error">{reviewError}</p>}
+            <div className="order-review-actions">
+              {reviewTarget.current?.review_id && <button type="button" className="order-review-delete" disabled={reviewSaving} onClick={deleteCurrentReview}>Xóa đánh giá</button>}
+              <button type="button" className="account-cancel" disabled={reviewSaving} onClick={() => setReviewTarget(null)}>Hủy</button>
+              <button type="submit" className="account-action" disabled={reviewSaving || reviewForm.content.trim().length < 10}>{reviewSaving ? "Đang lưu..." : "Lưu đánh giá"}</button>
+            </div>
+          </form>
         </div>
       )}
 
@@ -644,6 +712,7 @@ export default function CustomerOrders() {
             <div style={{ marginBottom: "25px", fontSize: "13.5px", backgroundColor: "#FAF6F0", padding: "15px", borderRadius: "6px" }}>
               <div><strong>Người nhận:</strong> {selectedOrder.customer_name || selectedOrder.customerName} ({selectedOrder.customer_phone || selectedOrder.customerPhone})</div>
               <div><strong>Địa chỉ:</strong> {selectedOrder.shipping_address || selectedOrder.shippingAddress}</div>
+              {selectedOrder.notes && <div><strong>Ghi chú giao hàng:</strong> {selectedOrder.notes}</div>}
               <div><strong>Hình thức thanh toán:</strong> {selectedOrder.payment?.payment_method === "cod" ? "Thanh toán khi nhận hàng (COD)" : "Chuyển khoản"}</div>
               <div><strong>Trạng thái đơn:</strong> {STATUS_LABELS[selectedOrder.order_status || selectedOrder.status]?.label}</div>
               <div><strong>Trạng thái thanh toán:</strong> {PAYMENT_STATUS_META[selectedOrder.payment?.payment_status || "unpaid"]?.label}</div>
@@ -654,6 +723,14 @@ export default function CustomerOrders() {
               {selectedOrder.payment?.refund_reference && (
                 <div><strong>Mã hoàn tiền:</strong> {selectedOrder.payment.refund_reference} (Hoàn tất ngày {formatDate(selectedOrder.payment.refunded_at)})</div>
               )}
+            </div>
+
+            <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px", marginBottom: "8px" }}>
+              Sản phẩm trong đơn:
+            </h4>
+            <div style={{ marginBottom: "18px" }}>
+              {(selectedOrder.items || []).map((item, idx) => <OrderItemLine key={item.id || `${item.product_id}-${idx}`} item={item} formatPrice={formatPrice} linkProduct />)}
+              <OrderFinancialBreakdown order={selectedOrder} formatPrice={formatPrice} />
             </div>
 
             <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px", marginBottom: "12px" }}>

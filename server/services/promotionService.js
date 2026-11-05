@@ -26,11 +26,16 @@ const productDiscount = (promotion, item) => {
   return 0;
 };
 
+const hasPromotionStockHeadroom = (item) => {
+  if (item.stock == null || item.lowStockThreshold == null) return true;
+  return Number(item.stock) - Number(item.quantity || 1) >= Number(item.lowStockThreshold);
+};
+
 export async function loadPromotion(poolOrTransaction, normalizedCode = "") {
   const request = poolOrTransaction.request();
   request.input("code", sql.NVarChar, normalizedCode || null);
   const result = await request.query(`
-    SELECT DISTINCT p.*,pc.id promotion_code_id,pc.code,pc.usage_limit code_usage_limit,pc.used_count code_used_count,pc.is_active code_is_active
+    SELECT DISTINCT p.*,pc.id promotion_code_id,pc.code,pc.usage_limit code_usage_limit,pc.used_count code_used_count,pc.is_active code_is_active,pc.distribution_type
     FROM Promotions p LEFT JOIN PromotionCodes pc ON pc.promotion_id=p.id AND pc.normalized_code=@code
     WHERE p.is_archived=0 AND p.status='active' AND p.approval_status='approved' AND p.start_at<=GETDATE() AND (p.end_at IS NULL OR p.end_at>GETDATE())
       AND (p.usage_limit_total IS NULL OR p.used_count<p.usage_limit_total)
@@ -50,6 +55,12 @@ export async function calculatePromotions({ items, code = "", customerId = null,
   const codePromotion = normalizedCode ? promotions.find((promotion) => promotion.promotion_code_id) : null;
   if (normalizedCode && !codePromotion) throw new Error("Mã giảm giá không tồn tại, đã hết hạn hoặc đã hết lượt sử dụng.");
   if (codePromotion?.customer_requirement === "authenticated" && !customerId) throw new Error("Mã giảm giá này yêu cầu đăng nhập.");
+  if (codePromotion?.distribution_type === "targeted") {
+    if (!customerId) throw new Error("Mã ưu đãi này được cấp riêng và yêu cầu đăng nhập.");
+    const assignment = await poolOrTransaction.request().input("code_id", sql.Int, codePromotion.promotion_code_id).input("customer_id", sql.NVarChar, customerId).query("SELECT status FROM PromotionCodeAssignments WHERE promotion_code_id=@code_id AND user_id=@customer_id");
+    if (!assignment.recordset.length || assignment.recordset[0].status !== "available") throw new Error("Mã ưu đãi này không được cấp cho tài khoản của bạn hoặc đã được sử dụng.");
+  }
+  if (codePromotion?.distribution_type === "private" && !customerId) throw new Error("Mã ưu đãi riêng tư yêu cầu đăng nhập.");
   if (codePromotion?.code_usage_limit && codePromotion.code_used_count >= codePromotion.code_usage_limit) throw new Error("Mã giảm giá đã hết lượt sử dụng.");
   if (codePromotion?.usage_limit_per_customer && customerId) {
     const usage = await poolOrTransaction.request().input("customer_id", sql.NVarChar, customerId).input("promotion_id", sql.Int, codePromotion.id).query("SELECT COUNT(*) total FROM PromotionUsages WHERE customer_id=@customer_id AND promotion_id=@promotion_id AND status='consumed'");
@@ -58,7 +69,7 @@ export async function calculatePromotions({ items, code = "", customerId = null,
 
   const pricedItems = items.map((item) => {
     const originalLineTotal = roundMoney(item.price * item.quantity);
-    const candidates = automatic.filter((promotion) => targetMatches(promotion, item) && ["percentage", "fixed_amount"].includes(promotion.discount_type)).map((promotion) => {
+    const candidates = automatic.filter((promotion) => hasPromotionStockHeadroom(item) && targetMatches(promotion, item) && ["percentage", "fixed_amount"].includes(promotion.discount_type)).map((promotion) => {
       let discount = productDiscount(promotion, item);
       if (promotion.max_discount_per_order) discount = Math.min(discount, Number(promotion.max_discount_per_order));
       const floor = Number(item.floorPrice || 0);
@@ -83,7 +94,7 @@ export async function calculatePromotions({ items, code = "", customerId = null,
       if (!shippingCanStack) throw new Error("Mã vận chuyển không thể kết hợp với khuyến mãi hiện tại.");
       shippingDiscountTotal = codePromotion.discount_type === "free_shipping" ? shippingFee : Math.min(shippingFee, roundMoney(codePromotion.discount_value));
     } else {
-      const eligible = pricedItems.filter((item) => targetMatches(codePromotion, item) && (!item.automaticPromotion || (codePromotion.stacking_policy === "allowed" && item.automaticPromotion.stacking_policy === "allowed")));
+      const eligible = pricedItems.filter((item) => hasPromotionStockHeadroom(item) && targetMatches(codePromotion, item) && (!item.automaticPromotion || (codePromotion.stacking_policy === "allowed" && item.automaticPromotion.stacking_policy === "allowed")));
       const eligibleTotal = eligible.reduce((sum, item) => sum + item.originalLineTotal - item.automaticDiscount, 0);
       if (!eligibleTotal) throw new Error("Mã này không áp dụng cho sản phẩm trong giỏ hàng.");
       codeDiscountTotal = codePromotion.discount_type === "percentage" ? roundMoney(eligibleTotal * Number(codePromotion.discount_value) / 100) : Math.min(eligibleTotal, roundMoney(codePromotion.discount_value));

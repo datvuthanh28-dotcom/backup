@@ -419,7 +419,7 @@ export const db = {
           .input("image_url", sql.NVarChar, item.image || null)
           .query(`
             INSERT INTO OrderItems (order_id, product_id, product_name, selected_color, selected_size, variant_id, variant_sku, quantity, unit_price, total_price, image_url,original_unit_price,unit_cost_snapshot,automatic_discount_total,order_discount_allocated,final_line_total,promotion_snapshot_json, created_at)
-            VALUES (@order_id, @product_id, @product_name, @selected_color, @selected_size, @variant_id, @variant_sku, @quantity, @unit_price, @final_line_total, @image_url,@original_unit_price,@unit_cost_snapshot,@automatic_discount_total,@order_discount_allocated,@final_line_total,@promotion_snapshot_json, GETDATE())
+            VALUES (@order_id, @product_id, @product_name, @selected_color, @selected_size, @variant_id, @variant_sku, @quantity, @unit_price, @total_price, @image_url,@original_unit_price,@unit_cost_snapshot,@automatic_discount_total,@order_discount_allocated,@final_line_total,@promotion_snapshot_json, GETDATE())
           `);
 
         if (item.variantId) {
@@ -475,6 +475,7 @@ export const db = {
           if (budgetTotal && budgetUsed + budgetAmount > budgetTotal) throw new Error("Ngân sách chương trình không còn đủ cho đơn hàng này.");
           await transaction.request().input("id", sql.Int, entry.promotion.id).input("budget", sql.Decimal(18,0), budgetAmount).query("UPDATE Promotions SET used_count=used_count+1,budget_reserved=budget_reserved+@budget,updated_at=GETDATE() WHERE id=@id");
           await transaction.request().input("promotion_id", sql.Int, entry.promotion.id).input("code_id", sql.Int, entry.code?.promotion_code_id || null).input("order_id", sql.NVarChar, orderData.id).input("customer_id", sql.NVarChar, orderData.customer_id).input("discount", sql.Decimal(18,0), discountAmount).input("shipping", sql.Decimal(18,0), shippingAmount).input("budget", sql.Decimal(18,0), budgetAmount).query("INSERT INTO PromotionUsages(promotion_id,promotion_code_id,order_id,customer_id,discount_amount,shipping_discount,status,budget_status,budget_amount) VALUES(@promotion_id,@code_id,@order_id,@customer_id,@discount,@shipping,'consumed','reserved',@budget)");
+          if (entry.code?.promotion_code_id && orderData.customer_id) await transaction.request().input("code_id",sql.Int,entry.code.promotion_code_id).input("user_id",sql.NVarChar,orderData.customer_id).query("UPDATE PromotionCodeAssignments SET status='used',used_at=GETDATE() WHERE promotion_code_id=@code_id AND user_id=@user_id AND status='available'");
         }
       }
 
@@ -581,7 +582,10 @@ export const db = {
           await transaction.request().input("id", sql.Int, usage.promotion_id).input("budget", sql.Decimal(18,0), usage.budget_amount || 0).query(`UPDATE Promotions SET used_count=CASE WHEN used_count>0 THEN used_count-1 ELSE 0 END,
             budget_reserved=CASE WHEN @budget<=budget_reserved THEN budget_reserved-@budget ELSE 0 END,
             budget_spent=CASE WHEN '${usage.budget_status}'='spent' AND @budget<=budget_spent THEN budget_spent-@budget ELSE budget_spent END,updated_at=GETDATE() WHERE id=@id`);
-          if (usage.promotion_code_id) await transaction.request().input("id", sql.Int, usage.promotion_code_id).query("UPDATE PromotionCodes SET used_count=CASE WHEN used_count>0 THEN used_count-1 ELSE 0 END,updated_at=GETDATE() WHERE id=@id");
+          if (usage.promotion_code_id) {
+            await transaction.request().input("id", sql.Int, usage.promotion_code_id).query("UPDATE PromotionCodes SET used_count=CASE WHEN used_count>0 THEN used_count-1 ELSE 0 END,updated_at=GETDATE() WHERE id=@id");
+            await transaction.request().input("code_id",sql.Int,usage.promotion_code_id).input("user_id",sql.NVarChar,currentOrder.customer_id).query("UPDATE PromotionCodeAssignments SET status='available',used_at=NULL WHERE promotion_code_id=@code_id AND user_id=@user_id AND status='used'");
+          }
         }
       }
 
@@ -912,11 +916,12 @@ export const db = {
         for (const item of order.items || []) {
           const catalogProduct = catalogProducts.find((product) => product.id === Number(item.product_id));
           const category = ["men", "women", "kids"].includes(catalogProduct?.audience) ? catalogProduct.audience : "unknown";
-          categorySales[category] += amount(item.total_price);
+          const lineRevenue = amount(item.final_line_total ?? item.total_price);
+          categorySales[category] += lineRevenue;
           const key = item.variant_sku || `product-${item.product_id}`;
           const product = productSalesMap.get(key) || { id: item.product_id, sku: item.variant_sku || "Chưa có SKU", name: item.product_name, total_quantity: 0, total_revenue: 0, total_cost: 0, cost_complete: true, image_url: item.image_url };
           product.total_quantity += amount(item.quantity);
-          product.total_revenue += amount(item.total_price);
+          product.total_revenue += lineRevenue;
           if (item.unit_cost_snapshot == null) product.cost_complete = false;
           else product.total_cost += amount(item.unit_cost_snapshot) * amount(item.quantity);
           productSalesMap.set(key, product);
@@ -958,6 +963,12 @@ export const db = {
         discounts: amount(order.product_discount_total) + amount(order.code_discount_total) + amount(order.shipping_discount_total),
         shipping_fee: amount(order.shipping_fee), total_amount: amount(order.total_amount), items: order.items,
       })).sort((a, b) => new Date(b.recognized_at) - new Date(a.recognized_at));
+      summary.dataOriginBreakdown = recognizedOrders.reduce((result, order) => {
+        const origin = order.data_origin === "simulated" ? "simulated" : "actual";
+        result[origin].orders += 1;
+        result[origin].revenue += amount(order.total_amount);
+        return result;
+      }, { actual: { orders: 0, revenue: 0 }, simulated: { orders: 0, revenue: 0 } });
       return summary;
     };
 

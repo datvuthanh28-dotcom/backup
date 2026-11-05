@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useStore, STATUS_LABELS, VALID_STATUS_TRANSITIONS } from "../../context/StoreContext";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
+import OrderItemLine from "../../components/OrderItemLine";
+import OrderFinancialBreakdown from "../../components/OrderFinancialBreakdown";
 
 const ORDERS_PER_PAGE = 15;
 
@@ -248,6 +250,7 @@ export default function StaffOrders() {
 
       {/* Filter and Search Bar */}
       <div
+        className="staff-orders-toolbar"
         style={{
           backgroundColor: "#FFFFFF",
           border: "1px solid #D8CEC1",
@@ -324,6 +327,15 @@ export default function StaffOrders() {
       >
         <div className="staff-orders-table-scroll" style={{ overflowX: "auto" }}>
           <table className="staff-orders-table" style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13.5px" }}>
+            <colgroup>
+              <col className="staff-order-col-id" />
+              <col className="staff-order-col-customer" />
+              <col className="staff-order-col-products" />
+              <col className="staff-order-col-total" />
+              <col className="staff-order-col-status" />
+              <col className="staff-order-col-payment" />
+              <col className="staff-order-col-actions" />
+            </colgroup>
             <thead>
               <tr style={{ backgroundColor: "#FAF6F0", borderBottom: "1px solid #D8CEC1", color: "#4E342E" }}>
                 <th style={{ padding: "14px 18px", fontWeight: "600" }}>Mã Đơn Hàng</th>
@@ -376,7 +388,7 @@ export default function StaffOrders() {
                       }}
                     >
                       <td data-label="Mã đơn" style={{ padding: "14px 18px" }}>
-                        <strong style={{ color: "#2B211C", letterSpacing: "0.5px" }}>#{order.id}</strong>
+                        <strong className="staff-order-code" style={{ color: "#2B211C", letterSpacing: "0.5px" }}>#{order.id}</strong>
                         <div style={{ fontSize: "11.5px", color: "#8A7350" }}>{formatDate(dateStr)}</div>
                       </td>
 
@@ -400,6 +412,7 @@ export default function StaffOrders() {
 
                       <td data-label="Trạng thái" style={{ padding: "14px 18px" }}>
                         <span
+                          className="staff-order-status-pill"
                           style={{
                             display: "inline-flex",
                             alignItems: "center",
@@ -418,6 +431,7 @@ export default function StaffOrders() {
 
                       <td data-label="Thanh toán" style={{ padding: "14px 18px" }}>
                         <span
+                          className="staff-order-payment-pill"
                           style={{
                             display: "inline-block",
                             padding: "3px 10px",
@@ -438,7 +452,7 @@ export default function StaffOrders() {
                       </td>
 
                       <td data-label="Thao tác" style={{ padding: "14px 18px", textAlign: "right" }}>
-                        <div style={{ display: "inline-flex", minWidth: "145px", flexDirection: "column", gap: "7px", alignItems: "stretch" }}>
+                        <div className="staff-order-actions" style={{ display: "inline-flex", minWidth: "145px", flexDirection: "column", gap: "7px", alignItems: "stretch" }}>
                           <button
                             onClick={() => setSelectedOrder(order)}
                             style={{
@@ -490,7 +504,7 @@ export default function StaffOrders() {
           </table>
         </div>
         {filteredOrders.length > 0 && (
-          <div style={{ display: "flex", minHeight: "54px", boxSizing: "border-box", alignItems: "center", justifyContent: "space-between", gap: "16px", padding: "8px 18px", borderTop: "1px solid #EEE7DE", color: "#6B5A4B", fontSize: "12.5px" }}>
+          <div className="staff-orders-pagination" style={{ display: "flex", minHeight: "54px", boxSizing: "border-box", alignItems: "center", justifyContent: "space-between", gap: "16px", padding: "8px 18px", borderTop: "1px solid #EEE7DE", color: "#6B5A4B", fontSize: "12.5px" }}>
             <span>
               {((page - 1) * ORDERS_PER_PAGE) + 1}–{Math.min(page * ORDERS_PER_PAGE, filteredOrders.length)} trên {filteredOrders.length} đơn hàng
             </span>
@@ -800,6 +814,7 @@ export default function StaffOrders() {
               </div>
               <div>
                 <div><strong>Địa chỉ:</strong> {selectedOrder.shipping_address || selectedOrder.shippingAddress}</div>
+                {selectedOrder.notes && <div><strong>Ghi chú giao hàng:</strong> {selectedOrder.notes}</div>}
                 <div><strong>Trạng thái:</strong> {STATUS_LABELS[selectedOrder.order_status || selectedOrder.status]?.label}</div>
               </div>
             </div>
@@ -876,28 +891,8 @@ export default function StaffOrders() {
               Danh sách sản phẩm trong đơn:
             </h4>
             <div style={{ marginBottom: "25px" }}>
-              {(selectedOrder.items || []).map((it, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "10px 0",
-                    borderBottom: "1px dashed #E8E1D6",
-                    fontSize: "13.5px",
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: "600" }}>{it.product_name || it.name}</div>
-                    <div style={{ fontSize: "12px", color: "#8A7350" }}>Màu: {it.selected_color || it.selectedColor} × {it.quantity}</div>
-                  </div>
-                  <strong style={{ color: "#B89B5E" }}>{formatPrice((it.unit_price || it.price) * it.quantity)}</strong>
-                </div>
-              ))}
-              <div style={{ textAlign: "right", marginTop: "12px", fontSize: "16px", fontWeight: "700", color: "#2B211C" }}>
-                Tổng thanh toán: <span style={{ color: "#B89B5E" }}>{formatPrice(selectedOrder.total_amount || selectedOrder.totalAmount)}</span>
-              </div>
+              {(selectedOrder.items || []).map((it, idx) => <OrderItemLine key={it.id || `${it.product_id}-${idx}`} item={it} formatPrice={formatPrice} />)}
+              <OrderFinancialBreakdown order={selectedOrder} formatPrice={formatPrice} />
             </div>
 
             <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px", marginBottom: "12px" }}>

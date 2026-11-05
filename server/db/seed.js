@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { connectDB, db } from "../config/db.js";
 import { allProducts } from "../../src/data/products.js";
+import { initialVariantStock } from "./catalog-stock-policy.js";
 
 const DEFAULT_USERS = [
   {
@@ -49,13 +50,6 @@ const DEFAULT_USERS = [
     is_active: true,
   },
 ];
-
-const initialVariantStock = (productIndex, variantIndex) => {
-  if (productIndex % 17 === 0 && variantIndex === 0) return 0;
-  if (productIndex % 11 === 0 && variantIndex === 0) return 2;
-  if (productIndex % 13 === 0 && variantIndex === 0) return 24;
-  return 8;
-};
 
 export async function runSeed() {
   console.log("==================================================");

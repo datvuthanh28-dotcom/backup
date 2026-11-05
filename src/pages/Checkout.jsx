@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
 import { useStore } from "../hooks/useStore";
 import { useAuth } from "../context/AuthContext";
@@ -12,9 +12,11 @@ function formatPrice(v) {
 
 export default function Checkout() {
   useDocumentTitle("Thanh Toán & Đặt Hàng");
-  const { cart, cartTotal, removeFromCart } = useCart();
+  const { cart, cartTotal, clearCart, cartLoading, cartError } = useCart();
   const { createOrder } = useStore();
   const { currentUser } = useAuth();
+  const [searchParams] = useSearchParams();
+  const suggestedCode = searchParams.get("promo")?.trim().toUpperCase() || "";
 
   const [formData, setFormData] = useState({
     name: currentUser?.name || "",
@@ -28,8 +30,8 @@ export default function Checkout() {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(null);
-  const [codeInput, setCodeInput] = useState("");
-  const [appliedCode, setAppliedCode] = useState("");
+  const [codeInput, setCodeInput] = useState(suggestedCode);
+  const [appliedCode, setAppliedCode] = useState(suggestedCode);
   const [pricing, setPricing] = useState(null);
   const [promotionMessage, setPromotionMessage] = useState("");
   const [previewing, setPreviewing] = useState(false);
@@ -44,12 +46,16 @@ export default function Checkout() {
 
   useEffect(() => { previewPricing(appliedCode); }, [appliedCode, previewPricing]);
 
+  if (cartLoading && !orderSuccess) {
+    return <main id="cart-container" style={{ padding: "60px 20px", textAlign: "center" }}>Đang tải giỏ hàng...</main>;
+  }
+
   if (cart.length === 0 && !orderSuccess) {
     return (
       <main id="cart-container" style={{ padding: "60px 20px", textAlign: "center" }}>
         <div className="empty-cart" style={{ maxWidth: "600px", margin: "0 auto" }}>
           <h2>Giỏ hàng chưa có sản phẩm</h2>
-          <p>Vui lòng chọn sản phẩm vào giỏ hàng trước khi tiến hành thanh toán.</p>
+          <p>{cartError || "Vui lòng chọn sản phẩm vào giỏ hàng trước khi tiến hành thanh toán."}</p>
           <Link to="/" className="btn-primary">Tiếp tục mua sắm</Link>
         </div>
       </main>
@@ -90,10 +96,8 @@ export default function Checkout() {
       return;
     }
 
-    // Clear cart
-    cart.forEach((item) => {
-      removeFromCart(item.cartItemId);
-    });
+    // Clear this customer's persisted cart only after order creation succeeds.
+    await clearCart();
 
     setOrderSuccess(result.order);
     setSubmitting(false);

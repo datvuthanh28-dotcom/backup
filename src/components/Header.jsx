@@ -99,6 +99,8 @@ export default function Header() {
     navigate("/");
   };
 
+  const accountDestination = role === "admin" ? "/admin" : role === "staff" ? "/staff" : "/account/profile";
+
   return (
     <header className={`store-header${headerHidden ? " is-hidden" : ""}`}>
       <div className="header-announcement"><span>‹</span><p>E-Concierge · Monday to Sunday, 9 am – 7 pm</p><span>›</span></div>
@@ -126,15 +128,18 @@ export default function Header() {
           <Link to="/login">ACCOUNT <i className="fas fa-user"></i></Link>
         ) : (
           <div className="nav-dropdown" style={{ position: "relative" }}>
-            <span
+            <Link
+              to={accountDestination}
               className="nav-main"
-              onClick={() => setUserMenuOpen((prev) => !prev)}
+              onClick={() => setUserMenuOpen(false)}
+              aria-label={role === "customer" ? "Mở hồ sơ của tôi" : "Mở cổng tài khoản"}
               style={{
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
                 gap: "6px",
                 fontWeight: "500",
+                textDecoration: "none",
               }}
             >
               {role === "admin" && (
@@ -171,7 +176,7 @@ export default function Header() {
                 </span>
               )}
               <i className="fas fa-user-circle"></i>
-            </span>
+            </Link>
 
             <div
               className="dropdown-menu"

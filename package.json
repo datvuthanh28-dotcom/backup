@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev.js",
+    "setup": "node scripts/setup-project.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -15,6 +16,11 @@
     "db:engagement": "node server/db/apply-engagement-migration.js",
     "db:seed-metrics": "node server/db/seed-demo-metrics.js",
     "db:promotions": "node server/db/apply-promotion-migration.js",
+    "db:costs": "node server/db/initialize-standard-costs.js",
+    "db:metrics": "node server/db/refresh-sku-daily-metrics.js",
+    "db:seed-analytics": "node server/db/seed-analytics-orders.js",
+    "db:promotion-distribution": "node server/db/apply-promotion-distribution-migration.js",
+    "db:cart": "node server/db/apply-cart-migration.js",
     "test": "node server/test-rbac-workflow.js"
   },
   "dependencies": {

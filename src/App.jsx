@@ -9,6 +9,7 @@ import StorefrontLayout from "./components/layout/StorefrontLayout";
 import StaffLayout from "./components/layout/StaffLayout";
 import AdminLayout from "./components/layout/AdminLayout";
 import ProtectedRoute from "./components/common/ProtectedRoute";
+import ScrollToTop from "./components/common/ScrollToTop";
 
 // Storefront & Customer Pages
 import Home from "./pages/Home";
@@ -20,6 +21,7 @@ import Login from "./pages/Login"; // Customer Login (/login)
 import CustomerOrders from "./pages/customer/CustomerOrders";
 import CustomerAccount from "./pages/customer/CustomerAccount";
 import CustomerFavorites from "./pages/customer/CustomerFavorites";
+import CustomerOffers from "./pages/customer/CustomerOffers";
 import AccessDenied from "./pages/AccessDenied";
 import SearchResultsPage from "./pages/SearchResultsPage";
 import OurStory from "./pages/OurStory";
@@ -48,6 +50,7 @@ function App() {
         <FavoritesProvider>
           <CartProvider>
           <BrowserRouter>
+            <ScrollToTop />
             <Routes>
               {/* 1. CUSTOMER PORTAL & STOREFRONT */}
               <Route element={<StorefrontLayout />}>
@@ -80,6 +83,7 @@ function App() {
                 />
                 <Route path="/account/profile" element={<ProtectedRoute allowedRoles={["customer"]} loginRedirect="/login"><CustomerAccount /></ProtectedRoute>} />
                 <Route path="/account/favorites" element={<ProtectedRoute allowedRoles={["customer"]} loginRedirect="/login"><CustomerFavorites /></ProtectedRoute>} />
+                <Route path="/account/offers" element={<ProtectedRoute allowedRoles={["customer"]} loginRedirect="/login"><CustomerOffers /></ProtectedRoute>} />
               </Route>
 
               {/* 2. STAFF PORTAL (Dedicated Login & Workspace) */}

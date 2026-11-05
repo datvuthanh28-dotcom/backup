@@ -65,6 +65,8 @@ export async function createOrder(req, res) {
         price: variant?.price ?? Number(product.price),
         floorPrice: Number(variant?.floorPrice || 0),
         costPrice: Number(variant?.costPrice || 0),
+        stock: variant?.stock,
+        lowStockThreshold: variant?.lowStockThreshold,
         quantity,
         selectedColor: variant?.color ?? item.selectedColor,
         selectedSize: variant?.size ?? item.selectedSize,

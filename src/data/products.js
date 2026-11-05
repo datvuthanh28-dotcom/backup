@@ -39,6 +39,23 @@ const productMediaById = {
   113: {
     images: [1, 2, 3, 4, 5].map((number) => `image/Linen Shirt - Men/${number}.png`)
   },
+  115: {
+    colorImages: {
+      Brown: [
+        "image/catalog/clothing/suede-long-sleeve-overshirt/review-v1/brown-front.webp",
+        "image/catalog/clothing/suede-long-sleeve-overshirt/review-v1/brown-back.webp",
+        "image/catalog/clothing/suede-long-sleeve-overshirt/review-v1/brown-model-detail.webp",
+        "image/catalog/clothing/suede-long-sleeve-overshirt/review-v1/brown-model-outfit.webp",
+        "image/catalog/clothing/suede-long-sleeve-overshirt/review-v1/brown-logo-tag.webp"
+      ],
+      "Deep Teal": [
+        "image/catalog/clothing/suede-long-sleeve-overshirt/review-v1/deep-teal-front.webp"
+      ],
+      Navy: [
+        "image/catalog/clothing/suede-long-sleeve-overshirt/review-v1/navy-front.webp"
+      ]
+    }
+  },
   117: {
     images: [1, 2, 3, 4].map((number) => `image/Linen Pants - Men/${number}.png`)
   },

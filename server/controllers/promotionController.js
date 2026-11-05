@@ -27,7 +27,7 @@ export async function previewPromotion(req, res) {
       const product = await (await import("../config/db.js")).db.getProductById(raw.id);
       if (!product) throw new Error("Một sản phẩm trong giỏ không còn tồn tại.");
       const variant = raw.variantId ? product.variants.find((entry) => entry.id === raw.variantId) : null;
-      items.push({ ...raw, price: Number(variant?.price ?? product.price), floorPrice: Number(variant?.floorPrice || 0), quantity: Math.max(1, Number(raw.quantity) || 1), category: product.category, productType: product.productType, subcategory: product.subcategory, audience: product.audience, gender: product.gender, variantId: variant?.id || raw.variantId, variantSku: variant?.sku || raw.variantSku });
+      items.push({ ...raw, price: Number(variant?.price ?? product.price), floorPrice: Number(variant?.floorPrice || 0), stock: variant?.stock, lowStockThreshold: variant?.lowStockThreshold, quantity: Math.max(1, Number(raw.quantity) || 1), category: product.category, productType: product.productType, subcategory: product.subcategory, audience: product.audience, gender: product.gender, variantId: variant?.id || raw.variantId, variantSku: variant?.sku || raw.variantSku });
     }
     const pricing = await calculatePromotions({ items, code: req.body.code, customerId: req.user?.role === "customer" ? req.user.id : null, shippingFee: Number(req.body.shippingFee || 0) });
     return res.json({ success: true, pricing });
@@ -43,6 +43,26 @@ export async function catalogPromotionPrices(req, res) {
     const prices = Object.fromEntries(pricing.items.map((item) => [item.id, { originalPrice: item.originalUnitPrice, salePrice: item.finalLineTotal, discount: item.automaticDiscount, promotionName: item.automaticPromotion?.name || null }]));
     return res.json({ success: true, prices });
   } catch (error) { return res.status(500).json({ success: false, error: error.message }); }
+}
+
+export async function myPromotionOffers(req, res) {
+  const result = await getPool().request().input("user_id", sql.NVarChar, req.user.id).query(`
+    SELECT pc.id code_id,pc.code,pc.distribution_type,pc.display_description,pc.usage_limit,pc.used_count,
+      p.id promotion_id,p.name,p.description,p.discount_type,p.discount_value,p.maximum_discount,
+      p.minimum_order_value,p.start_at,p.end_at,p.stacking_policy,p.usage_limit_per_customer,
+      a.status assignment_status,a.assigned_at,a.used_at,
+      CASE WHEN EXISTS(SELECT 1 FROM PromotionUsages u WHERE u.promotion_code_id=pc.id AND u.customer_id=@user_id AND u.status='consumed') THEN 1 ELSE 0 END used_by_customer
+    FROM PromotionCodes pc JOIN Promotions p ON p.id=pc.promotion_id
+    LEFT JOIN PromotionCodeAssignments a ON a.promotion_code_id=pc.id AND a.user_id=@user_id
+    WHERE pc.is_active=1 AND p.is_archived=0 AND p.status='active' AND p.approval_status='approved'
+      AND p.start_at<=GETDATE() AND (p.end_at IS NULL OR p.end_at>GETDATE())
+      AND (p.usage_limit_total IS NULL OR p.used_count<p.usage_limit_total)
+      AND (pc.usage_limit IS NULL OR pc.used_count<pc.usage_limit)
+      AND (pc.distribution_type='public' OR (pc.distribution_type='targeted' AND a.status IN ('available','used')))
+    ORDER BY CASE WHEN pc.distribution_type='targeted' THEN 0 ELSE 1 END,p.end_at,pc.id DESC
+  `);
+  await getPool().request().input("user_id",sql.NVarChar,req.user.id).query("UPDATE PromotionCodeAssignments SET viewed_at=COALESCE(viewed_at,GETDATE()) WHERE user_id=@user_id AND status='available'");
+  return res.json({ success:true, offers:result.recordset });
 }
 
 export async function listPromotions(req, res) {
@@ -74,7 +94,19 @@ async function persistPromotion(req, res, id = null) {
     }
     const targets = Array.isArray(body.targets) && body.targets.length ? body.targets : [{ type: "store", value: "all" }];
     for (const target of targets) await transaction.request().input("id", sql.Int, promotionId).input("type", sql.NVarChar, target.type).input("value", sql.NVarChar, String(target.value)).input("excluded", sql.Bit, target.excluded ? 1 : 0).query("INSERT INTO PromotionTargets(promotion_id,target_type,target_value,is_excluded) VALUES(@id,@type,@value,@excluded)");
-    if (!id && body.code) await transaction.request().input("id", sql.Int, promotionId).input("code", sql.NVarChar, normalizeCode(body.code)).input("limit", sql.Int, body.codeUsageLimit || null).query("INSERT INTO PromotionCodes(promotion_id,code,usage_limit) VALUES(@id,@code,@limit)");
+    if (!id && body.code) {
+      const distribution = ["public","targeted","private"].includes(body.codeDistribution) ? body.codeDistribution : "public";
+      const insertedCode = await transaction.request().input("id", sql.Int, promotionId).input("code", sql.NVarChar, normalizeCode(body.code)).input("limit", sql.Int, body.codeUsageLimit || null).input("distribution",sql.NVarChar,distribution).input("display",sql.NVarChar,body.codeDescription || body.description || null).query("INSERT INTO PromotionCodes(promotion_id,code,usage_limit,distribution_type,display_description) OUTPUT INSERTED.id VALUES(@id,@code,@limit,@distribution,@display)");
+      if (distribution === "targeted") {
+        const emails=[...new Set(String(body.assignedCustomerEmails||"").split(/[;,\\n]/).map((value)=>value.trim().toLowerCase()).filter(Boolean))];
+        if (!emails.length) throw new Error("Mã được gán riêng cần ít nhất một email khách hàng.");
+        for (const email of emails) {
+          const user=await transaction.request().input("email",sql.NVarChar,email).query("SELECT id FROM Users WHERE LOWER(email)=@email AND role='customer' AND is_active=1");
+          if (!user.recordset.length) throw new Error(`Không tìm thấy khách hàng đang hoạt động: ${email}`);
+          await transaction.request().input("code_id",sql.Int,insertedCode.recordset[0].id).input("user_id",sql.NVarChar,user.recordset[0].id).input("actor",sql.NVarChar,`${req.user.name} (${req.user.role})`).query("INSERT INTO PromotionCodeAssignments(promotion_code_id,user_id,assigned_by) VALUES(@code_id,@user_id,@actor)");
+        }
+      }
+    }
     await transaction.request().input("id", sql.Int, promotionId).input("action", sql.NVarChar, id ? "updated" : "created").input("data", sql.NVarChar, JSON.stringify(body)).input("actor", sql.NVarChar, `${req.user.name} (${req.user.role})`).query("INSERT INTO PromotionAuditLogs(promotion_id,action,new_data,performed_by) VALUES(@id,@action,@data,@actor)");
     await transaction.commit();
     return res.status(id ? 200 : 201).json({ success: true, id: promotionId });
@@ -129,28 +161,140 @@ export async function simulatePromotion(req, res) {
     const belowFloor = floor > 0 && calculatedPrice < floor;
     if (belowFloor) warnings.push(`${row.sku}: giá sau giảm thấp hơn giá sàn ${floor.toLocaleString("vi-VN")}đ.`);
     if (Number(row.stock_quantity) <= Number(row.low_stock_threshold)) warnings.push(`${row.sku}: đang sắp hết hoặc hết hàng, không nên giảm thêm.`);
-    const safeDiscount = floor > 0 ? Math.min(discount, Math.max(0, Number(row.price) - floor)) : discount;
+    const lowStock = Number(row.stock_quantity) <= Number(row.low_stock_threshold);
+    const safeDiscount = lowStock ? 0 : floor > 0 ? Math.min(discount, Math.max(0, Number(row.price) - floor)) : discount;
     estimatedExposure += safeDiscount * Number(row.stock_quantity || 0);
-    return { productId: row.product_id, productName: row.name, variantId: row.variant_id, sku: row.sku, color: row.color_name, size: row.size_name, price: Number(row.price), costPrice: Number(row.cost_price || 0), floorPrice: floor, stock: Number(row.stock_quantity), proposedPrice: Number(row.price) - safeDiscount, discount: safeDiscount, belowFloor, lowStock: Number(row.stock_quantity) <= Number(row.low_stock_threshold) };
+    return { productId: row.product_id, productName: row.name, variantId: row.variant_id, sku: row.sku, color: row.color_name, size: row.size_name, price: Number(row.price), costPrice: Number(row.cost_price || 0), floorPrice: floor, stock: Number(row.stock_quantity), proposedPrice: Number(row.price) - safeDiscount, discount: safeDiscount, belowFloor, lowStock };
   });
   const uniqueWarnings = [...new Set(warnings)];
-  return res.json({ success: true, simulation: { productCount: new Set(variants.map((row) => row.productId)).size, variantCount: variants.length, estimatedExposure, budgetTotal: Number(body.budgetTotal || 0), overBudget: Boolean(body.budgetTotal && estimatedExposure > Number(body.budgetTotal)), requiresOverride: variants.some((row) => row.belowFloor), warnings: uniqueWarnings.slice(0, 30), variants: variants.slice(0, 100) } });
+  return res.json({ success: true, simulation: { productCount: new Set(variants.map((row) => row.productId)).size, variantCount: variants.length, estimatedExposure, budgetTotal: Number(body.budgetTotal || 0), overBudget: Boolean(body.budgetTotal && estimatedExposure > Number(body.budgetTotal)), requiresOverride: variants.some((row) => row.belowFloor), hasBlockedVariants: variants.some((row) => row.lowStock), warnings: uniqueWarnings.slice(0, 30), variants: variants.slice(0, 100) } });
 }
 
 export async function promotionSuggestions(req, res) {
-  const rows = await getPool().request().query(`SELECT TOP 100 p.id product_id,p.name,v.id variant_id,v.sku,v.color_name,v.size_name,v.price,v.cost_price,v.floor_price,v.stock_quantity,v.low_stock_threshold,v.max_stock_threshold,COALESCE(f.favorite_count,0) favorite_count,COALESCE(s.sold_60d,0) sold_60d FROM Products p JOIN ProductVariants v ON v.product_id=p.id AND v.is_active=1 OUTER APPLY (SELECT COUNT(*) favorite_count FROM ProductFavorites pf WHERE pf.product_id=p.id AND pf.is_active=1) f OUTER APPLY (SELECT SUM(oi.quantity) sold_60d FROM OrderItems oi JOIN Orders o ON o.id=oi.order_id WHERE oi.variant_id=v.id AND o.order_status<>'cancelled' AND o.created_at>=DATEADD(day,-60,GETDATE())) s WHERE p.is_active=1 ORDER BY p.id,v.sku`);
+  const rows = await getPool().request().query(`
+    SELECT p.id product_id,p.name,p.category,v.id variant_id,v.sku,v.color_name,v.size_name,
+      v.price,v.cost_price,v.floor_price,v.stock_quantity,v.low_stock_threshold,v.max_stock_threshold,
+      COALESCE(f.favorite_count,0) favorite_count,COALESCE(fb.favorite_buyers,0) favorite_buyers,
+      COALESCE(s.sold_60d,0) sold_60d,COALESCE(prev.sold_previous_60d,0) sold_previous_60d,
+      COALESCE(cancelled.cancelled_60d,0) cancelled_60d,
+      movement.oldest_stock_at,last_promo.last_promotion_at,
+      CASE WHEN active_promo.promotion_id IS NULL THEN 0 ELSE 1 END has_active_promotion
+    FROM Products p
+    JOIN ProductVariants v ON v.product_id=p.id AND v.is_active=1
+    OUTER APPLY (
+      SELECT COUNT(*) favorite_count
+      FROM ProductFavorites pf WHERE pf.product_id=p.id AND pf.is_active=1
+    ) f
+    OUTER APPLY (
+      SELECT COUNT(DISTINCT pf.user_id) favorite_buyers
+      FROM ProductFavorites pf
+      WHERE pf.product_id=p.id AND pf.is_active=1 AND EXISTS (
+        SELECT 1 FROM Orders o JOIN OrderItems oi ON oi.order_id=o.id
+        WHERE o.customer_id=pf.user_id AND oi.product_id=p.id AND o.recognized_at IS NOT NULL
+      )
+    ) fb
+    OUTER APPLY (
+      SELECT SUM(oi.quantity) sold_60d FROM OrderItems oi JOIN Orders o ON o.id=oi.order_id
+      WHERE oi.variant_id=v.id AND o.recognized_at>=DATEADD(day,-60,GETDATE())
+    ) s
+    OUTER APPLY (
+      SELECT SUM(oi.quantity) sold_previous_60d FROM OrderItems oi JOIN Orders o ON o.id=oi.order_id
+      WHERE oi.variant_id=v.id AND o.recognized_at>=DATEADD(day,-120,GETDATE()) AND o.recognized_at<DATEADD(day,-60,GETDATE())
+    ) prev
+    OUTER APPLY (
+      SELECT SUM(oi.quantity) cancelled_60d FROM OrderItems oi JOIN Orders o ON o.id=oi.order_id
+      WHERE oi.variant_id=v.id AND o.order_status='cancelled' AND o.updated_at>=DATEADD(day,-60,GETDATE())
+    ) cancelled
+    OUTER APPLY (
+      SELECT MIN(im.created_at) oldest_stock_at FROM InventoryMovements im
+      WHERE im.variant_id=v.id AND im.quantity_change>0
+    ) movement
+    OUTER APPLY (
+      SELECT MAX(pu.used_at) last_promotion_at FROM PromotionUsages pu
+      JOIN OrderItems oi ON oi.order_id=pu.order_id WHERE oi.variant_id=v.id
+    ) last_promo
+    OUTER APPLY (
+      SELECT TOP 1 pr.id promotion_id FROM Promotions pr
+      WHERE pr.is_archived=0 AND pr.status='active' AND pr.approval_status='approved'
+        AND pr.start_at<=GETDATE() AND (pr.end_at IS NULL OR pr.end_at>GETDATE())
+        AND EXISTS (SELECT 1 FROM PromotionTargets pt WHERE pt.promotion_id=pr.id AND pt.is_excluded=0 AND (
+          pt.target_type='store' OR (pt.target_type='product' AND pt.target_value=CONVERT(NVARCHAR(100),p.id))
+          OR (pt.target_type='variant' AND pt.target_value IN (v.id,v.sku))
+          OR (pt.target_type='category' AND pt.target_value=p.category)))
+        AND NOT EXISTS (SELECT 1 FROM PromotionTargets pt WHERE pt.promotion_id=pr.id AND pt.is_excluded=1 AND (
+          (pt.target_type='product' AND pt.target_value=CONVERT(NVARCHAR(100),p.id))
+          OR (pt.target_type='variant' AND pt.target_value IN (v.id,v.sku))))
+    ) active_promo
+    WHERE p.is_active=1 ORDER BY p.id,v.sku
+  `);
+
+  const pointsToDiscount = (score) => score >= 90 ? 25 : score >= 80 ? 20 : score >= 65 ? 15 : score >= 50 ? 10 : score >= 30 ? 5 : 0;
   const suggestions = rows.recordset.map((row) => {
-    const stock = Number(row.stock_quantity); const min = Number(row.low_stock_threshold); const max = Number(row.max_stock_threshold); const sold = Number(row.sold_60d || 0); const favorites = Number(row.favorite_count || 0);
-    let score = 0; const reasons = [];
-    if (stock >= max) { score += 35; reasons.push("Tồn kho vượt mức tối đa"); }
-    if (sold === 0 && stock > min) { score += 25; reasons.push("Không bán trong 60 ngày"); }
-    else if (sold <= 2 && stock > min) { score += 15; reasons.push("Bán chậm trong 60 ngày"); }
-    if (favorites >= 5) { score += Math.min(20, favorites); reasons.push("Có nhiều lượt yêu thích"); }
-    if (stock <= min) { score -= 60; reasons.push("Sắp hết, nên loại khỏi khuyến mãi"); }
-    const price = Number(row.price); const floor = Number(row.floor_price || 0); const recommendedPercent = floor > 0 ? Math.max(0, Math.min(30, Math.floor((price-floor)/price*100))) : Math.min(15, Math.max(5, Math.floor(score/5)));
-    return { ...row, score, reasons, recommendedPercent };
-  }).sort((a,b) => b.score-a.score);
-  return res.json({ success: true, suggestions });
+    const stock = Number(row.stock_quantity || 0), min = Number(row.low_stock_threshold || 0), max = Number(row.max_stock_threshold || 0);
+    const sold = Number(row.sold_60d || 0), previous = Number(row.sold_previous_60d || 0), cancelled = Number(row.cancelled_60d || 0);
+    const favorites = Number(row.favorite_count || 0), favoriteBuyers = Number(row.favorite_buyers || 0);
+    const price = Number(row.price || 0), cost = Number(row.cost_price || 0), floor = Number(row.floor_price || 0);
+    const safeMaxPercent = price > 0 ? Math.max(0, Math.floor((price - floor) / price * 100)) : 0;
+    const exclusionReasons = [];
+    if (stock <= 0) exclusionReasons.push("SKU đã hết hàng");
+    else if (stock <= min) exclusionReasons.push("Tồn kho đã chạm mức tối thiểu");
+    if (!cost || !floor) exclusionReasons.push("Chưa đủ giá vốn hoặc giá sàn");
+    if (safeMaxPercent < 5) exclusionReasons.push("Không còn dư địa giảm giá an toàn");
+    if (row.has_active_promotion) exclusionReasons.push("Đang nằm trong chương trình khuyến mãi khác");
+
+    let score = 0;
+    const reasons = [];
+    const risks = [];
+    const dailyVelocity = sold / 60;
+    const daysOfCover = dailyVelocity > 0 ? Math.round(stock / dailyVelocity) : stock > min ? 999 : 0;
+    if (max > 0 && stock >= max) { score += 15; reasons.push("Tồn kho vượt mức tối đa"); }
+    if (daysOfCover > 180) { score += 15; reasons.push("Số ngày tồn dự kiến trên 180 ngày"); }
+    else if (daysOfCover > 90) { score += 10; reasons.push("Số ngày tồn dự kiến trên 90 ngày"); }
+    else if (daysOfCover > 60) { score += 5; reasons.push("Số ngày tồn dự kiến trên 60 ngày"); }
+    if (sold === 0) { score += 25; reasons.push("Không phát sinh doanh thu trong 60 ngày"); }
+    else if (sold <= 2) { score += 15; reasons.push("Bán chậm trong 60 ngày"); }
+    else if (previous > 0 && sold / previous < 0.5) { score += 20; reasons.push("Tốc độ bán giảm trên 50%"); }
+    else if (previous > 0 && sold / previous < 0.75) { score += 10; reasons.push("Tốc độ bán đang giảm"); }
+    else if (previous > 0 && sold / previous > 1.5) { score -= 10; risks.push("Tốc độ bán đang tăng, chưa cần giảm sâu"); }
+    const favoriteConversion = favorites ? favoriteBuyers / favorites : null;
+    if (favorites >= 5 && favoriteConversion < 0.2) { score += 15; reasons.push("Nhiều yêu thích nhưng tỷ lệ mua thấp"); }
+    else if (favorites >= 5 && favoriteConversion < 0.4) { score += 10; reasons.push("Có nhu cầu quan tâm chưa chuyển đổi"); }
+    else if (favorites >= 5) { score += 5; reasons.push("Có tín hiệu quan tâm từ khách hàng"); }
+    const grossMargin = price > 0 ? (price - cost) / price * 100 : 0;
+    if (grossMargin > 65) score += 20;
+    else if (grossMargin > 55) score += 15;
+    else if (grossMargin > 45) score += 8;
+    const stockAgeDays = row.oldest_stock_at ? Math.floor((Date.now() - new Date(row.oldest_stock_at).getTime()) / 86400000) : null;
+    if (stockAgeDays > 180) { score += 10; reasons.push("Tồn kho trên 180 ngày"); }
+    else if (stockAgeDays > 90) { score += 6; reasons.push("Tồn kho trên 90 ngày"); }
+    else if (stockAgeDays > 60) { score += 3; reasons.push("Tồn kho trên 60 ngày"); }
+    const cancellationRate = sold + cancelled > 0 ? cancelled / (sold + cancelled) : 0;
+    if (cancellationRate > 0.2) { score -= 20; risks.push("Tỷ lệ hủy cao, cần kiểm tra trước khi khuyến mãi"); }
+    const daysSincePromotion = row.last_promotion_at ? Math.floor((Date.now() - new Date(row.last_promotion_at).getTime()) / 86400000) : null;
+    if (daysSincePromotion != null && daysSincePromotion < 30) { score -= 15; risks.push("SKU vừa tham gia khuyến mãi trong 30 ngày"); }
+    const hasStrongBusinessSignal = (max > 0 && stock >= max) || stockAgeDays > 90 || (favorites >= 5 && favoriteConversion < 0.4) || (previous >= 3 && sold / previous < 0.75);
+    if (!hasStrongBusinessSignal) exclusionReasons.push("Chưa có tín hiệu kinh doanh đủ mạnh để khuyến mãi");
+    score = Math.max(0, Math.min(100, score));
+
+    const requestedPercent = pointsToDiscount(score);
+    const recommendedPercent = exclusionReasons.length ? 0 : Math.min(requestedPercent, safeMaxPercent, 25);
+    const businessGoal = (stock >= max || daysOfCover > 180 || sold <= 2) ? "inventory_clearance" : "revenue_growth";
+    const durationDays = score >= 80 ? 14 : score >= 65 ? 10 : 7;
+    const sellableStock = Math.max(0, stock - min);
+    const uplift = recommendedPercent >= 20 ? 1.75 : recommendedPercent >= 15 ? 1.5 : recommendedPercent >= 10 ? 1.3 : 1.15;
+    const baselineUnits = dailyVelocity > 0 ? dailyVelocity * durationDays : businessGoal === "inventory_clearance" ? durationDays / 7 : 0;
+    const expectedUnits = recommendedPercent ? Math.min(sellableStock, Math.max(1, Math.ceil(baselineUnits * uplift))) : 0;
+    const proposedPrice = Math.round(price * (1 - recommendedPercent / 100));
+    const projectedRevenue = proposedPrice * expectedUnits;
+    const projectedCost = cost * expectedUnits;
+    const projectedGrossProfit = projectedRevenue - projectedCost;
+    const projectedGrossMargin = projectedRevenue > 0 ? projectedGrossProfit / projectedRevenue * 100 : 0;
+    const discountPerUnit = price - proposedPrice;
+    const confidence = sold >= 10 && stockAgeDays != null ? "high" : sold >= 3 || favorites >= 5 ? "medium" : "low";
+    if (confidence === "low") risks.push("Dữ liệu lịch sử còn ít; nên thử ngân sách nhỏ");
+    return { ...row, eligible: exclusionReasons.length === 0 && score >= 30 && recommendedPercent > 0, exclusionReasons, score, reasons, risks, safeMaxPercent, recommendedPercent, businessGoal, durationDays, daysOfCover, stockAgeDays, favoriteConversion, grossMargin, sellableStock, expectedUnits, proposedPrice, estimatedBudget: discountPerUnit * expectedUnits, maximumExposure: discountPerUnit * sellableStock, projectedRevenue, projectedCost, projectedGrossProfit, projectedGrossMargin, confidence };
+  }).sort((a,b) => Number(b.eligible)-Number(a.eligible) || b.score-a.score || a.sku.localeCompare(b.sku));
+  return res.json({ success: true, generatedAt: new Date().toISOString(), methodology: { minimumScore: 30, maximumNormalDiscount: 25, coolingOffDays: 30, recognitionRule: "delivered_and_paid" }, suggestions });
 }
 
 export async function archivePromotion(req, res) {

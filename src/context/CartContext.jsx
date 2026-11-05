@@ -1,57 +1,167 @@
-import { createContext, useEffect, useState } from "react";
+import { createContext, useEffect, useMemo, useRef, useState } from "react";
+import { useAuth } from "./AuthContext";
+import { customerAPI } from "../services/api";
 
 const CartContext = createContext();
+const GUEST_CART_KEY = "maison_rue_cart:guest";
+const LEGACY_CART_KEY = "cart";
+
+function readGuestCart() {
+  try {
+    const stored = localStorage.getItem(GUEST_CART_KEY);
+    if (stored) return JSON.parse(stored) || [];
+    // The old key was shared by every account, so its ownership cannot be
+    // established safely. Discard it instead of leaking it into another user.
+    localStorage.removeItem(LEGACY_CART_KEY);
+  } catch {
+    // A disabled storage area behaves like an empty guest cart.
+  }
+  return [];
+}
+
+function writeGuestCart(cart) {
+  try {
+    localStorage.setItem(GUEST_CART_KEY, JSON.stringify(cart));
+    localStorage.removeItem(LEGACY_CART_KEY);
+  } catch {
+    // The in-memory cart remains usable when browser storage is unavailable.
+  }
+}
 
 export function CartProvider({ children }) {
-  const [cart, setCart] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("cart")) || [];
-    } catch {
-      return [];
-    }
-  });
+  const { currentUser, loading: authLoading } = useAuth();
+  const [cart, setCart] = useState([]);
+  const [cartLoading, setCartLoading] = useState(true);
+  const [cartError, setCartError] = useState("");
+  const hydratedIdentity = useRef(null);
+  const requestVersion = useRef(0);
+
+  const identity = useMemo(() => {
+    if (authLoading) return "loading";
+    if (!currentUser) return "guest";
+    if (currentUser.role === "customer") return `customer:${currentUser.id}`;
+    return `portal:${currentUser.role}`;
+  }, [authLoading, currentUser]);
 
   useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(cart));
-  }, [cart]);
+    if (identity === "loading") return;
+    const version = ++requestVersion.current;
+    hydratedIdentity.current = null;
+    setCart([]);
+    setCartError("");
+    setCartLoading(true);
+
+    async function hydrate() {
+      try {
+        if (identity === "guest") {
+          if (version === requestVersion.current) setCart(readGuestCart());
+        } else if (identity.startsWith("customer:")) {
+          const guestCart = readGuestCart();
+          const result = guestCart.length
+            ? await customerAPI.saveCart(guestCart, "merge")
+            : await customerAPI.getCart();
+          if (version !== requestVersion.current) return;
+          setCart(result.cart || []);
+          if (guestCart.length) {
+            localStorage.removeItem(GUEST_CART_KEY);
+            localStorage.removeItem(LEGACY_CART_KEY);
+          }
+        }
+      } catch (error) {
+        if (version === requestVersion.current) {
+          setCart([]);
+          setCartError(error.message || "Không thể đồng bộ giỏ hàng.");
+        }
+      } finally {
+        if (version === requestVersion.current) {
+          hydratedIdentity.current = identity;
+          setCartLoading(false);
+        }
+      }
+    }
+    hydrate();
+  }, [identity]);
+
+  useEffect(() => {
+    if (hydratedIdentity.current !== identity || cartLoading) return undefined;
+    if (identity === "guest") {
+      writeGuestCart(cart);
+      return undefined;
+    }
+    if (!identity.startsWith("customer:")) return undefined;
+    const timer = window.setTimeout(() => {
+      customerAPI.saveCart(cart, "replace").catch((error) => {
+        setCartError(error.message || "Không thể lưu thay đổi giỏ hàng.");
+      });
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [cart, cartLoading, identity]);
+
+  useEffect(() => {
+    if (identity !== "guest") return undefined;
+    const syncGuestCart = (event) => {
+      if (event.key === GUEST_CART_KEY && hydratedIdentity.current === "guest") {
+        try { setCart(JSON.parse(event.newValue || "[]")); } catch { setCart([]); }
+      }
+    };
+    window.addEventListener("storage", syncGuestCart);
+    return () => window.removeEventListener("storage", syncGuestCart);
+  }, [identity]);
 
   function addToCart(product, quantity = 1, selectedColor = null, selectedSize = null, variant = null) {
-    setCart((prev) => {
-      const color = selectedColor || product.colors[0];
-      const existing = prev.find((item) => item.id === product.id && item.selectedColor === color && item.selectedSize === selectedSize);
+    if (identity === "loading" || identity.startsWith("portal:")) return false;
+    const color = selectedColor || product.colors?.[0] || "";
+    const variantId = variant?.id || null;
+    setCartError("");
+    setCart((previous) => {
+      const existing = previous.find((item) => variantId
+        ? item.variantId === variantId
+        : item.id === product.id && item.selectedColor === color && item.selectedSize === selectedSize);
+      const stock = variant?.stock ?? product.stock ?? 0;
       if (existing) {
-        return prev.map((item) =>
-          item === existing
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        );
+        return previous.map((item) => item === existing
+          ? { ...item, quantity: Math.min(stock || 99, item.quantity + quantity) }
+          : item);
       }
-      return [
-        ...prev,
-        { ...product, quantity, selectedColor: color, selectedSize, variantId: variant?.id || null, sku: variant?.sku || null, variantStock: variant?.stock ?? product.stock, price: variant?.price ?? product.price, cartItemId: Date.now() },
-      ];
+      return [...previous, {
+        ...product,
+        quantity: Math.min(stock || 99, quantity),
+        selectedColor: color,
+        selectedSize,
+        variantId,
+        sku: variant?.sku || null,
+        variantStock: stock,
+        price: variant?.price ?? product.price,
+        cartItemId: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      }];
     });
+    return true;
   }
 
   function removeFromCart(cartItemId) {
-    setCart((prev) => prev.filter((item) => item.cartItemId !== cartItemId));
+    setCart((previous) => previous.filter((item) => item.cartItemId !== cartItemId));
   }
 
   function updateQuantity(cartItemId, quantity) {
-    setCart((prev) =>
-      prev.map((item) =>
-        item.cartItemId === cartItemId ? { ...item, quantity } : item
-      )
-    );
+    setCart((previous) => previous.map((item) => item.cartItemId === cartItemId
+      ? { ...item, quantity: Math.max(1, Math.min(item.variantStock || 99, quantity)) }
+      : item));
+  }
+
+  async function clearCart() {
+    setCart([]);
+    if (identity === "guest") writeGuestCart([]);
+    if (identity.startsWith("customer:")) {
+      try { await customerAPI.clearCart(); }
+      catch (error) { setCartError(error.message || "Không thể xóa giỏ hàng trên máy chủ."); }
+    }
   }
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cart.reduce((sum, item) => sum + item.quantity * item.price, 0);
 
   return (
-    <CartContext.Provider
-      value={{ cart, addToCart, removeFromCart, updateQuantity, cartCount, cartTotal }}
-    >
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, cartCount, cartTotal, cartLoading, cartError }}>
       {children}
     </CartContext.Provider>
   );
