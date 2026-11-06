@@ -32,6 +32,14 @@ function SearchIcon() {
   return <svg aria-hidden="true" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="10.8" cy="10.8" r="6.5" /><path d="m16 16 4.2 4.2" /></svg>;
 }
 
+function HeartIcon() {
+  return <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.8 4.9a5.2 5.2 0 0 0-7.4 0L12 6.3l-1.4-1.4a5.2 5.2 0 0 0-7.4 7.4L12 21l8.8-8.7a5.2 5.2 0 0 0 0-7.4Z" /></svg>;
+}
+
+function OrdersIcon() {
+  return <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h14v16H5z" /><path d="M8 9h8M8 13h8M8 17h5" /></svg>;
+}
+
 function AudienceDropdown({ audience }) {
   const menu = audienceMenus[audience];
   const basePath = `/${audience}`;
@@ -194,13 +202,16 @@ export default function Header() {
               {role === "customer" && (
                 <>
                   <Link className="account-dropdown-link" to="/account/profile" onClick={() => setUserMenuOpen(false)}>
-                    <i className="fas fa-user" /> My Profile
+                    <AccountIcon /> My Profile
                   </Link>
                   <Link className="account-dropdown-link" to="/account/orders" onClick={() => setUserMenuOpen(false)}>
-                    <i className="fas fa-box-open" /> My Orders
+                    <OrdersIcon /> My Orders
+                  </Link>
+                  <Link className="account-dropdown-link" to="/account/favorites" onClick={() => setUserMenuOpen(false)}>
+                    <HeartIcon /> Wishlist
                   </Link>
                   <Link className="account-dropdown-link" to="/cart" onClick={() => setUserMenuOpen(false)}>
-                    <i className="fas fa-shopping-bag" /> Shopping Bag <span>{cartCount}</span>
+                    <ShoppingBagIcon /> Shopping Bag <span>{cartCount}</span>
                   </Link>
                 </>
               )}
@@ -244,11 +255,13 @@ export default function Header() {
                 }}
                 className="account-dropdown-signout"
               >
-                <i className="fas fa-sign-out-alt" /> Sign Out
+                <span className="account-signout-mark" aria-hidden="true">↗</span> Sign Out
               </a>
             </div>
           </div>
         )}
+
+        <Link to="/wishlist">WISHLIST <HeartIcon /></Link>
 
         <Link to="/cart">
           CART <span id="quantity">{cartCount > 0 ? cartCount : ""}</span>{" "}

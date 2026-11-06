@@ -132,6 +132,13 @@ export const ordersAPI = {
     }),
 };
 
+export const returnsAPI = {
+  getAll: () => request("/returns"),
+  getExchangeOptions: (orderId, orderItemId) => request(`/returns/orders/${encodeURIComponent(orderId)}/items/${encodeURIComponent(orderItemId)}/exchange-options`),
+  submit: (payload) => request("/returns", { method: "POST", body: JSON.stringify(payload) }),
+  update: (id, payload) => request(`/returns/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(payload) }),
+};
+
 export const employeeAPI = {
   getAll: () => request("/admin/employees"),
   create: (payload) =>

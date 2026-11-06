@@ -14,6 +14,9 @@ export async function getPublicReviews(req, res) {
       r.is_verified_purchase,r.created_at,r.updated_at,u.name AS customer_name
     FROM ProductReviews r JOIN Users u ON u.id=r.user_id
     WHERE r.product_id=@product_id AND r.status='published'
+      -- A review is only displayed while the purchased line remains reviewable.
+      -- A completed exchange is explicitly eligible; every other return state is not.
+      AND NOT EXISTS (SELECT 1 FROM ReturnRequests rr WHERE rr.order_item_id=r.order_item_id AND rr.status<>'exchanged')
     ORDER BY r.created_at DESC`);
   const summary = await pool.request().input("product_id", sql.Int, productId).query(`
     SELECT COUNT(*) review_count, COALESCE(AVG(CAST(rating AS DECIMAL(5,2))),0) average_rating,
@@ -22,7 +25,9 @@ export async function getPublicReviews(req, res) {
       SUM(CASE WHEN rating=3 THEN 1 ELSE 0 END) three_star,
       SUM(CASE WHEN rating=2 THEN 1 ELSE 0 END) two_star,
       SUM(CASE WHEN rating=1 THEN 1 ELSE 0 END) one_star
-    FROM ProductReviews WHERE product_id=@product_id AND status='published'`);
+    FROM ProductReviews r
+    WHERE r.product_id=@product_id AND r.status='published'
+      AND NOT EXISTS (SELECT 1 FROM ReturnRequests rr WHERE rr.order_item_id=r.order_item_id AND rr.status<>'exchanged')`);
   return res.json({ success: true, reviews: result.recordset, summary: summary.recordset[0] });
 }
 
@@ -65,6 +70,7 @@ export async function getReviewEligibility(req, res) {
     SELECT TOP 1 oi.id order_item_id,oi.order_id,oi.selected_color,oi.selected_size
     FROM OrderItems oi JOIN Orders o ON o.id=oi.order_id
     WHERE o.customer_id=@user_id AND oi.product_id=@product_id AND o.order_status='delivered'
+      AND NOT EXISTS (SELECT 1 FROM ReturnRequests rr WHERE rr.order_item_id=oi.id AND rr.status<>'exchanged')
     ORDER BY o.updated_at DESC`);
   const existing = await pool.request().input("user_id", sql.NVarChar, req.user.id).input("product_id", sql.Int, productId).query("SELECT TOP 1 * FROM ProductReviews WHERE user_id=@user_id AND product_id=@product_id AND status<>'deleted'");
   return res.json({ success: true, eligible: purchase.recordset.length > 0, purchase: purchase.recordset[0] || null, review: existing.recordset[0] || null });
@@ -79,6 +85,7 @@ export async function getMyReviewEligibility(req, res) {
       FROM OrderItems oi
       JOIN Orders o ON o.id=oi.order_id
       WHERE o.customer_id=@user_id AND o.order_status='delivered'
+        AND NOT EXISTS (SELECT 1 FROM ReturnRequests rr WHERE rr.order_item_id=oi.id AND rr.status<>'exchanged')
     )
     SELECT d.product_id,d.order_item_id,d.order_id,d.selected_color,d.selected_size,
            r.id review_id,r.rating,r.title,r.content,r.status review_status,r.created_at review_created_at,r.updated_at review_updated_at
@@ -103,6 +110,7 @@ export async function saveReview(req, res) {
   const purchase = await purchaseRequest.query(`SELECT TOP 1 oi.id order_item_id,oi.order_id,oi.selected_color,oi.selected_size
     FROM OrderItems oi JOIN Orders o ON o.id=oi.order_id
     WHERE o.customer_id=@user_id AND oi.product_id=@product_id AND o.order_status='delivered'
+      AND NOT EXISTS (SELECT 1 FROM ReturnRequests rr WHERE rr.order_item_id=oi.id AND rr.status<>'exchanged')
       AND (@order_id IS NULL OR o.id=@order_id) AND (@order_item_id IS NULL OR oi.id=@order_item_id)
     ORDER BY COALESCE(o.delivered_at,o.updated_at) DESC,oi.id DESC`);
   if (!purchase.recordset.length) return res.status(403).json({ success: false, error: "Chỉ khách đã nhận sản phẩm mới có thể đánh giá." });
@@ -131,7 +139,12 @@ export async function getProductInsights(req, res) {
     FROM Products p
     OUTER APPLY (SELECT COUNT(*) current_favorites FROM ProductFavorites WHERE product_id=p.id AND is_active=1) f
     OUTER APPLY (SELECT SUM(CASE WHEN event_type='added' THEN 1 ELSE 0 END) added_30d,SUM(CASE WHEN event_type='removed' THEN 1 ELSE 0 END) removed_30d FROM ProductFavoriteEvents WHERE product_id=p.id AND created_at>=DATEADD(day,-30,GETDATE())) e
-    OUTER APPLY (SELECT COUNT(*) review_count,AVG(CAST(rating AS DECIMAL(5,2))) average_rating FROM ProductReviews WHERE product_id=p.id AND status='published') r
+    OUTER APPLY (
+      SELECT COUNT(*) review_count,AVG(CAST(r.rating AS DECIMAL(5,2))) average_rating
+      FROM ProductReviews r
+      WHERE r.product_id=p.id AND r.status='published'
+        AND NOT EXISTS (SELECT 1 FROM ReturnRequests rr WHERE rr.order_item_id=r.order_item_id AND rr.status<>'exchanged')
+    ) r
     OUTER APPLY (SELECT SUM(oi.quantity) units_sold FROM OrderItems oi JOIN Orders o ON o.id=oi.order_id WHERE oi.product_id=p.id AND o.order_status='delivered') s
     WHERE p.is_active=1 ORDER BY current_favorites DESC,average_rating DESC,p.id`);
   return res.json({ success: true, insights: result.recordset.map((row) => ({ ...row, images: parseImages(row.images_json) })) });

@@ -107,11 +107,26 @@ export function StoreProvider({ children }) {
   }, [refreshProducts]);
 
   useEffect(() => {
-    refreshOrders();
+    let retryTimer;
+    let active = true;
+    const loadOrders = async () => {
+      const result = await refreshOrders();
+      // A local API can briefly be unavailable while it restarts. Do not leave
+      // a signed-in customer on an empty order history because of one failed request.
+      if (active && isAuthenticated && !result.success) retryTimer = window.setTimeout(loadOrders, 2000);
+    };
+    loadOrders();
+    const reloadOnReconnect = () => loadOrders();
+    window.addEventListener("online", reloadOnReconnect);
     if (currentUser?.role === "admin") {
       refreshRevenueReport();
     }
-  }, [isAuthenticated, currentUser, refreshOrders, refreshRevenueReport]);
+    return () => {
+      active = false;
+      window.clearTimeout(retryTimer);
+      window.removeEventListener("online", reloadOnReconnect);
+    };
+  }, [isAuthenticated, currentUser?.role, refreshOrders, refreshRevenueReport]);
 
   // Helper to read stock
   const getProductStock = (productId) => {
