@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 
 export default function CustomerLogin() {
-  useDocumentTitle("Đăng Nhập Khách Hàng");
+  useDocumentTitle("Client Sign In");
   const { loginCustomer, register, currentUser, role, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -26,8 +26,8 @@ export default function CustomerLogin() {
     e.preventDefault();
     setNotice("");
     const errs = {};
-    if (!email.trim()) errs.email = "Vui lòng nhập email khách hàng.";
-    if (!password) errs.password = "Vui lòng nhập mật khẩu.";
+    if (!email.trim()) errs.email = "Please enter your email address.";
+    if (!password) errs.password = "Please enter your password.";
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
@@ -38,7 +38,7 @@ export default function CustomerLogin() {
     if (!result.success) {
       setErrors({ form: result.error });
     } else {
-      setNotice(`Chào mừng trở lại, ${result.user.name}!`);
+      setNotice(`Welcome back, ${result.user.name}!`);
       setTimeout(() => {
         navigate(destination, { replace: true });
       }, 500);
@@ -54,9 +54,9 @@ export default function CustomerLogin() {
     const regPassword = e.target["reg-password"].value;
     const errs = {};
 
-    if (!name) errs.name = "Họ và tên là bắt buộc.";
-    if (!regEmail) errs.email = "Email là bắt buộc.";
-    if (!regPassword || regPassword.length < 6) errs.password = "Mật khẩu tối thiểu 6 ký tự.";
+    if (!name) errs.name = "Your name is required.";
+    if (!regEmail) errs.email = "Email is required.";
+    if (!regPassword || regPassword.length < 6) errs.password = "Password must be at least 6 characters.";
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
@@ -67,7 +67,7 @@ export default function CustomerLogin() {
     if (!result.success) {
       setErrors({ form: result.error });
     } else {
-      setNotice("Đăng ký tài khoản khách hàng thành công!");
+      setNotice("Your client account has been created successfully.");
       setTimeout(() => {
         navigate("/account/orders", { replace: true });
       }, 500);
@@ -99,7 +99,7 @@ export default function CustomerLogin() {
               textTransform: "uppercase",
             }}
           >
-            <i className="fas fa-shopping-bag" style={{ marginRight: "6px" }}></i> CỔNG KHÁCH HÀNG (CUSTOMER PORTAL)
+            <i className="fas fa-shopping-bag" style={{ marginRight: "6px" }}></i> MAISON RUE CLIENT ACCOUNT
           </span>
         </div>
 
@@ -117,15 +117,15 @@ export default function CustomerLogin() {
             }}
           >
             <div>
-              <div style={{ fontSize: "12px", color: "#6B5A4B" }}>Đang đăng nhập:</div>
+              <div style={{ fontSize: "12px", color: "#6B5A4B" }}>Signed in as:</div>
               <strong style={{ color: "#2B211C" }}>{currentUser.name}</strong> ({role})
             </div>
             <div style={{ display: "flex", gap: "8px" }}>
               <Link to="/account/orders" className="btn-primary" style={{ padding: "6px 14px", fontSize: "12px", textDecoration: "none" }}>
-                Đơn hàng
+                My Orders
               </Link>
               <button onClick={logout} className="btn-secondary" style={{ padding: "6px 12px", fontSize: "12px", width: "auto", margin: 0 }}>
-                Đăng xuất
+                Sign Out
               </button>
             </div>
           </div>
@@ -140,7 +140,7 @@ export default function CustomerLogin() {
                 setErrors({});
               }}
             >
-              ĐĂNG NHẬP
+              SIGN IN
             </button>
             <button
               className={tab === "register" ? "tab-btn active" : "tab-btn"}
@@ -149,7 +149,7 @@ export default function CustomerLogin() {
                 setErrors({});
               }}
             >
-              ĐĂNG KÝ MỚI
+              CREATE ACCOUNT
             </button>
           </div>
 
@@ -190,67 +190,67 @@ export default function CustomerLogin() {
           {tab === "login" ? (
             <form className="auth-form active" onSubmit={handleLogin} noValidate>
               <div className="form-group">
-                <label>Email khách hàng *</label>
+                <label>Email address *</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Ví dụ: vudat9532@gmail.com"
+                  placeholder="e.g. alex@example.com"
                 />
                 {errors.email && <span className="error">{errors.email}</span>}
               </div>
 
               <div className="form-group">
-                <label>Mật khẩu *</label>
+                <label>Password *</label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Nhập mật khẩu"
+                  placeholder="Enter your password"
                 />
                 {errors.password && <span className="error">{errors.password}</span>}
               </div>
 
               <div className="form-options">
                 <label className="remember-me">
-                  <input type="checkbox" defaultChecked /> <span>Ghi nhớ phiên</span>
+                  <input type="checkbox" defaultChecked /> <span>Remember me</span>
                 </label>
-                <a href="#forgot" onClick={(e) => { e.preventDefault(); alert("Vui lòng sử dụng tài khoản demo bên dưới."); }} className="forgot-pass">
-                  Quên mật khẩu?
+                <a href="#forgot" onClick={(e) => { e.preventDefault(); alert("Please use the demo account below."); }} className="forgot-pass">
+                  Forgot password?
                 </a>
               </div>
 
               <button type="submit" disabled={loading} className="auth-submit-btn">
-                {loading ? "Đang xác thực..." : "ĐĂNG NHẬP KHÁCH HÀNG"}
+                {loading ? "Signing in..." : "SIGN IN"}
               </button>
             </form>
           ) : (
             <form className="auth-form active" onSubmit={handleRegister} noValidate>
               <div className="form-group">
-                <label>Họ và tên *</label>
-                <input type="text" id="reg-name" name="reg-name" placeholder="Nguyễn Văn An" />
+                <label>Full name *</label>
+                <input type="text" id="reg-name" name="reg-name" placeholder="Alex Morgan" />
                 {errors.name && <span className="error">{errors.name}</span>}
               </div>
 
               <div className="form-group">
-                <label>Số điện thoại</label>
+                <label>Phone number</label>
                 <input type="tel" id="reg-phone" name="reg-phone" placeholder="0987654321" />
               </div>
 
               <div className="form-group">
-                <label>Email đăng ký *</label>
+                <label>Email address *</label>
                 <input type="email" id="reg-email" name="reg-email" placeholder="an.nguyen@gmail.com" />
                 {errors.email && <span className="error">{errors.email}</span>}
               </div>
 
               <div className="form-group">
-                <label>Mật khẩu *</label>
-                <input type="password" id="reg-password" name="reg-password" placeholder="Tối thiểu 6 ký tự" />
+                <label>Password *</label>
+                <input type="password" id="reg-password" name="reg-password" placeholder="At least 6 characters" />
                 {errors.password && <span className="error">{errors.password}</span>}
               </div>
 
               <button type="submit" disabled={loading} className="auth-submit-btn">
-                {loading ? "Đang tạo tài khoản..." : "TẠO TÀI KHOẢN KHÁCH HÀNG"}
+                {loading ? "Creating account..." : "CREATE CLIENT ACCOUNT"}
               </button>
             </form>
           )}
@@ -258,7 +258,7 @@ export default function CustomerLogin() {
           {/* Quick Demo Customer Account */}
           <div style={{ marginTop: "30px", paddingTop: "20px", borderTop: "1px dashed #D8CEC1" }}>
             <div style={{ fontSize: "12px", color: "#8A7350", marginBottom: "10px", fontWeight: "600", textTransform: "uppercase" }}>
-              Tài khoản Khách Hàng thử nghiệm:
+              Demo client account:
             </div>
             <button
               type="button"
@@ -277,18 +277,18 @@ export default function CustomerLogin() {
               }}
             >
               <div>
-                <strong style={{ color: "#2B211C", fontSize: "13px" }}>🛍️ Nguyễn Văn An</strong>
+                <strong style={{ color: "#2B211C", fontSize: "13px" }}>🛍️ Alex Morgan</strong>
                 <div style={{ fontSize: "11.5px", color: "#6B5A4B" }}>vudat9532@gmail.com (pass: customer123)</div>
               </div>
-              <span style={{ fontSize: "12px", color: "#B89B5E", fontWeight: "600" }}>Điền thông tin</span>
+              <span style={{ fontSize: "12px", color: "#B89B5E", fontWeight: "600" }}>Fill in details</span>
             </button>
           </div>
 
           {/* Cross portal links for testing role rejection */}
           <div style={{ marginTop: "20px", textAlign: "center", fontSize: "12px", color: "#8A7350" }}>
-            Cổng làm việc nội bộ:{" "}
-            <Link to="/staff/login" style={{ color: "#4E342E", fontWeight: "600" }}>Cổng Staff</Link> •{" "}
-            <Link to="/admin/login" style={{ color: "#2B211C", fontWeight: "600" }}>Cổng Admin</Link>
+            Staff and administrator access:{" "}
+            <Link to="/staff/login" style={{ color: "#4E342E", fontWeight: "600" }}>Staff Portal</Link> •{" "}
+            <Link to="/admin/login" style={{ color: "#2B211C", fontWeight: "600" }}>Admin Portal</Link>
           </div>
         </div>
       </div>

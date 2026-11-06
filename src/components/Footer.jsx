@@ -65,9 +65,9 @@ export default function Footer() {
           <section className="footer-link-group footer-social">
             <h3>Follow Us</h3>
             <div className="footer-social-links">
-              <a href="https://www.instagram.com/" aria-label="Instagram" target="_blank" rel="noreferrer">ig</a>
-              <a href="https://www.facebook.com/" aria-label="Facebook" target="_blank" rel="noreferrer">f</a>
-              <a href="https://www.youtube.com/" aria-label="YouTube" target="_blank" rel="noreferrer">▶</a>
+              <a href="https://www.instagram.com/" aria-label="Instagram" target="_blank" rel="noreferrer"><i className="fa-brands fa-instagram" aria-hidden="true" /></a>
+              <a href="https://www.facebook.com/" aria-label="Facebook" target="_blank" rel="noreferrer"><i className="fa-brands fa-facebook-f" aria-hidden="true" /></a>
+              <a href="https://x.com/" aria-label="X" target="_blank" rel="noreferrer"><i className="fa-brands fa-x-twitter" aria-hidden="true" /></a>
             </div>
           </section>
         </div>

@@ -12,9 +12,9 @@ function formatErrorMessage(err) {
     msg.includes("502") ||
     msg.includes("ECONNREFUSED")
   ) {
-    return "Không thể kết nối đến Backend Server (port 5000). Vui lòng đảm bảo bạn đã khởi động server bằng lệnh: npm run server";
+    return "Unable to connect to the server. Please try again in a moment.";
   }
-  return msg || "Lỗi kết nối hoặc xử lý yêu cầu.";
+  return msg || "A connection or request error occurred.";
 }
 
 export function AuthProvider({ children }) {
@@ -97,7 +97,7 @@ export function AuthProvider({ children }) {
         notifyAuthChange("login", res.user);
         return { success: true, user: res.user, destination: res.portalDestination || "/account/orders" };
       }
-      return { success: false, error: res.error || "Đăng nhập thất bại." };
+      return { success: false, error: res.error || "Sign in failed." };
     } catch (err) {
       return { success: false, error: formatErrorMessage(err) };
     }
@@ -142,7 +142,7 @@ export function AuthProvider({ children }) {
         notifyAuthChange("login", res.user);
         return { success: true, user: res.user, destination: res.portalDestination || "/account/orders" };
       }
-      return { success: false, error: res.error || "Đăng ký thất bại." };
+      return { success: false, error: res.error || "Registration failed." };
     } catch (err) {
       return { success: false, error: formatErrorMessage(err) };
     }

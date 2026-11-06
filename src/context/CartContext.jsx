@@ -31,6 +31,7 @@ function writeGuestCart(cart) {
 export function CartProvider({ children }) {
   const { currentUser, loading: authLoading } = useAuth();
   const [cart, setCart] = useState([]);
+  const [selectedCartItemIds, setSelectedCartItemIds] = useState(null);
   const [cartLoading, setCartLoading] = useState(true);
   const [cartError, setCartError] = useState("");
   const hydratedIdentity = useRef(null);
@@ -48,6 +49,7 @@ export function CartProvider({ children }) {
     const version = ++requestVersion.current;
     hydratedIdentity.current = null;
     setCart([]);
+    setSelectedCartItemIds(null);
     setCartError("");
     setCartLoading(true);
 
@@ -70,7 +72,7 @@ export function CartProvider({ children }) {
       } catch (error) {
         if (version === requestVersion.current) {
           setCart([]);
-          setCartError(error.message || "Không thể đồng bộ giỏ hàng.");
+          setCartError(error.message || "Unable to sync your shopping bag.");
         }
       } finally {
         if (version === requestVersion.current) {
@@ -91,7 +93,7 @@ export function CartProvider({ children }) {
     if (!identity.startsWith("customer:")) return undefined;
     const timer = window.setTimeout(() => {
       customerAPI.saveCart(cart, "replace").catch((error) => {
-        setCartError(error.message || "Không thể lưu thay đổi giỏ hàng.");
+        setCartError(error.message || "Unable to save changes to your shopping bag.");
       });
     }, 250);
     return () => window.clearTimeout(timer);
@@ -118,14 +120,15 @@ export function CartProvider({ children }) {
         ? item.variantId === variantId
         : item.id === product.id && item.selectedColor === color && item.selectedSize === selectedSize);
       const stock = variant?.stock ?? product.stock ?? 0;
+      const cappedQuantity = Math.min(10, Math.max(1, Number(quantity) || 1));
       if (existing) {
         return previous.map((item) => item === existing
-          ? { ...item, quantity: Math.min(stock || 99, item.quantity + quantity) }
+          ? { ...item, quantity: Math.min(10, item.quantity + cappedQuantity) }
           : item);
       }
       return [...previous, {
         ...product,
-        quantity: Math.min(stock || 99, quantity),
+        quantity: cappedQuantity,
         selectedColor: color,
         selectedSize,
         variantId,
@@ -140,28 +143,51 @@ export function CartProvider({ children }) {
 
   function removeFromCart(cartItemId) {
     setCart((previous) => previous.filter((item) => item.cartItemId !== cartItemId));
+    setSelectedCartItemIds((previous) => previous === null ? null : previous.filter((id) => id !== cartItemId));
+  }
+
+  function removeCartItems(cartItemIds) {
+    const ids = new Set(cartItemIds);
+    setCart((previous) => previous.filter((item) => !ids.has(item.cartItemId)));
+    setSelectedCartItemIds((previous) => previous === null ? null : previous.filter((id) => !ids.has(id)));
+  }
+
+  function toggleCartItemSelected(cartItemId) {
+    setSelectedCartItemIds((previous) => {
+      const selected = previous === null ? cart.map((item) => item.cartItemId) : previous;
+      return selected.includes(cartItemId) ? selected.filter((id) => id !== cartItemId) : [...selected, cartItemId];
+    });
+  }
+
+  function setAllCartItemsSelected(selected) {
+    setSelectedCartItemIds(selected ? null : []);
   }
 
   function updateQuantity(cartItemId, quantity) {
     setCart((previous) => previous.map((item) => item.cartItemId === cartItemId
-      ? { ...item, quantity: Math.max(1, Math.min(item.variantStock || 99, quantity)) }
+      ? { ...item, quantity: Math.max(1, Math.min(10, Number(quantity) || 1)) }
       : item));
   }
 
   async function clearCart() {
     setCart([]);
+    setSelectedCartItemIds(null);
     if (identity === "guest") writeGuestCart([]);
     if (identity.startsWith("customer:")) {
       try { await customerAPI.clearCart(); }
-      catch (error) { setCartError(error.message || "Không thể xóa giỏ hàng trên máy chủ."); }
+      catch (error) { setCartError(error.message || "Unable to clear your shopping bag on the server."); }
     }
   }
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cart.reduce((sum, item) => sum + item.quantity * item.price, 0);
 
+  const selectedItems = selectedCartItemIds === null ? cart : cart.filter((item) => selectedCartItemIds.includes(item.cartItemId));
+  const selectedCartCount = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+  const selectedCartTotal = selectedItems.reduce((sum, item) => sum + item.quantity * item.price, 0);
+
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, cartCount, cartTotal, cartLoading, cartError }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, removeCartItems, updateQuantity, clearCart, cartCount, cartTotal, cartLoading, cartError, selectedCartItemIds, selectedItems, selectedCartCount, selectedCartTotal, toggleCartItemSelected, setAllCartItemsSelected }}>
       {children}
     </CartContext.Provider>
   );
