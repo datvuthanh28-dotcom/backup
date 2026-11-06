@@ -44,3 +44,4 @@ export function compressImage(file, maxWidth = 600, quality = 0.6) {
     reader.readAsDataURL(file);
   });
 }
+
