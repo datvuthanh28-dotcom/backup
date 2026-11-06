@@ -192,6 +192,26 @@ export default function AdminLayout() {
             <span>Quản Lý Khuyến Mãi</span>
           </NavLink>
 
+          <NavLink
+            to="/admin/returns"
+            style={({ isActive }) => ({
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              padding: "12px 16px",
+              borderRadius: "6px",
+              textDecoration: "none",
+              fontSize: "13.5px",
+              fontWeight: isActive ? "600" : "400",
+              backgroundColor: isActive ? "#8A5A36" : "transparent",
+              color: isActive ? "#FFF" : "#D8CEC1",
+              transition: "background 0.2s, color 0.2s",
+            })}
+          >
+            <i className="fas fa-undo-alt" style={{ width: "18px" }}></i>
+            <span>Đổi Trả & Hoàn Tiền</span>
+          </NavLink>
+
           <div style={{ margin: "15px 0", borderTop: "1px solid rgba(255, 255, 255, 0.08)" }} />
 
           <Link

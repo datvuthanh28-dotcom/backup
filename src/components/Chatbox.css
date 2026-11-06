@@ -160,6 +160,7 @@
 #chat-form {
     display: flex;
     border-top: 1px solid #e2d2b4;
+    align-items: center;
 }
 
 #chat-input {

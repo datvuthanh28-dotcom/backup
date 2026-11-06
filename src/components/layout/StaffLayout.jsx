@@ -310,6 +310,26 @@ export default function StaffLayout() {
             <i className="fas fa-warehouse" style={{ width: "18px" }}></i>
             <span>Quản Lý Tồn Kho</span>
           </NavLink>
+
+          <NavLink
+            to="/staff/returns"
+            style={({ isActive }) => ({
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              padding: "12px 16px",
+              borderRadius: "6px",
+              textDecoration: "none",
+              fontSize: "13.5px",
+              fontWeight: isActive ? "600" : "400",
+              backgroundColor: isActive ? "#4E342E" : "transparent",
+              color: isActive ? "#FFF" : "#D8CEC1",
+              transition: "background 0.2s, color 0.2s",
+            })}
+          >
+            <i className="fas fa-undo-alt" style={{ width: "18px" }}></i>
+            <span>Đổi Trả & Hoàn Tiền</span>
+          </NavLink>
         </nav>
 
         {/* Sidebar Footer */}
