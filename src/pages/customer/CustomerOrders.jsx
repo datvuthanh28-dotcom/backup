@@ -25,18 +25,20 @@ function formatDate(isoStr) {
 }
 
 const TRACKER_STEPS = ["pending", "confirmed", "processing", "shipping", "delivered"];
+const CUSTOMER_STATUS_LABELS = { pending: "Pending", confirmed: "Confirmed", processing: "Processing", shipping: "Shipping", delivered: "Delivered", cancelled: "Cancelled" };
+const customerStatusLabel = (status) => CUSTOMER_STATUS_LABELS[status] || STATUS_LABELS[status]?.label || status;
 
 export const PAYMENT_STATUS_META = {
-  paid: { label: "Đã thanh toán", color: "#2E8B57", bg: "#EAF7EE" },
-  pending_verification: { label: "Chờ xác nhận thanh toán", color: "#B8860B", bg: "#FFF8DC" },
-  unpaid: { label: "Chưa thanh toán (COD)", color: "#6B5A4B", bg: "#F5F0EA" },
-  refund_pending: { label: "Chờ xử lý hoàn tiền", color: "#E67E22", bg: "#FDF2E9" },
-  refunded: { label: "Đã hoàn tiền", color: "#7B1FA2", bg: "#F3E5F5" },
-  cancelled: { label: "Đã hủy giao dịch", color: "#9E9E9E", bg: "#EEEEEE" },
+  paid: { label: "Paid", color: "#2E8B57", bg: "#EAF7EE" },
+  pending_verification: { label: "Payment pending", color: "#B8860B", bg: "#FFF8DC" },
+  unpaid: { label: "Unpaid (COD)", color: "#6B5A4B", bg: "#F5F0EA" },
+  refund_pending: { label: "Refund pending", color: "#E67E22", bg: "#FDF2E9" },
+  refunded: { label: "Refunded", color: "#7B1FA2", bg: "#F3E5F5" },
+  cancelled: { label: "Transaction cancelled", color: "#9E9E9E", bg: "#EEEEEE" },
 };
 
 export default function CustomerOrders() {
-  useDocumentTitle("Đơn Hàng Của Tôi");
+  useDocumentTitle("My Orders");
   const { orders, cancelOrder } = useStore();
   const { currentUser } = useAuth();
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -85,16 +87,16 @@ export default function CustomerOrders() {
       const next = { ...(result.purchase || reviewTarget.current || {}), ...(result.review || {}), product_id: reviewTarget.productId };
       setReviewEligibility((previous) => ({ ...previous, [reviewTarget.productId]: next }));
       setReviewTarget(null);
-      setActionNotice(wasEditing ? "Đã cập nhật đánh giá sản phẩm." : "Đã gửi đánh giá sản phẩm.");
+      setActionNotice(wasEditing ? "Review updated." : "Review submitted.");
     } catch (error) {
-      setReviewError(error.message || "Không thể lưu đánh giá.");
+      setReviewError(error.message || "Unable to save your review.");
     } finally {
       setReviewSaving(false);
     }
   };
 
   const deleteCurrentReview = async () => {
-    if (!reviewTarget || !window.confirm("Bạn muốn xóa đánh giá này?")) return;
+    if (!reviewTarget || !window.confirm("Would you like to delete this review?")) return;
     setReviewSaving(true);
     try {
       await customerAPI.deleteReview(reviewTarget.productId);
@@ -103,9 +105,9 @@ export default function CustomerOrders() {
         [reviewTarget.productId]: { ...previous[reviewTarget.productId], review_id: null, rating: null, title: null, content: null, review_status: null },
       }));
       setReviewTarget(null);
-      setActionNotice("Đã xóa đánh giá sản phẩm.");
+      setActionNotice("Review deleted.");
     } catch (error) {
-      setReviewError(error.message || "Không thể xóa đánh giá.");
+      setReviewError(error.message || "Unable to delete your review.");
     } finally {
       setReviewSaving(false);
     }
@@ -124,7 +126,7 @@ export default function CustomerOrders() {
 
   const handleCancelClick = (order) => {
     setCancellingId(order.id);
-    setCancelReason("Khách hàng thay đổi ý định.");
+    setCancelReason("I changed my mind.");
   };
 
   const confirmCancel = async () => {
@@ -132,13 +134,13 @@ export default function CustomerOrders() {
     setLoadingCancel(true);
     const res = await cancelOrder(
       cancellingId,
-      cancelReason || "Khách hàng yêu cầu hủy đơn qua trang quản lý tài khoản."
+      cancelReason || "Customer requested cancellation from the account page."
     );
     setLoadingCancel(false);
 
     if (res.success) {
       setActionNotice(
-        `Đã hủy thành công đơn hàng #${cancellingId}. Số lượng sản phẩm đã được tự động hoàn trả vào tồn kho.`
+        `Order #${cancellingId} was cancelled. The items have been returned to inventory.`
       );
       setCancellingId(null);
       if (selectedOrder?.id === cancellingId) {
@@ -149,7 +151,7 @@ export default function CustomerOrders() {
         }));
       }
     } else {
-      alert(res.error || "Không thể hủy đơn hàng.");
+      alert(res.error || "Unable to cancel the order.");
     }
   };
 
@@ -157,9 +159,9 @@ export default function CustomerOrders() {
     <main className="customer-orders-page" style={{ maxWidth: "1150px", margin: "40px auto", padding: "0 20px" }}>
       <CustomerAccountSidebar />
       <section className="customer-orders-content">
-      <div className="orders-filter-bar" aria-label="Lọc đơn hàng">
-        <span>Lọc đơn hàng</span>
-        {[['all','Tất cả'],['pending','Chờ xác nhận'],['processing','Đang chuẩn bị'],['shipping','Đang giao'],['delivered','Đã nhận hàng'],['cancelled','Đã hủy']].map(([value, label]) => (
+      <div className="orders-filter-bar" aria-label="Filter orders">
+        <span>Filter orders</span>
+        {[['all','All'],['pending','Pending'],['processing','Processing'],['shipping','Shipping'],['delivered','Delivered'],['cancelled','Cancelled']].map(([value, label]) => (
           <button key={value} className={statusFilter === value ? "active" : ""} onClick={() => setStatusFilter(value)}>{label}</button>
         ))}
       </div>
@@ -184,7 +186,7 @@ export default function CustomerOrders() {
               fontWeight: "600",
             }}
           >
-            Cổng Khách Hàng (Customer Portal)
+            MAISON RUE CLIENT ACCOUNT
           </span>
           <h1
             style={{
@@ -195,7 +197,7 @@ export default function CustomerOrders() {
               fontWeight: "500",
             }}
           >
-            LỊCH SỬ ĐƠN HÀNG
+            ORDER HISTORY
           </h1>
         </div>
 
@@ -257,13 +259,13 @@ export default function CustomerOrders() {
             <i className="fas fa-box-open"></i>
           </div>
           <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "28px", color: "#2B211C" }}>
-            Bạn chưa có đơn hàng nào
+            You have no orders yet
           </h2>
           <p style={{ color: "#6B5A4B", fontSize: "14px", marginBottom: "25px" }}>
-            Khám phá bộ sưu tập thời trang cổ điển đẳng cấp Maison Rue và đặt hàng ngay hôm nay.
+            Discover Maison Rue’s timeless collection and place your order today.
           </p>
           <Link to="/" className="btn-primary" style={{ textDecoration: "none", display: "inline-block" }}>
-            Khám phá bộ sưu tập
+            Explore the collection
           </Link>
         </div>
       ) : (
@@ -313,7 +315,7 @@ export default function CustomerOrders() {
                       #{order.id}
                     </span>
                     <span style={{ fontSize: "13px", color: "#8A7350" }}>
-                      Ngày đặt: {formatDate(createdAt)}
+                      Order date: {formatDate(createdAt)}
                     </span>
                   </div>
 
@@ -329,7 +331,7 @@ export default function CustomerOrders() {
                         border: `1px solid ${statusMeta.color}30`,
                       }}
                     >
-                      ● {statusMeta.label}
+                      ● {customerStatusLabel(currentStatus)}
                     </span>
 
                     <span
@@ -359,7 +361,7 @@ export default function CustomerOrders() {
                         color: "#2B211C",
                       }}
                     >
-                      Chi tiết đơn
+                      Order details
                     </button>
 
                     {["pending", "confirmed"].includes(currentStatus) && (
@@ -376,7 +378,7 @@ export default function CustomerOrders() {
                           color: "#D9534F",
                         }}
                       >
-                        Hủy đơn hàng
+                        Cancel order
                       </button>
                     )}
                   </div>
@@ -422,11 +424,11 @@ export default function CustomerOrders() {
                         const isDone = idx <= currentStepIdx;
                         const isCurrent = idx === currentStepIdx;
                         const stepLabels = {
-                          pending: "Chờ xác nhận",
-                          confirmed: "Đã xác nhận",
-                          processing: "Đang chuẩn bị",
-                          shipping: "Đang giao",
-                          delivered: "Đã nhận hàng",
+                          pending: "Pending",
+                          confirmed: "Confirmed",
+                          processing: "Processing",
+                          shipping: "Shipping",
+                          delivered: "Delivered",
                         };
 
                         return (
@@ -487,10 +489,10 @@ export default function CustomerOrders() {
                     <i className="fas fa-info-circle"></i>
                     <span>
                       {pmtStatus === "refund_pending"
-                        ? "Đơn hàng này đã bị hủy. Yêu cầu hoàn tiền của bạn đang được phòng kế toán đối soát và xử lý trong 24h làm việc."
+                        ? "This order was cancelled. Your refund is being reviewed and will be processed within 24 business hours."
                         : pmtStatus === "refunded"
-                        ? `Đơn hàng này đã bị hủy. Khoản tiền đã được hoàn trả thành công${pmt.refund_reference ? ` (Mã hoàn tiền: ${pmt.refund_reference})` : ""}.`
-                        : "Đơn hàng này đã bị hủy. Toàn bộ số lượng sản phẩm đã được tự động hoàn trả lại vào kho hàng."}
+                        ? `This order was cancelled. Your refund has been processed${pmt.refund_reference ? ` (Reference: ${pmt.refund_reference})` : ""}.`
+                        : "This order was cancelled. All items have been returned to inventory."}
                     </span>
                   </div>
                 )}
@@ -506,7 +508,7 @@ export default function CustomerOrders() {
                         {currentStatus === "delivered" && (
                           <button type="button" className="order-review-button" onClick={() => openReview(order, item)}>
                             <span aria-hidden="true">{review?.review_id ? "★" : "☆"}</span>
-                            {review?.review_id ? "Sửa đánh giá" : "Đánh giá sản phẩm"}
+                            {review?.review_id ? "Edit review" : "Review product"}
                           </button>
                         )}
                       </div>;
@@ -524,10 +526,10 @@ export default function CustomerOrders() {
                     }}
                   >
                     <div style={{ fontSize: "13px", color: "#6B5A4B" }}>
-                      Địa chỉ nhận: {order.shipping_address || order.shippingAddress}
+                      Delivery address: {order.shipping_address || order.shippingAddress}
                     </div>
                     <div style={{ fontSize: "15px", color: "#2B211C" }}>
-                      Tổng thanh toán:{" "}
+                      Total paid:{" "}
                       <strong style={{ color: "#B89B5E", fontSize: "17px", marginLeft: "6px" }}>
                         {formatPrice(totalAmount)}
                       </strong>
@@ -543,13 +545,13 @@ export default function CustomerOrders() {
       {reviewTarget && (
         <div className="order-review-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setReviewTarget(null); }}>
           <form className="order-review-modal" onSubmit={submitReview}>
-            <button type="button" className="order-review-close" aria-label="Đóng" onClick={() => setReviewTarget(null)}>×</button>
-            <p className="eyebrow">Đơn hàng #{reviewTarget.order.id}</p>
-            <h2>{reviewTarget.current?.review_id ? "Chỉnh sửa đánh giá" : "Đánh giá sản phẩm"}</h2>
+            <button type="button" className="order-review-close" aria-label="Close" onClick={() => setReviewTarget(null)}>×</button>
+            <p className="eyebrow">Order #{reviewTarget.order.id}</p>
+            <h2>{reviewTarget.current?.review_id ? "Edit review" : "Review product"}</h2>
             <p className="order-review-product-name">{reviewTarget.item.product_name || reviewTarget.item.productName || reviewTarget.item.name}</p>
             <small>SKU: {reviewTarget.item.variant_sku || reviewTarget.item.sku || "—"} · {reviewTarget.item.selected_color || reviewTarget.item.selectedColor} · Size {reviewTarget.item.selected_size || reviewTarget.item.selectedSize}</small>
             <fieldset className="order-review-rating">
-              <legend>Mức độ hài lòng</legend>
+              <legend>Rating</legend>
               <div>{[1, 2, 3, 4, 5].map((rating) => (
                 <button key={rating} type="button" aria-label={`${rating} sao`} aria-pressed={reviewForm.rating === rating} onClick={() => setReviewForm((form) => ({ ...form, rating }))}>
                   {rating <= reviewForm.rating ? "★" : "☆"}
@@ -557,14 +559,14 @@ export default function CustomerOrders() {
               ))}</div>
               <span>{reviewForm.rating}/5 sao</span>
             </fieldset>
-            <label>Tiêu đề <span>(không bắt buộc)</span><input maxLength="120" value={reviewForm.title} onChange={(event) => setReviewForm({ ...reviewForm, title: event.target.value })} placeholder="Tóm tắt trải nghiệm của bạn" /></label>
-            <label>Nội dung đánh giá<textarea required minLength="10" maxLength="1500" value={reviewForm.content} onChange={(event) => setReviewForm({ ...reviewForm, content: event.target.value })} placeholder="Chia sẻ về chất liệu, phom dáng, kích cỡ hoặc trải nghiệm sử dụng..." /></label>
-            <small className="order-review-count">{reviewForm.content.length}/1500 ký tự · tối thiểu 10 ký tự</small>
+            <label>Title <span>(optional)</span><input maxLength="120" value={reviewForm.title} onChange={(event) => setReviewForm({ ...reviewForm, title: event.target.value })} placeholder="Summarise your experience" /></label>
+            <label>Your review<textarea required minLength="10" maxLength="1500" value={reviewForm.content} onChange={(event) => setReviewForm({ ...reviewForm, content: event.target.value })} placeholder="Share your thoughts on the material, fit, sizing or your experience..." /></label>
+            <small className="order-review-count">{reviewForm.content.length}/1500 characters · at least 10 characters</small>
             {reviewError && <p className="order-review-error">{reviewError}</p>}
             <div className="order-review-actions">
-              {reviewTarget.current?.review_id && <button type="button" className="order-review-delete" disabled={reviewSaving} onClick={deleteCurrentReview}>Xóa đánh giá</button>}
-              <button type="button" className="account-cancel" disabled={reviewSaving} onClick={() => setReviewTarget(null)}>Hủy</button>
-              <button type="submit" className="account-action" disabled={reviewSaving || reviewForm.content.trim().length < 10}>{reviewSaving ? "Đang lưu..." : "Lưu đánh giá"}</button>
+              {reviewTarget.current?.review_id && <button type="button" className="order-review-delete" disabled={reviewSaving} onClick={deleteCurrentReview}>Delete review</button>}
+              <button type="button" className="account-cancel" disabled={reviewSaving} onClick={() => setReviewTarget(null)}>Cancel</button>
+              <button type="submit" className="account-action" disabled={reviewSaving || reviewForm.content.trim().length < 10}>{reviewSaving ? "Saving..." : "Save review"}</button>
             </div>
           </form>
         </div>
@@ -605,15 +607,15 @@ export default function CustomerOrders() {
                 marginTop: 0,
               }}
             >
-              Xác Nhận Hủy Đơn Hàng #{cancellingId}
+              Confirm Order Cancellation #{cancellingId}
             </h3>
             <p style={{ fontSize: "14px", color: "#6B5A4B", lineHeight: "1.6" }}>
-              Bạn có chắc chắn muốn hủy đơn hàng này không? Sau khi xác nhận, toàn bộ số lượng sản phẩm trong đơn sẽ tự động được hoàn trả vào kho hàng.
+              Are you sure you want to cancel this order? All items will be returned to inventory.
             </p>
 
             <div style={{ margin: "15px 0" }}>
               <label style={{ display: "block", fontSize: "13px", fontWeight: "600", marginBottom: "6px" }}>
-                Lý do hủy đơn:
+                Reason for cancellation:
               </label>
               <select
                 value={cancelReason}
@@ -626,10 +628,10 @@ export default function CustomerOrders() {
                   fontSize: "13.5px",
                 }}
               >
-                <option value="Khách hàng thay đổi ý định.">Khách hàng thay đổi ý định</option>
-                <option value="Muốn đổi sang mẫu hoặc màu sắc khác.">Muốn đổi sang mẫu hoặc màu sắc khác</option>
-                <option value="Đặt nhầm số lượng sản phẩm.">Đặt nhầm số lượng sản phẩm</option>
-                <option value="Thời gian giao hàng không phù hợp.">Thời gian giao hàng không phù hợp</option>
+                <option value="I changed my mind.">I changed my mind</option>
+                <option value="I would like a different style or colour.">I would like a different style or colour</option>
+                <option value="I ordered the wrong quantity.">I ordered the wrong quantity</option>
+                <option value="The delivery time does not work for me.">The delivery time does not work for me</option>
               </select>
             </div>
 
@@ -640,7 +642,7 @@ export default function CustomerOrders() {
                 disabled={loadingCancel}
                 style={{ width: "auto", margin: 0, padding: "10px 18px", fontSize: "13px" }}
               >
-                Đóng
+                Close
               </button>
               <button
                 onClick={confirmCancel}
@@ -656,7 +658,7 @@ export default function CustomerOrders() {
                   cursor: loadingCancel ? "not-allowed" : "pointer",
                 }}
               >
-                {loadingCancel ? "Đang hủy..." : "Xác Nhận Hủy"}
+                {loadingCancel ? "Cancelling..." : "Confirm cancellation"}
               </button>
             </div>
           </div>
@@ -695,7 +697,7 @@ export default function CustomerOrders() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
               <div>
                 <span style={{ fontSize: "11px", letterSpacing: "1px", textTransform: "uppercase", color: "#8A7350" }}>
-                  Chi tiết đơn hàng
+                  Order details
                 </span>
                 <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "28px", color: "#2B211C", margin: "4px 0" }}>
                   #{selectedOrder.id}
@@ -710,23 +712,23 @@ export default function CustomerOrders() {
             </div>
 
             <div style={{ marginBottom: "25px", fontSize: "13.5px", backgroundColor: "#FAF6F0", padding: "15px", borderRadius: "6px" }}>
-              <div><strong>Người nhận:</strong> {selectedOrder.customer_name || selectedOrder.customerName} ({selectedOrder.customer_phone || selectedOrder.customerPhone})</div>
-              <div><strong>Địa chỉ:</strong> {selectedOrder.shipping_address || selectedOrder.shippingAddress}</div>
-              {selectedOrder.notes && <div><strong>Ghi chú giao hàng:</strong> {selectedOrder.notes}</div>}
-              <div><strong>Hình thức thanh toán:</strong> {selectedOrder.payment?.payment_method === "cod" ? "Thanh toán khi nhận hàng (COD)" : "Chuyển khoản"}</div>
-              <div><strong>Trạng thái đơn:</strong> {STATUS_LABELS[selectedOrder.order_status || selectedOrder.status]?.label}</div>
-              <div><strong>Trạng thái thanh toán:</strong> {PAYMENT_STATUS_META[selectedOrder.payment?.payment_status || "unpaid"]?.label}</div>
-              {Number(selectedOrder.product_discount_total || 0) + Number(selectedOrder.code_discount_total || 0) > 0 && <div className="order-promotion-breakdown"><div><strong>Tạm tính ban đầu:</strong> {formatPrice(selectedOrder.original_subtotal)}</div>{Number(selectedOrder.product_discount_total) > 0 && <div><strong>Khuyến mãi sản phẩm:</strong> −{formatPrice(selectedOrder.product_discount_total)}</div>}{Number(selectedOrder.code_discount_total) > 0 && <div><strong>Mã {selectedOrder.promotion_code}:</strong> −{formatPrice(selectedOrder.code_discount_total)}</div>}<div><strong>Thực thanh toán:</strong> {formatPrice(selectedOrder.total_amount)}</div></div>}
+              <div><strong>Recipient:</strong> {selectedOrder.customer_name || selectedOrder.customerName} ({selectedOrder.customer_phone || selectedOrder.customerPhone})</div>
+              <div><strong>Address:</strong> {selectedOrder.shipping_address || selectedOrder.shippingAddress}</div>
+              {selectedOrder.notes && <div><strong>Delivery notes:</strong> {selectedOrder.notes}</div>}
+              <div><strong>Payment method:</strong> {selectedOrder.payment?.payment_method === "cod" ? "Cash on delivery (COD)" : "Bank transfer"}</div>
+              <div><strong>Order status:</strong> {customerStatusLabel(selectedOrder.order_status || selectedOrder.status)}</div>
+              <div><strong>Payment status:</strong> {PAYMENT_STATUS_META[selectedOrder.payment?.payment_status || "unpaid"]?.label}</div>
+              {Number(selectedOrder.product_discount_total || 0) + Number(selectedOrder.code_discount_total || 0) > 0 && <div className="order-promotion-breakdown"><div><strong>Original subtotal:</strong> {formatPrice(selectedOrder.original_subtotal)}</div>{Number(selectedOrder.product_discount_total) > 0 && <div><strong>Product discounts:</strong> −{formatPrice(selectedOrder.product_discount_total)}</div>}{Number(selectedOrder.code_discount_total) > 0 && <div><strong>Code {selectedOrder.promotion_code}:</strong> −{formatPrice(selectedOrder.code_discount_total)}</div>}<div><strong>Total paid:</strong> {formatPrice(selectedOrder.total_amount)}</div></div>}
               {selectedOrder.payment?.transaction_reference && (
-                <div><strong>Mã giao dịch:</strong> {selectedOrder.payment.transaction_reference}</div>
+                <div><strong>Transaction reference:</strong> {selectedOrder.payment.transaction_reference}</div>
               )}
               {selectedOrder.payment?.refund_reference && (
-                <div><strong>Mã hoàn tiền:</strong> {selectedOrder.payment.refund_reference} (Hoàn tất ngày {formatDate(selectedOrder.payment.refunded_at)})</div>
+                <div><strong>Refund reference:</strong> {selectedOrder.payment.refund_reference} (Completed on {formatDate(selectedOrder.payment.refunded_at)})</div>
               )}
             </div>
 
             <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px", marginBottom: "8px" }}>
-              Sản phẩm trong đơn:
+              Items in this order:
             </h4>
             <div style={{ marginBottom: "18px" }}>
               {(selectedOrder.items || []).map((item, idx) => <OrderItemLine key={item.id || `${item.product_id}-${idx}`} item={item} formatPrice={formatPrice} linkProduct />)}
@@ -734,7 +736,7 @@ export default function CustomerOrders() {
             </div>
 
             <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px", marginBottom: "12px" }}>
-              Nhật ký xử lý đơn hàng (Audit Trail):
+              Order activity log:
             </h4>
 
             <div style={{ borderLeft: "2px solid #D8CEC1", paddingLeft: "18px", marginLeft: "8px", marginBottom: "25px" }}>
@@ -753,10 +755,10 @@ export default function CustomerOrders() {
                     }}
                   />
                   <div style={{ fontSize: "13px", fontWeight: "600", color: "#2B211C" }}>
-                    {STATUS_LABELS[h.new_status || h.status]?.label || h.new_status || h.status}
+                    {customerStatusLabel(h.new_status || h.status)}
                   </div>
                   <div style={{ fontSize: "12px", color: "#8A7350" }}>
-                    {formatDate(h.created_at || h.timestamp)} • Bởi: {h.updated_by || h.by}
+                    {formatDate(h.created_at || h.timestamp)} • By: {h.updated_by || h.by}
                   </div>
                   {h.note && (
                     <div style={{ fontSize: "13px", color: "#5E5147", marginTop: "3px", fontStyle: "italic" }}>
@@ -773,7 +775,7 @@ export default function CustomerOrders() {
                 className="btn-primary"
                 style={{ padding: "10px 24px", fontSize: "13px" }}
               >
-                Đóng
+                Close
               </button>
             </div>
           </div>

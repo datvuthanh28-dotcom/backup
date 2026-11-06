@@ -20,6 +20,18 @@ const audienceMenus = {
   }
 };
 
+function AccountIcon() {
+  return <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.5" /><path d="M5 20c.5-3.6 3.2-5.5 7-5.5s6.5 1.9 7 5.5" /></svg>;
+}
+
+function ShoppingBagIcon() {
+  return <svg aria-hidden="true" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 8h14l1 13H4L5 8Z" /><path d="M9 9V6a3 3 0 0 1 6 0v3" /></svg>;
+}
+
+function SearchIcon() {
+  return <svg aria-hidden="true" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="10.8" cy="10.8" r="6.5" /><path d="m16 16 4.2 4.2" /></svg>;
+}
+
 function AudienceDropdown({ audience }) {
   const menu = audienceMenus[audience];
   const basePath = `/${audience}`;
@@ -120,27 +132,19 @@ export default function Header() {
 
       <nav className="head-right">
         <a href="#" id="searchBtn" onClick={(e) => { e.preventDefault(); setSearchOpen(true); }}>
-          SEARCH <i className="fas fa-search"></i>
+          SEARCH <SearchIcon />
         </a>
 
         {/* Role-Aware Account Section */}
         {!currentUser ? (
-          <Link to="/login">ACCOUNT <i className="fas fa-user"></i></Link>
+          <Link to="/login">ACCOUNT <AccountIcon /></Link>
         ) : (
-          <div className="nav-dropdown" style={{ position: "relative" }}>
+          <div className="nav-dropdown account-menu">
             <Link
               to={accountDestination}
-              className="nav-main"
+              className="nav-main account-menu-trigger"
               onClick={() => setUserMenuOpen(false)}
-              aria-label={role === "customer" ? "Mở hồ sơ của tôi" : "Mở cổng tài khoản"}
-              style={{
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                fontWeight: "500",
-                textDecoration: "none",
-              }}
+              aria-label={role === "customer" ? "Open my profile" : "Open account portal"}
             >
               {role === "admin" && (
                 <span
@@ -171,43 +175,32 @@ export default function Header() {
                 </span>
               )}
               {role === "customer" && (
-                <span style={{ fontSize: "14px" }}>
+                <span className="account-menu-name">
                   {currentUser.name.split(" ").slice(-1)[0]}
                 </span>
               )}
-              <i className="fas fa-user-circle"></i>
+              <AccountIcon />
             </Link>
 
             <div
-              className="dropdown-menu"
-              style={{
-                right: 0,
-                left: "auto",
-                minWidth: "220px",
-                display: userMenuOpen ? "flex" : undefined,
-              }}
+              className="dropdown-menu account-dropdown"
+              style={{ display: userMenuOpen ? "flex" : undefined }}
             >
-              <div
-                style={{
-                  padding: "10px 18px",
-                  borderBottom: "1px solid rgba(43, 33, 28, 0.1)",
-                  fontSize: "12px",
-                }}
-              >
-                <div style={{ fontWeight: "600", color: "#2B211C" }}>{currentUser.name}</div>
-                <div style={{ color: "#8A7350", fontSize: "11px" }}>{currentUser.email}</div>
+              <div className="account-dropdown-profile">
+                <div>{currentUser.name}</div>
+                <div>{currentUser.email}</div>
               </div>
 
               {role === "customer" && (
                 <>
-                  <Link to="/account/profile" onClick={() => setUserMenuOpen(false)}>
-                    <i className="fas fa-user" style={{ marginRight: "8px" }}></i> Hồ sơ của tôi
+                  <Link className="account-dropdown-link" to="/account/profile" onClick={() => setUserMenuOpen(false)}>
+                    <i className="fas fa-user" /> My Profile
                   </Link>
-                  <Link to="/account/orders" onClick={() => setUserMenuOpen(false)}>
-                    <i className="fas fa-box-open" style={{ marginRight: "8px" }}></i> Đơn hàng của tôi
+                  <Link className="account-dropdown-link" to="/account/orders" onClick={() => setUserMenuOpen(false)}>
+                    <i className="fas fa-box-open" /> My Orders
                   </Link>
-                  <Link to="/cart" onClick={() => setUserMenuOpen(false)}>
-                    <i className="fas fa-shopping-bag" style={{ marginRight: "8px" }}></i> Giỏ hàng ({cartCount})
+                  <Link className="account-dropdown-link" to="/cart" onClick={() => setUserMenuOpen(false)}>
+                    <i className="fas fa-shopping-bag" /> Shopping Bag <span>{cartCount}</span>
                   </Link>
                 </>
               )}
@@ -218,10 +211,10 @@ export default function Header() {
                     <i className="fas fa-clipboard-list" style={{ marginRight: "8px" }}></i> Staff Portal
                   </Link>
                   <Link to="/staff/orders" onClick={() => setUserMenuOpen(false)}>
-                    <i className="fas fa-truck-loading" style={{ marginRight: "8px" }}></i> Quản lý đơn hàng
+                    <i className="fas fa-truck-loading" style={{ marginRight: "8px" }}></i> Manage Orders
                   </Link>
                   <Link to="/staff/inventory" onClick={() => setUserMenuOpen(false)}>
-                    <i className="fas fa-warehouse" style={{ marginRight: "8px" }}></i> Quản lý tồn kho
+                    <i className="fas fa-warehouse" style={{ marginRight: "8px" }}></i> Manage Inventory
                   </Link>
                 </>
               )}
@@ -232,13 +225,13 @@ export default function Header() {
                     <i className="fas fa-chart-line" style={{ marginRight: "8px" }}></i> Admin Dashboard
                   </Link>
                   <Link to="/admin/employees" onClick={() => setUserMenuOpen(false)}>
-                    <i className="fas fa-users-cog" style={{ marginRight: "8px" }}></i> Quản lý nhân viên
+                    <i className="fas fa-users-cog" style={{ marginRight: "8px" }}></i> Manage Employees
                   </Link>
                   <Link to="/admin/reports" onClick={() => setUserMenuOpen(false)}>
-                    <i className="fas fa-coins" style={{ marginRight: "8px" }}></i> Báo cáo doanh thu
+                    <i className="fas fa-coins" style={{ marginRight: "8px" }}></i> Revenue Reports
                   </Link>
                   <Link to="/staff/orders" onClick={() => setUserMenuOpen(false)}>
-                    <i className="fas fa-clipboard-check" style={{ marginRight: "8px" }}></i> Xem tất cả đơn hàng
+                    <i className="fas fa-clipboard-check" style={{ marginRight: "8px" }}></i> View All Orders
                   </Link>
                 </>
               )}
@@ -249,13 +242,9 @@ export default function Header() {
                   e.preventDefault();
                   handleLogout();
                 }}
-                style={{
-                  borderTop: "1px solid rgba(43, 33, 28, 0.1)",
-                  color: "#D9534F",
-                  marginTop: "4px",
-                }}
+                className="account-dropdown-signout"
               >
-                <i className="fas fa-sign-out-alt" style={{ marginRight: "8px" }}></i> Đăng xuất
+                <i className="fas fa-sign-out-alt" /> Sign Out
               </a>
             </div>
           </div>
@@ -263,7 +252,7 @@ export default function Header() {
 
         <Link to="/cart">
           CART <span id="quantity">{cartCount > 0 ? cartCount : ""}</span>{" "}
-          <i className="fas fa-shopping-bag"></i>
+          <ShoppingBagIcon />
         </Link>
       </nav>
 

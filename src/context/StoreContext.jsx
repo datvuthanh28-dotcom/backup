@@ -74,7 +74,7 @@ export function StoreProvider({ children }) {
   const refreshOrders = useCallback(async () => {
     if (!isAuthenticated) {
       setOrders([]);
-      return { success: false, orders: [], error: "Chưa đăng nhập." };
+      return { success: false, orders: [], error: "You are not signed in." };
     }
     try {
       const res = await ordersAPI.getAll();
@@ -82,7 +82,7 @@ export function StoreProvider({ children }) {
         setOrders(res.orders);
         return { success: true, orders: res.orders };
       }
-      return { success: false, orders: [], error: res.error || "Không thể tải danh sách đơn hàng." };
+      return { success: false, orders: [], error: res.error || "Unable to load your orders." };
     } catch (err) {
       console.warn("[Store] Orders API fetch fallback:", err.message);
       return { success: false, orders: [], error: err.message };
@@ -197,7 +197,7 @@ export function StoreProvider({ children }) {
 
         return { success: true, order: res.order };
       }
-      return { success: false, error: res.error || "Không thể tạo đơn hàng." };
+      return { success: false, error: res.error || "Unable to place your order." };
     } catch (err) {
       return { success: false, error: err.message };
     }
@@ -223,7 +223,7 @@ export function StoreProvider({ children }) {
 
         return { success: true, order: res.order };
       }
-      return { success: false, error: res.error || "Không thể cập nhật trạng thái." };
+      return { success: false, error: res.error || "Unable to update the order status." };
     } catch (err) {
       return { success: false, error: err.message };
     }
@@ -249,7 +249,7 @@ export function StoreProvider({ children }) {
 
         return { success: true, order: res.order };
       }
-      return { success: false, error: res.error || "Không thể hủy đơn hàng." };
+      return { success: false, error: res.error || "Unable to cancel the order." };
     } catch (err) {
       return { success: false, error: err.message };
     }

@@ -11,41 +11,118 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 const money = (value) => `${Number(value).toLocaleString("vi-VN")}đ`;
 
+function materialProfile(product) {
+  const name = product.name.toLowerCase();
+  if (/baby cashmere/.test(name)) return "Baby cashmere";
+  if (/cashmere.*cotton|cotton.*cashmere/.test(name)) return "Cashmere and cotton blend";
+  if (/cashmere.*wool|wool.*cashmere/.test(name)) return "Cashmere and wool blend";
+  if (/cashmere/.test(name)) return "Cashmere";
+  if (/suede/.test(name)) return "Suede";
+  if (/calfskin/.test(name)) return "Calfskin leather";
+  if (/canvas.*leather|leather.*canvas/.test(name)) return "Canvas and leather";
+  if (/linen.*cotton|cotton.*linen/.test(name)) return "Linen and cotton blend";
+  if (/linen/.test(name)) return "Linen";
+  if (/silk/.test(name)) return "Silk blend";
+  if (/merino/.test(name)) return "Merino wool";
+  if (/wool/.test(name)) return "Wool";
+  if (/cotton/.test(name)) return "Cotton";
+  if (/leather/.test(name)) return "Leather";
+  if (/acetate/.test(name)) return "Acetate";
+  if (/titanium/.test(name)) return "Titanium";
+  if (/nylon/.test(name)) return "Technical nylon";
+  return "Maison Rue selected materials";
+}
+
+function constructionDetails(product) {
+  const name = product.name.toLowerCase();
+  const material = materialProfile(product);
+
+  if (product.productType === "Footwear") return [
+    `${material} upper`,
+    /loafer/.test(name) ? "Slip-on loafer construction" : "Refined everyday footwear silhouette",
+    "Designed for considered, everyday wear",
+  ];
+  if (product.productType === "Accessories") return [
+    `${material} construction`,
+    /bag|tote|duffle|backpack|crossbody/.test(name) ? "Designed to carry daily essentials" : "A considered finishing piece for everyday wear",
+    "Made to develop character through use",
+  ];
+  if (/knit|sweater|cardigan|crewneck|half-zip|vest|polo|beanie|scarf|dress/.test(name)) return [
+    `${material} knit`,
+    /zip/.test(name) ? "Half-zip neckline" : /cardigan/.test(name) ? "Button-through cardigan construction" : "Ribbed trims for a neat finish",
+    `${product.fit} silhouette`,
+  ];
+  if (/shirt|blouse|dress/.test(name)) return [
+    `${material} fabric`,
+    "Tailored for ease of movement",
+    `${product.fit} silhouette`,
+  ];
+  if (/trouser|pants|chino|short|skirt/.test(name)) return [
+    `${material} fabric`,
+    "Designed with a clean, considered line",
+    `${product.fit} silhouette`,
+  ];
+  return [
+    `${material} construction`,
+    "Made with a focus on proportion and everyday versatility",
+    `${product.fit} silhouette`,
+  ];
+}
+
+function modelFitDetails(product) {
+  if (product.audience === "women") return "The model is 178 cm tall, weighs 56 kg, measures 84–62–90 cm, and wears size S.";
+  if (product.audience === "kids") return "The model is 110 cm tall and wears the age-5 size.";
+  return "The model is 188 cm tall, weighs 78 kg, measures 98–78–96 cm, and wears size M.";
+}
+
 export default function ProductDetail() {
   const { id } = useParams();
   const { products } = useStore();
   const product = products.find((item) => item.id === Number(id));
-  const { addToCart } = useCart();
+  const { addToCart, cart, cartCount, cartTotal } = useCart();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  useDocumentTitle(product ? product.name : "Sản phẩm");
+  useDocumentTitle(product ? product.name : "Product");
   const [selectedColor, setSelectedColor] = useState(product?.colors?.[0] || "");
   const [selectedSize, setSelectedSize] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
   const [added, setAdded] = useState(false);
+  const [cartNoticeOpen, setCartNoticeOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const [measurement, setMeasurement] = useState({ chest: "", waist: "", footLength: "" });
+  const [variantLoading, setVariantLoading] = useState(false);
 
   const variants = product?.variants || [];
   const colorVariants = variants.filter((variant) => variant.color === selectedColor);
   const selectedVariant = colorVariants.find((variant) => variant.size === selectedSize);
   const currentStock = selectedVariant?.stock || 0;
+  const quantityLimit = selectedVariant ? currentStock : Math.max(0, ...colorVariants.map((variant) => variant.stock));
+  const quantityExceedsStock = Boolean(selectedVariant && quantity > currentStock);
   const galleryImages = product?.colors?.flatMap((color) =>
     (product.colorImages?.[color] || []).map((image) => ({ image, color }))
   ) || (product?.images || []).map((image) => ({ image, color: selectedColor }));
-  const activeGalleryItem = galleryImages[activeImage] || galleryImages[0];
   const relatedProducts = product ? products.filter((item) => item.id !== product.id && (item.collection === product.collection || item.subcategory === product.subcategory)).slice(0, 3) : [];
   const isFootwear = product?.productType === "Footwear";
+  const detailItems = product ? constructionDetails(product) : [];
+  const material = product ? materialProfile(product) : "";
 
-  if (!product) return <main id="product-detail-container"><p>Sản phẩm không tồn tại.</p><Link to="/">Về trang chủ</Link></main>;
+  if (!product) return <main id="product-detail-container"><p>Product not found.</p><Link to="/">Back to home</Link></main>;
 
   const chooseColor = (color) => {
     const colorImageIndex = galleryImages.findIndex((item) => item.color === color);
+    setVariantLoading(true);
     setSelectedColor(color); setSelectedSize(""); setQuantity(1); setActiveImage(Math.max(0, colorImageIndex)); setMessage("");
+    window.setTimeout(() => setVariantLoading(false), 150);
+  };
+
+  const chooseSize = (size) => {
+    setVariantLoading(true);
+    setSelectedSize(size); setQuantity(1); setMessage("");
+    window.setTimeout(() => setVariantLoading(false), 150);
   };
 
   const chooseImage = (index) => {
@@ -57,16 +134,12 @@ export default function ProductDetail() {
     }
   };
 
-  const stepImage = (direction) => {
-    const nextIndex = (activeImage + direction + galleryImages.length) % galleryImages.length;
-    chooseImage(nextIndex);
-  };
-
   const handleAddToCart = () => {
-    if (!selectedSize) return setMessage("Vui lòng chọn kích thước trước khi thêm vào giỏ hàng.");
-    if (!selectedVariant || currentStock < 1) return setMessage("Biến thể này hiện đã hết hàng.");
-    addToCart(product, Math.min(quantity, currentStock), selectedColor, selectedSize, selectedVariant);
-    setMessage(""); setAdded(true); setTimeout(() => setAdded(false), 2000);
+    if (!selectedSize) return setMessage("Please select a size before adding this item to your bag.");
+    if (!selectedVariant || currentStock < 1) return setMessage("This variant is currently out of stock.");
+    if (quantityExceedsStock) return setMessage("Please adjust your quantity before adding this item to your bag.");
+    addToCart(product, quantity, selectedColor, selectedSize, selectedVariant);
+    setMessage(""); setAdded(true); setCartNoticeOpen(true); setTimeout(() => setAdded(false), 2000);
   };
 
   const recommendedSize = (() => {
@@ -81,29 +154,49 @@ export default function ProductDetail() {
 
   return (
     <main id="product-detail-container">
-          <div className="product-breadcrumb"><Link to={product.audience === "kids" ? "/kids" : product.gender === "nam" ? "/men" : product.gender === "nữ" ? "/women" : "/"}>{product.audience === "kids" ? "Kids" : product.gender}</Link><span>/</span><span>{product.subcategory}</span><span>/</span><span>{product.name}</span></div>
+      {cartNoticeOpen && <div className="cart-added-overlay" role="dialog" aria-modal="true" aria-labelledby="cart-added-title" onClick={() => setCartNoticeOpen(false)}><section className="cart-added-modal" onClick={(event) => event.stopPropagation()}><button type="button" className="cart-added-close" aria-label="Close notification" onClick={() => setCartNoticeOpen(false)}>×</button><p className="eyebrow">Maison Rue · The art of quiet luxury</p><h2 id="cart-added-title">Added to your bag</h2><p className="cart-added-product">{product.name} <span>{selectedColor}{selectedSize ? ` · ${selectedSize}` : ""} · Qty {quantity}</span></p><div className="cart-added-summary"><span>{cartCount} items in your bag</span><strong>{money(cartTotal)}</strong></div><p className="cart-added-note">Your selection is ready for the next step.</p><div className="cart-added-actions"><button type="button" className="cart-added-primary" onClick={() => navigate("/cart")}>View bag</button><button type="button" className="cart-added-secondary" onClick={() => setCartNoticeOpen(false)}>Continue shopping</button></div></section></div>}
+          <div className="product-breadcrumb"><Link to={product.audience === "kids" ? "/kids" : product.gender === "nam" ? "/men" : product.gender === "nữ" ? "/women" : "/"}>{product.audience === "kids" ? "Kids" : product.gender === "nam" ? "Men" : product.gender === "nữ" ? "Women" : "Home"}</Link><span>/</span><span>{product.subcategory}</span><span>/</span><span>{product.name}</span></div>
       <div className="product-detail">
           <div className="product-gallery">
-            <div className="gallery-color-label" aria-live="polite"><span>Viewing colour</span><strong>{selectedColor}</strong></div>
-          <div className="gallery-main">
-            <img src={`/${activeGalleryItem?.image}`} alt={`${product.name} — ${activeGalleryItem?.color || selectedColor}`} />
-            {galleryImages.length > 1 && <><button className="gallery-btn prev" onClick={() => stepImage(-1)}>‹</button><button className="gallery-btn next" onClick={() => stepImage(1)}>›</button><span className="image-counter">{activeImage + 1} / {galleryImages.length}</span></>}
+          <div className={`product-media-grid${variantLoading ? " is-loading" : ""}`}>
+            {galleryImages.map((item, index) => <button key={`${item.color}-${item.image}`} className={activeImage === index ? "active" : ""} onClick={() => chooseImage(index)} aria-label={`View ${item.color} image ${index + 1}`}><img src={`/${item.image}`} alt={`${product.name} — ${item.color}`} /></button>)}
           </div>
-          <div className="gallery-thumbnails">{galleryImages.map((item, index) => <button key={`${item.color}-${item.image}`} className={`${activeImage === index ? "active" : ""} ${selectedColor === item.color ? "selected-color" : ""}`} onClick={() => chooseImage(index)} title={item.color}><img src={`/${item.image}`} alt={`${product.name} — ${item.color}`} /></button>)}</div>
         </div>
         <div className="product-info">
-          <p className="product-category">{product.collection}</p><div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start" }}><h1>{product.name}</h1><button type="button" className="account-outline" aria-pressed={isFavorite(product.id)} onClick={async () => { const result = await toggleFavorite(product.id); if (result?.requiresLogin || currentUser?.role !== "customer") navigate(`/login?returnTo=${encodeURIComponent(location.pathname)}`); }}><i className={isFavorite(product.id) ? "fas fa-heart" : "far fa-heart"} /> {isFavorite(product.id) ? "Đã yêu thích" : "Yêu thích"}</button></div>
-          <p className="product-subtitle">{product.fit} · {product.material}</p>{product.promotionDiscount > 0 ? <div className="detail-promotion-price"><span>{money(product.price)}</span><strong>{money(product.promotionPrice)}</strong><small>{product.promotionName} · Tự động áp dụng</small></div> : <p className="product-price">{money(product.price)}</p>}
+          <p className="product-category">{product.collection}</p><div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start" }}><h1>{product.name}</h1><button type="button" className="product-wishlist-button" aria-label={isFavorite(product.id) ? "Remove from wishlist" : "Add to wishlist"} aria-pressed={isFavorite(product.id)} onClick={async () => { const result = await toggleFavorite(product.id); if (result?.requiresLogin || currentUser?.role !== "customer") navigate(`/login?returnTo=${encodeURIComponent(location.pathname)}`); }}><i className={isFavorite(product.id) ? "fas fa-heart" : "far fa-heart"} /></button></div>
+          <p className="product-subtitle">{product.fit} · {product.material}</p>{product.promotionDiscount > 0 ? <div className="detail-promotion-price"><span>{money(product.price)}</span><strong>{money(product.promotionPrice)}</strong><small>{product.promotionName} · Applied automatically</small></div> : <p className="product-price">{money(product.price)}</p>}
           <div className="detail-selector"><div className="selector-heading"><strong>Colour</strong><span aria-live="polite">{selectedColor}</span></div><div className="color-swatches">{product.colorOptions.map((color) => <button key={color.name} className={selectedColor === color.name ? "active" : ""} onClick={() => chooseColor(color.name)} title={color.name} aria-label={`Choose colour ${color.name}`} aria-pressed={selectedColor === color.name}><span style={{ background: color.hex }} /></button>)}</div></div>
-          <div className="detail-selector"><div className="selector-heading"><strong>Size</strong>{product.sizeGuide?.length > 0 && <button className="text-button" onClick={() => setSizeGuideOpen(true)}>Find my size · Size guide</button>}</div><div className="size-options">{colorVariants.map((variant) => <button key={variant.id} disabled={variant.stock < 1} className={selectedSize === variant.size ? "active" : ""} onClick={() => { setSelectedSize(variant.size); setQuantity(1); setMessage(""); }}>{variant.size}</button>)}</div></div>
-          <div className={`variant-status ${selectedVariant && currentStock <= 3 ? "low" : ""}`}>{!selectedSize ? "Select a size to view availability" : currentStock > 3 ? `In stock · ${currentStock} available` : currentStock > 0 ? `Low stock · only ${currentStock} remaining` : "Unavailable"}</div>
-          {selectedVariant && <p className="variant-sku">SKU {selectedVariant.sku}</p>}{message && <p className="product-validation">{message}</p>}
-          <div className="product-actions refined-actions"><div className="quantity-controls"><button onClick={() => setQuantity((q) => Math.max(1, q - 1))}>−</button><input readOnly value={quantity} aria-label="Quantity" /><button onClick={() => setQuantity((q) => Math.min(currentStock || 1, q + 1))}>+</button></div><button className="btn-primary btn-large" onClick={handleAddToCart}>{added ? "Added to bag ✓" : "Add to bag"}</button></div>
+          <div className="detail-selector"><div className="selector-heading"><strong>Size</strong>{product.sizeGuide?.length > 0 && <button className="text-button" onClick={() => setSizeGuideOpen(true)}>Find my size · Size guide</button>}</div><div className="size-options">{colorVariants.map((variant) => <button key={variant.id} disabled={variant.stock < 1} className={selectedSize === variant.size ? "active" : ""} onClick={() => chooseSize(variant.size)}>{variant.size}</button>)}</div></div>
+          {(!selectedSize || currentStock < 1) && <div className="variant-status">{!selectedSize ? "Select a size to continue" : "Unavailable"}</div>}
+          {message && <p className="product-validation">{message}</p>}
+          <div className="product-actions refined-actions"><div className="quantity-controls"><button type="button" aria-label="Decrease quantity" disabled={quantity <= 1} onClick={() => setQuantity((q) => Math.max(1, q - 1))}>−</button><input readOnly value={quantity} aria-label="Quantity" /><button type="button" aria-label="Increase quantity" disabled={quantityLimit < 1 || quantity >= 10} onClick={() => setQuantity((q) => Math.min(10, q + 1))}>+</button></div><button className="btn-primary btn-large" onClick={handleAddToCart}>{added ? "Added to bag ✓" : "Add to bag"}</button></div>
+          {quantityExceedsStock && <p className="product-stock-notice" role="alert">Your selected quantity exceeds the current availability.</p>}
           <div className="service-notes"><span>Complimentary delivery</span><span>14-day exchange</span><span>Secure checkout</span></div>
         </div>
       </div>
-      <section className="product-editorial"><p className="eyebrow">The Maison Rue Edit</p><h2>The Story</h2><p className="story-copy">{product.description} Created as part of the {product.collection} collection, this piece favours lasting material, restrained detail and an effortless silhouette over passing trends.</p><div className="detail-columns"><article><h3>Why you'll love it</h3><ul>{product.features.map((feature) => <li key={feature}>{feature}</li>)}</ul></article><article><h3>Material & care</h3><p>{product.material}</p><p>{product.care}</p></article><article><h3>Fit & measurements</h3><p>{product.fit}</p><p>{product.modelInfo}</p></article><article><h3>Delivery & returns</h3><p>{product.delivery}</p></article></div></section>
-      {product.sizeGuide?.length > 0 && <section id="size-guide" className="size-guide-section"><p className="eyebrow">Fit notes</p><h2>Size Guide</h2><div className="size-table-wrap"><table><thead><tr><th>Size</th>{isFootwear ? <th>Foot length</th> : <><th>Chest</th><th>Waist</th><th>Length</th></>}</tr></thead><tbody>{product.sizeGuide.map((row) => <tr key={row.size}><td>{row.size}</td>{isFootwear ? <td>{row.footLength} cm</td> : <><td>{row.chest} cm</td><td>{row.waist} cm</td><td>{row.length} cm</td></>}</tr>)}</tbody></table></div></section>}
+      <section className="product-details-section">
+        <details>
+          <summary>Product details <span aria-hidden="true">+</span></summary>
+          <ul>
+            {detailItems.map((detail) => <li key={detail}>{detail}</li>)}
+            <li>Material: {material}</li>
+            <li>Care: Follow the care label to preserve the material and finish.</li>
+            <li>Product code: {product.productCode}</li>
+          </ul>
+        </details>
+        <details>
+          <summary>Model & fit <span aria-hidden="true">+</span></summary>
+          <p>{modelFitDetails(product)}</p>
+        </details>
+        <details>
+          <summary>Care &amp; Maintenance <span aria-hidden="true">+</span></summary>
+          <p>Handle this piece with care and follow the care label for material-specific instructions. Allow natural fibres to rest between wears, keep the item away from prolonged heat and direct light, and store it clean and dry. For delicate materials such as cashmere, silk and suede, we recommend professional care when needed.</p>
+        </details>
+        <details>
+          <summary>Returns &amp; Exchange <span aria-hidden="true">+</span></summary>
+          <p>Full-price items may be eligible for return or exchange within 14 days of delivery, provided they are unworn, unaltered and returned with all original tags and packaging. Products purchased under a promotion or discount programme are not eligible for return or exchange. Please review our Returns &amp; Refunds policy before making a request.</p>
+        </details>
+      </section>
       {sizeGuideOpen && product.sizeGuide?.length > 0 && <div className="size-guide-overlay" role="dialog" aria-modal="true" aria-labelledby="size-guide-title" onClick={() => setSizeGuideOpen(false)}><div className="size-guide-modal" onClick={(event) => event.stopPropagation()}><button className="size-guide-close" onClick={() => setSizeGuideOpen(false)} aria-label="Close size guide">×</button><p className="eyebrow">Maison Rue fit service</p><h2 id="size-guide-title">Find your size</h2><p className="size-guide-intro">{isFootwear ? "Measure from the back of the heel to the longest toe." : "Measure over a light layer. Keep the tape relaxed and parallel to the floor."}</p><div className="measurement-grid">{isFootwear ? <label>Foot length (cm)<input type="number" min="0" step="0.1" value={measurement.footLength} onChange={(event) => setMeasurement((current) => ({ ...current, footLength: event.target.value }))} placeholder="e.g. 25.4" /></label> : <><label>Chest / bust (cm)<input type="number" min="0" value={measurement.chest} onChange={(event) => setMeasurement((current) => ({ ...current, chest: event.target.value }))} placeholder="e.g. 96" /></label><label>Waist (cm)<input type="number" min="0" value={measurement.waist} onChange={(event) => setMeasurement((current) => ({ ...current, waist: event.target.value }))} placeholder="e.g. 80" /></label></>}</div>{recommendedSize && <div className="size-recommendation"><strong>Recommended size: {recommendedSize}</strong><span>{isFootwear ? "If between sizes, choose the larger size." : "Choose the next size up if you prefer a relaxed fit."}</span></div>}<h3>How to measure</h3>{isFootwear ? <ol className="measure-steps"><li>Stand on a sheet of paper with your heel against a wall.</li><li>Mark the longest toe and measure the distance to the wall.</li><li>Measure both feet and use the larger measurement.</li></ol> : <ol className="measure-steps"><li><strong>Chest:</strong> measure around the fullest part.</li><li><strong>Waist:</strong> measure the narrowest part without pulling tight.</li><li><strong>Between sizes:</strong> size up for ease, size down for a closer fit.</li></ol>}<div className="size-table-wrap"><table><thead><tr><th>Size</th>{isFootwear ? <th>Foot length</th> : <><th>Chest</th><th>Waist</th><th>Length</th></>}</tr></thead><tbody>{product.sizeGuide.map((row) => <tr key={row.size}><td>{row.size}</td>{isFootwear ? <td>{row.footLength} cm</td> : <><td>{row.chest} cm</td><td>{row.waist} cm</td><td>{row.length} cm</td></>}</tr>)}</tbody></table></div></div></div>}
       {relatedProducts.length > 0 && <section className="related-section"><p className="eyebrow">Curated for you</p><h2>Complete the Look</h2><div className="related-grid">{relatedProducts.map((item) => <ProductCard key={item.id} product={item} />)}</div></section>}
       <ProductReviews productId={product.id} />
