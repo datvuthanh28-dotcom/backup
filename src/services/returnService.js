@@ -121,8 +121,11 @@ export function updateReturnRequest(id, fields = {}) {
  * Gửi email thông báo xét duyệt hoàn tiền tới khách hàng qua EmailJS
  */
 export async function sendReturnApprovalEmail(req) {
-  const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || "service_az46k1f";
-  const templateId = import.meta.env.VITE_EMAILJS_ORDER_TEMPLATE_ID || "template_20zssht";
+  const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || "service_zkrrxcm";
+  const templateId =
+    import.meta.env.VITE_EMAILJS_RETURN_TEMPLATE_ID ||
+    import.meta.env.VITE_EMAILJS_ORDER_TEMPLATE_ID ||
+    "template_20zssht";
   const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || "ZjQM0mkSjz2NACdA9";
 
   if (!publicKey) {
@@ -210,9 +213,27 @@ export async function sendReturnApprovalEmail(req) {
   `.trim();
 
   const templateParams = {
+    // Thông tin người nhận & tiêu đề
     to_email: req.customerEmail,
     email: req.customerEmail,
+    name: req.customerName || "Quý khách",
     subject: subject,
+
+    // Tương thích 100% với Template 1 (template_20zssht) hiện tại trong dự án
+    order_id: req.id,
+    order_status: "ĐÃ ĐƯỢC DUYỆT HOÀN TIỀN (APPROVED)",
+    customer_name: req.customerName || "Quý khách",
+    message_intro: "Ban Quản Trị Maison Rue đã xem xét và chính thức CHẤP THUẬN yêu cầu đổi/trả sản phẩm của quý khách.",
+    order_date: new Date().toLocaleString("vi-VN", { hour12: false }),
+    payment_method: "Hoàn trả về phương thức thanh toán ban đầu",
+    shipping_address: "Bưu tá sẽ liên hệ tiếp nhận hàng tại địa chỉ của quý khách trong 24–48h tới",
+    order_items: `• Sản phẩm: ${req.item}\n• Lý do: ${req.reason}\n• Chi tiết từ khách: ${req.detailNote || "Không có"}`,
+    total_amount: "XÁC NHẬN HOÀN TIỀN",
+    note: req.adminNote
+      ? `Ghi chú từ Quản trị viên: ${req.adminNote}`
+      : "Quý khách vui lòng chuẩn bị sản phẩm nguyên vẹn, bưu tá sẽ liên hệ trước khi đến nhận lại hàng.",
+
+    // Các biến chi tiết nếu dùng template riêng
     item: req.item,
     reason: req.reason,
     detail_note: req.detailNote || "Không có",
