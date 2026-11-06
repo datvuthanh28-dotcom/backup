@@ -124,8 +124,7 @@ export async function sendReturnApprovalEmail(req) {
   const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || "service_zkrrxcm";
   const templateId =
     import.meta.env.VITE_EMAILJS_RETURN_TEMPLATE_ID ||
-    import.meta.env.VITE_EMAILJS_ORDER_TEMPLATE_ID ||
-    "template_20zssht";
+    "template_o58jllw";
   const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || "ZjQM0mkSjz2NACdA9";
 
   if (!publicKey) {
