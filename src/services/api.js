@@ -139,6 +139,14 @@ export const returnsAPI = {
   update: (id, payload) => request(`/returns/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(payload) }),
 };
 
+export const chatAPI = {
+  sendMessage: (message, history = []) =>
+    request("/chat", {
+      method: "POST",
+      body: JSON.stringify({ message, history }),
+    }),
+};
+
 export const employeeAPI = {
   getAll: () => request("/admin/employees"),
   create: (payload) =>

@@ -8,20 +8,49 @@ export async function submitReturnRequest(req, res) {
     const { orderId, orderItemId, requestType, reasonCode, reasonDetail, quantity, exchangeSize, exchangeColor, conditionConfirmed } = req.body || {};
     const order = await db.getOrderById(String(orderId || ""));
     if (!order || order.customer_id !== req.user.id) return res.status(404).json({ success: false, error: "Order item not found." });
+
+    // Delivered check (Section III): Only strictly delivered orders can enter the return flow
+    if (order.order_status !== "delivered") {
+      return res.status(400).json({
+        success: false,
+        error: "Chỉ đơn hàng đã giao thành công (delivered) mới có thể gửi hồ sơ đổi trả chính thức. Vui lòng liên hệ hỗ trợ nếu đơn hàng đang giao chưa được xác nhận.",
+      });
+    }
+
     const orderItem = order.items.find((item) => Number(item.id) === Number(orderItemId));
     if (!orderItem) return res.status(404).json({ success: false, error: "Order item not found." });
+
+    // Duplicate check (Section III): Prevent multiple return requests for the same order item
     const existingRequest = await db.getReturnRequestForOrderItem({ customerId: req.user.id, orderItemId: orderItem.id });
-    if (existingRequest) return res.status(409).json({ success: false, error: "A return or exchange request has already been submitted for this item. Please refer to its current decision below." });
+    if (existingRequest) {
+      return res.status(409).json({
+        success: false,
+        error: "Hồ sơ đổi/trả cho sản phẩm này đã tồn tại trong hệ thống. Vui lòng xem trạng thái xử lý hiện tại hoặc liên hệ bộ phận hỗ trợ khách hàng để được giải đáp.",
+      });
+    }
+
     if (!["refund", "exchange"].includes(requestType)) return res.status(400).json({ success: false, error: "Choose a return/refund or exchange request." });
     if (requestType === "exchange") {
       const options = await db.getProductVariantOptions(orderItem.product_id);
       const requestedVariant = options.variants.find((variant) => variant.size === exchangeSize && variant.color === exchangeColor);
       if (!requestedVariant) throw new Error("Choose an available size and colour combination for the exchange.");
     }
+
+    // Account email snapshot (Section V): Read strictly from customer account in DB, ignore client body
+    const user = await db.findUserById(req.user.id);
+    const customerEmail = (user?.email || req.user.email || "").trim().toLowerCase();
+    if (!customerEmail || !customerEmail.includes("@")) {
+      return res.status(400).json({
+        success: false,
+        error: "Tài khoản của bạn chưa có email hợp lệ. Vui lòng cập nhật email tại trang tài khoản trước khi gửi yêu cầu.",
+      });
+    }
+
     const quantityValue = Number(quantity || 1);
     const result = evaluateReturnRequest({ order, orderItem, request: { reasonCode, reasonDetail, quantity: quantityValue, conditionConfirmed } });
     const row = await db.createReturnRequest({
       id: id(), orderId: order.id, orderItemId: Number(orderItem.id), customerId: req.user.id,
+      customerEmail,
       requestType, reasonCode, reasonDetail: String(reasonDetail || "").trim().slice(0, 1000), quantity: quantityValue,
       exchangeSize, exchangeColor, amount: result.requestedAmount || 0,
       status: result.status === "auto_approved" ? "return_authorized" : result.status,
@@ -72,8 +101,18 @@ export async function updateReturnRequest(req, res) {
       if (!String(note || "").trim()) throw new Error("Add the reason inspection failed.");
       fields = { status: "inspection_failed", inspectionNote: String(note).trim() };
     } else if (action === "refund") {
+      // Role Segregation (Section IV): Staff can inspect & exchange, but financial refund is ADMIN ONLY
+      if (req.user.role !== "admin") {
+        return res.status(403).json({
+          success: false,
+          error: "Quyền thực hiện hoàn tiền tài chính chỉ dành riêng cho Quản trị viên (Admin). Nhân viên không thể thực hiện hoàn tiền.",
+        });
+      }
       if (existing.status !== "inspection_passed") throw new Error("Refund is available only after a passed physical inspection.");
-      await db.processReturnRefund({ requestId: existing.id, refundedBy: staffName, refundReference, note });
+      if (!refundReference || !String(refundReference).trim()) {
+        throw new Error("Vui lòng cung cấp mã tham chiếu đối soát hoàn tiền (chuyển khoản hoặc cổng thanh toán).");
+      }
+      await db.processReturnRefund({ requestId: existing.id, refundedBy: staffName, refundReference: String(refundReference).trim(), note });
       return res.json({ success: true, request: await db.getReturnRequestById(existing.id) });
     } else if (action === "exchange") {
       if (existing.status !== "inspection_passed" || existing.request_type !== "exchange") throw new Error("Exchange can be completed only after inspection passes for an exchange request.");

@@ -431,6 +431,7 @@ export const db = {
       .input("order_id", sql.NVarChar, record.orderId)
       .input("order_item_id", sql.Int, record.orderItemId)
       .input("customer_id", sql.NVarChar, record.customerId)
+      .input("customer_email", sql.NVarChar, record.customerEmail || null)
       .input("request_type", sql.NVarChar, record.requestType)
       .input("reason_code", sql.NVarChar, record.reasonCode)
       .input("reason_detail", sql.NVarChar, record.reasonDetail || null)
@@ -441,8 +442,8 @@ export const db = {
       .input("status", sql.NVarChar, record.status)
       .input("decision_reason", sql.NVarChar, record.decisionReason)
       .input("deadline", sql.DateTime2, record.deadline || null)
-      .query(`INSERT INTO ReturnRequests(id,order_id,order_item_id,customer_id,request_type,reason_code,reason_detail,requested_quantity,exchange_size,exchange_color,requested_amount,status,decision_reason,return_deadline,created_at,updated_at)
-        VALUES(@id,@order_id,@order_item_id,@customer_id,@request_type,@reason_code,@reason_detail,@quantity,@exchange_size,@exchange_color,@amount,@status,@decision_reason,@deadline,GETDATE(),GETDATE())`);
+      .query(`INSERT INTO ReturnRequests(id,order_id,order_item_id,customer_id,customer_email,request_type,reason_code,reason_detail,requested_quantity,exchange_size,exchange_color,requested_amount,status,decision_reason,return_deadline,created_at,updated_at)
+        VALUES(@id,@order_id,@order_item_id,@customer_id,@customer_email,@request_type,@reason_code,@reason_detail,@quantity,@exchange_size,@exchange_color,@amount,@status,@decision_reason,@deadline,GETDATE(),GETDATE())`);
     return this.getReturnRequestById(record.id);
   },
 
@@ -460,9 +461,14 @@ export const db = {
 
   async getReturnRequestById(id) {
     const p = await getActivePool();
-    const result = await p.request().input("id", sql.NVarChar, id).query(`SELECT rr.*,o.customer_name,o.customer_email,oi.product_name,oi.selected_color,oi.selected_size,oi.image_url
+    const result = await p.request().input("id", sql.NVarChar, id).query(`SELECT rr.*,o.customer_name,o.customer_email AS order_customer_email,oi.product_name,oi.selected_color,oi.selected_size,oi.image_url
       FROM ReturnRequests rr JOIN Orders o ON o.id=rr.order_id JOIN OrderItems oi ON oi.id=rr.order_item_id WHERE rr.id=@id`);
-    return result.recordset[0] || null;
+    const row = result.recordset[0];
+    if (!row) return null;
+    return {
+      ...row,
+      customer_email: row.customer_email || row.order_customer_email,
+    };
   },
 
   async getReturnRequests({ customerId = null } = {}) {
@@ -470,9 +476,12 @@ export const db = {
     const request = p.request();
     let where = "";
     if (customerId) { request.input("customer_id", sql.NVarChar, customerId); where = "WHERE rr.customer_id=@customer_id"; }
-    const result = await request.query(`SELECT rr.*,o.customer_name,o.customer_email,oi.product_name,oi.selected_color,oi.selected_size,oi.image_url
+    const result = await request.query(`SELECT rr.*,o.customer_name,o.customer_email AS order_customer_email,oi.product_name,oi.selected_color,oi.selected_size,oi.image_url
       FROM ReturnRequests rr JOIN Orders o ON o.id=rr.order_id JOIN OrderItems oi ON oi.id=rr.order_item_id ${where} ORDER BY rr.created_at DESC`);
-    return result.recordset;
+    return result.recordset.map((row) => ({
+      ...row,
+      customer_email: row.customer_email || row.order_customer_email,
+    }));
   },
 
   async updateReturnRequest(id, fields) {
