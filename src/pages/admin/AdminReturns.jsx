@@ -54,6 +54,7 @@ export default function AdminReturns({ isStaffView = false }) {
         try {
           await sendReturnApprovalEmail({
             id: request.id,
+            order_id: request.order_id,
             customer_email: request.customer_email,
             customer_name: request.customer_name,
             product_name: request.product_name,

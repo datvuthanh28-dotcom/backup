@@ -287,6 +287,9 @@ async function runTests() {
     };
 
     const createRes = await makeRequest("POST", "/api/orders", orderPayload, custCookie);
+    if (createRes.status !== 201) {
+      console.log("createRes failure:", createRes.status, createRes.body);
+    }
     assert(createRes.status === 201, "Order created successfully via API");
     const orderId = createRes.body.order.id;
     console.log(`Created Order ID: ${orderId}`);
