@@ -121,9 +121,9 @@ export function updateReturnRequest(id, fields = {}) {
  * Gửi email thông báo xét duyệt hoàn tiền tới khách hàng qua EmailJS
  */
 export async function sendReturnApprovalEmail(req) {
-  const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || "";
-  const templateId = import.meta.env.VITE_EMAILJS_RETURN_TEMPLATE_ID || "";
-  const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || "";
+  const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || "service_zkrrxcm";
+  const templateId = import.meta.env.VITE_EMAILJS_RETURN_TEMPLATE_ID || "template_o58jllw";
+  const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || "ZjQM0mkSjz2NACdA9";
 
   if (!serviceId || !templateId || !publicKey) {
     console.warn("[EmailJS] Chưa cấu hình đầy đủ EmailJS. Bỏ qua gửi email.");
