@@ -71,8 +71,4 @@ return (
     )}
   </article>
 );
-      </Link>
-      {product.colorOptions && <div className="card-swatches" aria-label="Available colours">{product.colorOptions.slice(0, 4).map((color) => <button type="button" key={color.name} title={color.name} aria-label={`Show ${color.name}`} aria-pressed={selectedColor === color.name} className={selectedColor === color.name ? "active" : ""} style={{ background: color.hex }} onClick={() => setSelectedColor(color.name)} />)}</div>}
-    </article>
-  );
 }
