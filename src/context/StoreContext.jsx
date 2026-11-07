@@ -38,7 +38,13 @@ export function StoreProvider({ children }) {
   // Fetch Products & Stock from Backend
   const refreshProducts = useCallback(async () => {
     try {
-      const [res, promotionPrices] = await Promise.all([productsAPI.getAll(), promotionAPI.getCatalogPrices().catch(() => ({ prices: {} }))]);
+      // Inventory is critical storefront data. Do not make it wait for the
+      // optional promotion-price request, which can be slower while reports
+      // and promotion rules are being calculated.
+      const promotionPricesPromise = promotionAPI
+        .getCatalogPrices()
+        .catch(() => ({ prices: {} }));
+      const res = await productsAPI.getAll();
       if (res.success && Array.isArray(res.products) && res.products.length > 0) {
         // The approved assortment is the storefront source of truth. Ignore legacy
         // products that may still be returned by an older or unsynchronized API.
@@ -54,16 +60,37 @@ export function StoreProvider({ children }) {
               gender: catalogProduct.gender,
               productType: catalogProduct.productType,
               subcategory: catalogProduct.subcategory,
-              promotionPrice: promotionPrices.prices?.[Number(product.id)]?.salePrice ?? Number(product.price),
-              promotionDiscount: promotionPrices.prices?.[Number(product.id)]?.discount || 0,
-              promotionName: promotionPrices.prices?.[Number(product.id)]?.promotionName || null,
+              // Product media ships with the approved catalog. The database
+              // may still contain legacy placeholder paths after a catalog
+              // pull, so live stock must not overwrite current WebP assets.
+              images: catalogProduct.images,
+              colors: catalogProduct.colors,
+              colorImages: catalogProduct.colorImages,
+              colorOptions: catalogProduct.colorOptions,
+              promotionPrice: Number(product.price),
+              promotionDiscount: 0,
+              promotionName: null,
               collection: catalogProduct.collection,
               collections: catalogProduct.collections,
               material: catalogProduct.material,
             };
           })
           .filter(Boolean);
-        if (approvedProducts.length > 0) setProducts(approvedProducts);
+        if (approvedProducts.length > 0) {
+          // Publish live SKU stock immediately.
+          setProducts(approvedProducts);
+
+          // Promotion data enhances the already-live catalog when available.
+          const promotionPrices = await promotionPricesPromise;
+          if (promotionPrices?.prices) {
+            setProducts((currentProducts) => currentProducts.map((product) => ({
+              ...product,
+              promotionPrice: promotionPrices.prices?.[Number(product.id)]?.salePrice ?? Number(product.price),
+              promotionDiscount: promotionPrices.prices?.[Number(product.id)]?.discount || 0,
+              promotionName: promotionPrices.prices?.[Number(product.id)]?.promotionName || null,
+            })));
+          }
+        }
       }
     } catch (err) {
       console.warn("[Store] Products API fetch fallback:", err.message);

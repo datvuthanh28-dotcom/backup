@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import process from "node:process";
 
 const steps = [
+  ["db:create", []],
   ["db:migrate", []],
   ["db:seed-metrics", []],
   ["db:costs", []],

@@ -3,6 +3,29 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useStore } from "../hooks/useStore";
 import { useFavorites } from "../context/FavoritesContext";
 
+function materialLabel(product) {
+  if (product.collection === "Heritage Cashmere") return "Cashmere";
+
+  const name = product.name.toLowerCase();
+  if (/canvas.*leather|leather.*canvas/.test(name)) return "Canvas & Leather";
+  if (/linen.*cotton|cotton.*linen/.test(name)) return "Linen & Cotton";
+  if (/merino.*cotton|cotton.*merino/.test(name)) return "Merino & Cotton";
+  if (/suede/.test(name)) return "Suede";
+  if (/calfskin/.test(name)) return "Calfskin";
+  if (/cashmere/.test(name)) return "Cashmere";
+  if (/merino/.test(name)) return "Merino Wool";
+  if (/wool/.test(name)) return "Wool";
+  if (/linen/.test(name)) return "Linen";
+  if (/silk/.test(name)) return "Silk";
+  if (/cotton/.test(name)) return "Cotton";
+  if (/leather/.test(name)) return "Leather";
+  if (/canvas/.test(name)) return "Canvas";
+  if (/acetate/.test(name)) return "Acetate";
+  if (/titanium/.test(name)) return "Titanium";
+  if (/nylon/.test(name)) return "Nylon";
+  return "Maison Rue Essentials";
+}
+
 function HeartIcon({ filled = false }) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className="product-card-heart-icon">
@@ -33,7 +56,7 @@ export default function ProductCard({ product }) {
   const modelImage = selectedImages.find((image) => image.toLowerCase().includes("model"));
   // Curate model covers for roughly one third of cards so the catalog keeps visual rhythm.
 const coverImage = modelImage && product.id % 3 === 0 ? modelImage : selectedImages[0] || product.images?.[0];
-const hoverImage = product.images?.[1] && product.images[1] !== coverImage ? product.images[1] : null;
+const hoverImage = selectedImages[1] && selectedImages[1] !== coverImage ? selectedImages[1] : null;
 
 return (
   <article className="product-card">

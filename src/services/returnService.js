@@ -7,7 +7,7 @@ const INITIAL_DEMO_RETURNS = [
   {
     id: "RET-784201",
     createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    customerEmail: "vudat9532@gmail.com",
+    customerEmail: "customer@gmail.com",
     customerName: "Vũ Thành Đạt",
     item: "Merino Wool Knitted Polo (MR-106 - Beige / M)",
     reason: "Không vừa size",
@@ -121,15 +121,13 @@ export function updateReturnRequest(id, fields = {}) {
  * Gửi email thông báo xét duyệt hoàn tiền tới khách hàng qua EmailJS
  */
 export async function sendReturnApprovalEmail(req) {
-  const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || "service_zkrrxcm";
-  const templateId =
-    import.meta.env.VITE_EMAILJS_RETURN_TEMPLATE_ID ||
-    "template_o58jllw";
-  const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || "ZjQM0mkSjz2NACdA9";
+  const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || "";
+  const templateId = import.meta.env.VITE_EMAILJS_RETURN_TEMPLATE_ID || "";
+  const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || "";
 
-  if (!publicKey) {
-    console.warn("[EmailJS] Chưa cấu hình VITE_EMAILJS_PUBLIC_KEY. Bỏ qua gửi email.");
-    return { success: false, reason: "missing_public_key" };
+  if (!serviceId || !templateId || !publicKey) {
+    console.warn("[EmailJS] Chưa cấu hình đầy đủ EmailJS. Bỏ qua gửi email.");
+    return { success: false, reason: "missing_email_configuration" };
   }
 
   const subject = `[Maison Rue] Thông báo: Yêu cầu đổi trả #${req.id} đã được DUYỆT`;
@@ -218,7 +216,7 @@ export async function sendReturnApprovalEmail(req) {
     name: req.customerName || "Quý khách",
     subject: subject,
 
-    // Tương thích 100% với Template 1 (template_20zssht) hiện tại trong dự án
+    // Reuse the configured order-status template fields.
     order_id: req.id,
     order_status: "ĐÃ ĐƯỢC DUYỆT HOÀN TIỀN (APPROVED)",
     customer_name: req.customerName || "Quý khách",
