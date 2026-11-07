@@ -4,7 +4,10 @@ import { db } from "../config/db.js";
 
 dotenv.config();
 
-const JWT_SECRET = process.env.JWT_SECRET || "maison_rue_super_secret_jwt_key_2026_luxury_old_money";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET is missing. Configure it in your local .env file.");
+}
 
 export function generateToken(user) {
   return jwt.sign(

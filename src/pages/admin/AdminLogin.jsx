@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate, useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
 
@@ -12,10 +12,6 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  if (currentUser) {
-    return <Navigate to={role === "admin" ? "/admin" : role === "staff" ? "/staff" : "/account/orders"} replace />;
-  }
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -110,6 +106,7 @@ export default function AdminLogin() {
             <div>
               <span>Đang đăng nhập: </span>
               <strong>{currentUser.name}</strong> ({role})
+              {role !== "admin" && <div style={{ marginTop: "4px", color: "#B8A894", fontSize: "11.5px" }}>Đăng nhập Admin thành công sẽ thay thế phiên hiện tại.</div>}
             </div>
             {role === "admin" ? (
               <button
@@ -205,7 +202,7 @@ export default function AdminLogin() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="vanhung29993@gmail.com"
+                placeholder="admin@maisonrue.com"
                 style={{
                   width: "100%",
                   padding: "12px 14px",
@@ -284,7 +281,7 @@ export default function AdminLogin() {
 
             <button
               type="button"
-              onClick={() => quickFill("vanhung29993@gmail.com", "admin123")}
+              onClick={() => quickFill("admin@maisonrue.com", "admin123")}
               style={{
                 width: "100%",
                 padding: "10px 14px",
@@ -302,7 +299,7 @@ export default function AdminLogin() {
             >
               <div>
                 <strong style={{ color: "#FFF" }}>👔 Quản Trị Viên Cấp Cao</strong>
-                <div style={{ fontSize: "11.5px", color: "#B89B5E" }}>vanhung29993@gmail.com (pass: admin123)</div>
+                <div style={{ fontSize: "11.5px", color: "#B89B5E" }}>admin@maisonrue.com (pass: admin123)</div>
               </div>
               <span style={{ fontSize: "11px", color: "#8A5A36", fontWeight: "600" }}>Điền thông tin</span>
             </button>

@@ -6,7 +6,7 @@ dotenv.config();
 
 const sqlConfig = {
   user: process.env.DB_USER || "sa",
-  password: process.env.DB_PASSWORD || "YourStrongPassword123!",
+  password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME || "MaisonRueDB",
   server: process.env.DB_SERVER || "localhost",
   port: parseInt(process.env.DB_PORT, 10) || 1433,
@@ -25,6 +25,9 @@ let pool = null;
 let isSqlServerConnected = false;
 
 export async function connectDB() {
+  if (!sqlConfig.password) {
+    throw new Error("[Database Error] DB_PASSWORD is missing. Configure it in your local .env file.");
+  }
   if (pool && isSqlServerConnected) {
     return pool;
   }
@@ -61,6 +64,64 @@ async function getActivePool() {
     return await connectDB();
   }
   return pool;
+}
+
+// Returned merchandise becomes sellable only after physical inspection passes.
+// The caller owns the SQL transaction, so stock changes roll back with a failed
+// refund or replacement dispatch instead of leaving a partial inventory update.
+async function restoreReturnedInventory(transaction, returnRequest, performedBy, referenceId, movementType, supplied = {}) {
+  let item = supplied.item;
+  if (!item) {
+    const itemResult = await transaction.request().input("id", sql.Int, returnRequest.order_item_id)
+      .query("SELECT id,product_id,variant_id,variant_sku,selected_color,selected_size,quantity FROM OrderItems WITH (UPDLOCK,ROWLOCK) WHERE id=@id");
+    item = itemResult.recordset[0];
+  }
+  const quantity = Number(returnRequest.requested_quantity || 0);
+  if (!item || !Number.isInteger(quantity) || quantity < 1 || quantity > Number(item.quantity)) {
+    throw new Error("The approved return quantity is invalid.");
+  }
+
+  let originalVariant = supplied.originalVariant;
+  if (!originalVariant) {
+    const variantResult = await transaction.request()
+      .input("product_id", sql.Int, item.product_id)
+      .input("variant_id", sql.NVarChar, item.variant_id || null)
+      .input("color", sql.NVarChar, item.selected_color)
+      .input("size", sql.NVarChar, item.selected_size)
+      .query(`SELECT id,product_id,sku,color_name,size_name,stock_quantity,is_active
+        FROM ProductVariants WITH (UPDLOCK,HOLDLOCK)
+        WHERE product_id=@product_id
+          AND ((@variant_id IS NOT NULL AND id=@variant_id)
+            OR (@variant_id IS NULL AND color_name=@color AND size_name=@size))`);
+    originalVariant = variantResult.recordset[0];
+  }
+  if (!originalVariant) {
+    throw new Error("The original SKU could not be found for this returned item. Please correct inventory manually before completing the request.");
+  }
+
+  const variantUpdate = await transaction.request()
+    .input("variant_id", sql.NVarChar, originalVariant.id)
+    .input("qty", sql.Int, quantity)
+    .query("UPDATE ProductVariants SET stock_quantity=stock_quantity+@qty,updated_at=GETDATE() OUTPUT inserted.stock_quantity WHERE id=@variant_id");
+  const resultingVariantStock = Number(variantUpdate.recordset[0].stock_quantity);
+  const productUpdate = await transaction.request()
+    .input("product_id", sql.Int, item.product_id)
+    .input("qty", sql.Int, quantity)
+    .query("UPDATE Products SET stock=stock+@qty,updated_at=GETDATE() OUTPUT inserted.stock WHERE id=@product_id");
+  if (!productUpdate.recordset[0]) throw new Error("The returned item's product could not be found in inventory.");
+  const resultingProductStock = Number(productUpdate.recordset[0].stock);
+  await transaction.request()
+    .input("product_id", sql.Int, item.product_id)
+    .input("variant_id", sql.NVarChar, originalVariant.id)
+    .input("movement_type", sql.NVarChar, movementType)
+    .input("quantity_change", sql.Int, quantity)
+    .input("resulting_stock", sql.Int, resultingProductStock)
+    .input("reference_id", sql.NVarChar, referenceId)
+    .input("note", sql.NVarChar, `Physical return accepted for ${referenceId}: ${originalVariant.sku} (${originalVariant.color_name} / ${originalVariant.size_name}); variant stock after receipt: ${resultingVariantStock}`)
+    .input("performed_by", sql.NVarChar, performedBy)
+    .query(`INSERT INTO InventoryMovements(product_id,variant_id,movement_type,quantity_change,resulting_stock,reference_id,note,performed_by,created_at)
+      VALUES(@product_id,@variant_id,@movement_type,@quantity_change,@resulting_stock,@reference_id,@note,@performed_by,GETDATE())`);
+  return { item, originalVariant, quantity, resultingVariantStock, resultingProductStock };
 }
 
 // Authoritative Database Query Adapter (Strictly Microsoft SQL Server)
@@ -345,6 +406,194 @@ export const db = {
   async getOrderById(id) {
     const all = await this.getAllOrders();
     return all.find((o) => o.id === id) || null;
+  },
+
+  async getProductVariantOptions(productId) {
+    const p = await getActivePool();
+    const result = await p.request().input("product_id", sql.Int, Number(productId)).query(`
+      SELECT DISTINCT color_name, size_name
+      FROM ProductVariants
+      WHERE product_id=@product_id AND is_active=1
+      ORDER BY color_name, size_name
+    `);
+    const variants = result.recordset;
+    return {
+      sizes: [...new Set(variants.map((variant) => variant.size_name).filter(Boolean))],
+      colors: [...new Set(variants.map((variant) => variant.color_name).filter(Boolean))],
+      variants: variants.map((variant) => ({ size: variant.size_name, color: variant.color_name })),
+    };
+  },
+
+  async createReturnRequest(record) {
+    const p = await getActivePool();
+    await p.request()
+      .input("id", sql.NVarChar, record.id)
+      .input("order_id", sql.NVarChar, record.orderId)
+      .input("order_item_id", sql.Int, record.orderItemId)
+      .input("customer_id", sql.NVarChar, record.customerId)
+      .input("request_type", sql.NVarChar, record.requestType)
+      .input("reason_code", sql.NVarChar, record.reasonCode)
+      .input("reason_detail", sql.NVarChar, record.reasonDetail || null)
+      .input("quantity", sql.Int, record.quantity)
+      .input("exchange_size", sql.NVarChar, record.exchangeSize || null)
+      .input("exchange_color", sql.NVarChar, record.exchangeColor || null)
+      .input("amount", sql.Decimal(18, 0), record.amount || 0)
+      .input("status", sql.NVarChar, record.status)
+      .input("decision_reason", sql.NVarChar, record.decisionReason)
+      .input("deadline", sql.DateTime2, record.deadline || null)
+      .query(`INSERT INTO ReturnRequests(id,order_id,order_item_id,customer_id,request_type,reason_code,reason_detail,requested_quantity,exchange_size,exchange_color,requested_amount,status,decision_reason,return_deadline,created_at,updated_at)
+        VALUES(@id,@order_id,@order_item_id,@customer_id,@request_type,@reason_code,@reason_detail,@quantity,@exchange_size,@exchange_color,@amount,@status,@decision_reason,@deadline,GETDATE(),GETDATE())`);
+    return this.getReturnRequestById(record.id);
+  },
+
+  async getReturnRequestForOrderItem({ customerId, orderItemId }) {
+    const p = await getActivePool();
+    const result = await p.request()
+      .input("customer_id", sql.NVarChar, customerId)
+      .input("order_item_id", sql.Int, Number(orderItemId))
+      .query(`SELECT TOP 1 id,status,request_type,created_at
+        FROM ReturnRequests
+        WHERE customer_id=@customer_id AND order_item_id=@order_item_id
+        ORDER BY created_at DESC`);
+    return result.recordset[0] || null;
+  },
+
+  async getReturnRequestById(id) {
+    const p = await getActivePool();
+    const result = await p.request().input("id", sql.NVarChar, id).query(`SELECT rr.*,o.customer_name,o.customer_email,oi.product_name,oi.selected_color,oi.selected_size,oi.image_url
+      FROM ReturnRequests rr JOIN Orders o ON o.id=rr.order_id JOIN OrderItems oi ON oi.id=rr.order_item_id WHERE rr.id=@id`);
+    return result.recordset[0] || null;
+  },
+
+  async getReturnRequests({ customerId = null } = {}) {
+    const p = await getActivePool();
+    const request = p.request();
+    let where = "";
+    if (customerId) { request.input("customer_id", sql.NVarChar, customerId); where = "WHERE rr.customer_id=@customer_id"; }
+    const result = await request.query(`SELECT rr.*,o.customer_name,o.customer_email,oi.product_name,oi.selected_color,oi.selected_size,oi.image_url
+      FROM ReturnRequests rr JOIN Orders o ON o.id=rr.order_id JOIN OrderItems oi ON oi.id=rr.order_item_id ${where} ORDER BY rr.created_at DESC`);
+    return result.recordset;
+  },
+
+  async updateReturnRequest(id, fields) {
+    const p = await getActivePool();
+    const inputs = p.request().input("id", sql.NVarChar, id);
+    const assignments = [];
+    const columns = { status: ["status", sql.NVarChar], inspectionNote: ["inspection_note", sql.NVarChar], resolutionNote: ["resolution_note", sql.NVarChar], refundReference: ["refund_reference", sql.NVarChar] };
+    for (const [key, [column, type]] of Object.entries(columns)) {
+      if (fields[key] !== undefined) { inputs.input(key, type, fields[key] || null); assignments.push(`${column}=@${key}`); }
+    }
+    if (fields.received) assignments.push("return_received_at=GETDATE()");
+    if (!assignments.length) throw new Error("No return request fields were provided.");
+    await inputs.query(`UPDATE ReturnRequests SET ${assignments.join(",")},updated_at=GETDATE() WHERE id=@id`);
+    const updated = await this.getReturnRequestById(id);
+    if (!updated) throw new Error("Return request not found.");
+    return updated;
+  },
+
+  async processReturnRefund({ requestId, refundedBy, refundReference = null, note = "" }) {
+    const p = await getActivePool();
+    const tx = new sql.Transaction(p);
+    await tx.begin();
+    try {
+      const requestResult = await tx.request().input("id", sql.NVarChar, requestId).query("SELECT * FROM ReturnRequests WITH (UPDLOCK,ROWLOCK) WHERE id=@id");
+      const returnRequest = requestResult.recordset[0];
+      if (!returnRequest || returnRequest.status !== "inspection_passed") throw new Error("A passed physical inspection is required before refunding.");
+      if (returnRequest.request_type !== "refund") throw new Error("This request is not a refund request.");
+      const paymentResult = await tx.request().input("order_id", sql.NVarChar, returnRequest.order_id).query("SELECT * FROM Payments WITH (UPDLOCK,ROWLOCK) WHERE order_id=@order_id");
+      const payment = paymentResult.recordset[0];
+      if (!payment || !["paid", "refund_pending"].includes(payment.payment_status)) throw new Error("The order has no refundable captured payment.");
+      const priorResult = await tx.request().input("order_item_id", sql.Int, returnRequest.order_item_id).input("request_id", sql.NVarChar, requestId)
+        .query("SELECT COALESCE(SUM(requested_amount),0) AS refunded_amount FROM ReturnRequests WHERE order_item_id=@order_item_id AND id<>@request_id AND status='refunded'");
+      const alreadyRefunded = Number(priorResult.recordset[0]?.refunded_amount || 0);
+      const orderItemResult = await tx.request().input("id", sql.Int, returnRequest.order_item_id).query("SELECT final_line_total,total_price FROM OrderItems WHERE id=@id");
+      const maxAmount = Number(orderItemResult.recordset[0]?.final_line_total ?? orderItemResult.recordset[0]?.total_price ?? 0);
+      if (Number(returnRequest.requested_amount) + alreadyRefunded > maxAmount) throw new Error("The requested refund exceeds the remaining value of this item.");
+      const totalForOrderResult = await tx.request().input("order_id", sql.NVarChar, returnRequest.order_id).query("SELECT COALESCE(SUM(requested_amount),0) AS amount FROM ReturnRequests WHERE order_id=@order_id AND status='refunded'");
+      const alreadyOrderRefunded = Number(totalForOrderResult.recordset[0]?.amount || 0);
+      const orderTotal = Number(payment.amount || 0);
+      const newTotal = alreadyOrderRefunded + Number(returnRequest.requested_amount);
+      const isFullRefund = newTotal >= orderTotal;
+      const reference = refundReference || `RET-${requestId}`;
+      if (isFullRefund) {
+        await tx.request().input("order_id", sql.NVarChar, returnRequest.order_id).input("by", sql.NVarChar, refundedBy).input("reference", sql.NVarChar, reference).input("note", sql.NVarChar, note || "Refund after physical return inspection.")
+          .query("UPDATE Payments SET payment_status='refunded',refunded_at=GETDATE(),refunded_by=@by,refund_reference=@reference,refund_note=@note,updated_at=GETDATE() WHERE order_id=@order_id");
+      }
+      await restoreReturnedInventory(tx, returnRequest, refundedBy, requestId, "return_restock");
+      await tx.request().input("id", sql.NVarChar, requestId).input("reference", sql.NVarChar, reference).input("note", sql.NVarChar, note || null)
+        .query("UPDATE ReturnRequests SET status='refunded',refund_reference=@reference,resolution_note=@note,updated_at=GETDATE() WHERE id=@id");
+      // A refunded purchase can no longer support a verified-product review.
+      await tx.request().input("order_item_id", sql.Int, returnRequest.order_item_id)
+        .query("UPDATE ProductReviews SET status='deleted',updated_at=GETDATE() WHERE order_item_id=@order_item_id AND status<>'deleted'");
+      await tx.request().input("order_id", sql.NVarChar, returnRequest.order_id).input("note", sql.NVarChar, `Return request ${requestId} refunded: ${returnRequest.requested_amount}. ${note || ""}`.slice(0,500)).input("by", sql.NVarChar, refundedBy)
+        .query("INSERT INTO OrderStatusHistory(order_id,previous_status,new_status,note,updated_by,created_at) SELECT @order_id,order_status,order_status,@note,@by,GETDATE() FROM Orders WHERE id=@order_id");
+      await tx.commit();
+      return this.getReturnRequestById(requestId);
+    } catch (err) { await tx.rollback(); throw err; }
+  },
+
+  async processReturnExchange({ requestId, processedBy, note = "" }) {
+    const p = await getActivePool();
+    const tx = new sql.Transaction(p);
+    await tx.begin();
+    try {
+      const requestResult = await tx.request().input("id", sql.NVarChar, requestId)
+        .query("SELECT * FROM ReturnRequests WITH (UPDLOCK,ROWLOCK) WHERE id=@id");
+      const returnRequest = requestResult.recordset[0];
+      if (!returnRequest || returnRequest.status !== "inspection_passed") throw new Error("A passed physical inspection is required before completing an exchange.");
+      if (returnRequest.request_type !== "exchange") throw new Error("This request is not an exchange request.");
+
+      const itemResult = await tx.request().input("id", sql.Int, returnRequest.order_item_id)
+        .query("SELECT id,product_id,variant_id,variant_sku,selected_color,selected_size,quantity FROM OrderItems WITH (UPDLOCK,ROWLOCK) WHERE id=@id");
+      const item = itemResult.recordset[0];
+      const quantity = Number(returnRequest.requested_quantity || 0);
+      if (!item || !Number.isInteger(quantity) || quantity < 1 || quantity > Number(item.quantity)) throw new Error("The requested exchange quantity is invalid.");
+
+      // Lock every variant of this product while selecting the two physical SKUs.
+      // This prevents concurrent checkouts/exchanges from overselling the replacement SKU.
+      const variantsResult = await tx.request().input("product_id", sql.Int, item.product_id).query(`
+        SELECT id,product_id,sku,color_name,size_name,stock_quantity,is_active
+        FROM ProductVariants WITH (UPDLOCK,HOLDLOCK)
+        WHERE product_id=@product_id`);
+      const variants = variantsResult.recordset;
+      const originalVariant = item.variant_id
+        ? variants.find((variant) => variant.id === item.variant_id)
+        : variants.find((variant) => variant.color_name === item.selected_color && variant.size_name === item.selected_size);
+      const replacementVariant = variants.find((variant) => variant.is_active && variant.color_name === returnRequest.exchange_color && variant.size_name === returnRequest.exchange_size);
+      if (!originalVariant) throw new Error("The original SKU could not be found for this returned item. Please correct inventory manually before completing the exchange.");
+      if (!replacementVariant) throw new Error("The requested replacement size or colour is no longer available.");
+      if (Number(replacementVariant.stock_quantity) + (replacementVariant.id === originalVariant.id ? quantity : 0) < quantity) {
+        throw new Error("The requested replacement SKU no longer has sufficient stock.");
+      }
+
+      await restoreReturnedInventory(tx, returnRequest, processedBy, requestId, "return_restock", { item, originalVariant });
+
+      const replacementUpdate = await tx.request()
+        .input("variant_id", sql.NVarChar, replacementVariant.id)
+        .input("qty", sql.Int, quantity)
+        .query("UPDATE ProductVariants SET stock_quantity=stock_quantity-@qty,updated_at=GETDATE() OUTPUT inserted.stock_quantity WHERE id=@variant_id");
+      const replacementStock = Number(replacementUpdate.recordset[0].stock_quantity);
+      const productUpdate = await tx.request().input("product_id", sql.Int, item.product_id).input("qty", sql.Int, quantity)
+        .query("UPDATE Products SET stock=stock-@qty,updated_at=GETDATE() OUTPUT inserted.stock WHERE id=@product_id");
+      const resultingProductStock = Number(productUpdate.recordset[0].stock);
+      await tx.request()
+        .input("product_id", sql.Int, item.product_id)
+        .input("variant_id", sql.NVarChar, replacementVariant.id)
+        .input("movement_type", sql.NVarChar, "exchange_deduction")
+        .input("quantity_change", sql.Int, -quantity)
+        .input("resulting_stock", sql.Int, resultingProductStock)
+        .input("reference_id", sql.NVarChar, requestId)
+        .input("note", sql.NVarChar, `Replacement dispatched for exchange ${requestId}: ${replacementVariant.sku} (${replacementVariant.color_name} / ${replacementVariant.size_name}); variant stock after dispatch: ${replacementStock}`)
+        .input("performed_by", sql.NVarChar, processedBy)
+        .query(`INSERT INTO InventoryMovements(product_id,variant_id,movement_type,quantity_change,resulting_stock,reference_id,note,performed_by,created_at)
+          VALUES(@product_id,@variant_id,@movement_type,@quantity_change,@resulting_stock,@reference_id,@note,@performed_by,GETDATE())`);
+      await tx.request().input("id", sql.NVarChar, requestId).input("note", sql.NVarChar, note || "Exchange arranged by Maison Rue.")
+        .query("UPDATE ReturnRequests SET status='exchanged',resolution_note=@note,updated_at=GETDATE() WHERE id=@id");
+      await tx.request().input("order_id", sql.NVarChar, returnRequest.order_id).input("note", sql.NVarChar, `Return request ${requestId} exchanged: returned ${originalVariant.sku}; dispatched ${replacementVariant.sku}. ${note || ""}`.slice(0, 500)).input("by", sql.NVarChar, processedBy)
+        .query("INSERT INTO OrderStatusHistory(order_id,previous_status,new_status,note,updated_by,created_at) SELECT @order_id,order_status,order_status,@note,@by,GETDATE() FROM Orders WHERE id=@order_id");
+      await tx.commit();
+      return this.getReturnRequestById(requestId);
+    } catch (err) { await tx.rollback(); throw err; }
   },
 
   async createOrderWithTransaction({ orderData, items, paymentData, promotionData = null }) {

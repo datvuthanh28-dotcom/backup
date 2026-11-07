@@ -25,6 +25,7 @@ import CustomerOffers from "./pages/customer/CustomerOffers";
 import AccessDenied from "./pages/AccessDenied";
 import SearchResultsPage from "./pages/SearchResultsPage";
 import OurStory from "./pages/OurStory";
+import Wishlist from "./pages/Wishlist";
 import StoreInfoPage from "./pages/StoreInfoPage";
 
 // Separate Portals Login Pages
@@ -62,6 +63,7 @@ function App() {
                 <Route path="/kids" element={<ProductListPage audience="kids" title="Kids" />} />
                 <Route path="/accessories" element={<ProductListPage productType="Accessories" title="Accessories" />} />
                 <Route path="/our-story" element={<OurStory />} />
+                <Route path="/wishlist" element={<Wishlist />} />
                 <Route path="/contact" element={<StoreInfoPage page="contact" />} />
                 <Route path="/returns" element={<StoreInfoPage page="returns" />} />
                 <Route path="/shopping-guide" element={<StoreInfoPage page="guide" />} />

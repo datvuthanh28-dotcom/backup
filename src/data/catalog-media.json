@@ -1,0 +1,664 @@
+{
+  "107": {
+    "colorImages": {
+      "Brown": [
+        "image/catalog/clothing/baby-cashmere-crewneck-sweater/raw-v1/brown-front.webp",
+        "image/catalog/clothing/baby-cashmere-crewneck-sweater/raw-v1/brown-back.webp",
+        "image/catalog/clothing/baby-cashmere-crewneck-sweater/raw-v1/brown-model-detail.webp",
+        "image/catalog/clothing/baby-cashmere-crewneck-sweater/raw-v1/brown-model-outfit.webp",
+        "image/catalog/clothing/baby-cashmere-crewneck-sweater/raw-v1/brown-logo-tag.webp"
+      ],
+      "Beige": [
+        "image/catalog/clothing/baby-cashmere-crewneck-sweater/raw-v1/beige-front.webp",
+        "image/catalog/clothing/baby-cashmere-crewneck-sweater/raw-v1/beige-back.webp"
+      ],
+      "Black": [
+        "image/catalog/clothing/baby-cashmere-crewneck-sweater/raw-v1/black-front.webp",
+        "image/catalog/clothing/baby-cashmere-crewneck-sweater/raw-v1/black-back.webp"
+      ],
+      "White": [
+        "image/catalog/clothing/baby-cashmere-crewneck-sweater/raw-v1/white-front.webp",
+        "image/catalog/clothing/baby-cashmere-crewneck-sweater/raw-v1/white-back.webp"
+      ]
+    }
+  },
+  "108": {
+    "colorImages": {
+      "Deep Teal": [
+        "image/catalog/clothing/cashmere-half-zip-sweater/raw-v1/deep-teal-front.webp",
+        "image/catalog/clothing/cashmere-half-zip-sweater/raw-v1/deep-teal-back.webp",
+        "image/catalog/clothing/cashmere-half-zip-sweater/raw-v1/deep-teal-model-detail.webp",
+        "image/catalog/clothing/cashmere-half-zip-sweater/raw-v1/deep-teal-model-outfit.webp",
+        "image/catalog/clothing/cashmere-half-zip-sweater/raw-v1/deep-teal-logo-tag.webp"
+      ],
+      "Navy": [
+        "image/catalog/clothing/cashmere-half-zip-sweater/raw-v1/navy-front.webp",
+        "image/catalog/clothing/cashmere-half-zip-sweater/raw-v1/navy-back.webp"
+      ],
+      "Black": [
+        "image/catalog/clothing/cashmere-half-zip-sweater/raw-v1/black-front.webp",
+        "image/catalog/clothing/cashmere-half-zip-sweater/raw-v1/black-back.webp"
+      ],
+      "White": [
+        "image/catalog/clothing/cashmere-half-zip-sweater/raw-v1/white-front.webp",
+        "image/catalog/clothing/cashmere-half-zip-sweater/raw-v1/white-back.webp"
+      ]
+    }
+  },
+  "109": {
+    "colorImages": {
+      "Brown": [
+        "image/catalog/clothing/cashmere-button-cardigan/raw-v1/brown-front.webp",
+        "image/catalog/clothing/cashmere-button-cardigan/raw-v1/brown-back.webp",
+        "image/catalog/clothing/cashmere-button-cardigan/raw-v1/brown-model-detail.webp",
+        "image/catalog/clothing/cashmere-button-cardigan/raw-v1/brown-model-outfit.webp",
+        "image/catalog/clothing/cashmere-button-cardigan/raw-v1/brown-logo-tag.webp"
+      ],
+      "Beige": [
+        "image/catalog/clothing/cashmere-button-cardigan/raw-v1/beige-front.webp",
+        "image/catalog/clothing/cashmere-button-cardigan/raw-v1/beige-back.webp"
+      ],
+      "Navy": [
+        "image/catalog/clothing/cashmere-button-cardigan/raw-v1/navy-front.webp",
+        "image/catalog/clothing/cashmere-button-cardigan/raw-v1/navy-back.webp"
+      ],
+      "Black": [
+        "image/catalog/clothing/cashmere-button-cardigan/raw-v1/black-front.webp",
+        "image/catalog/clothing/cashmere-button-cardigan/raw-v1/black-back.webp"
+      ],
+      "White": [
+        "image/catalog/clothing/cashmere-button-cardigan/raw-v1/white-front.webp",
+        "image/catalog/clothing/cashmere-button-cardigan/raw-v1/white-back.webp"
+      ]
+    }
+  },
+  "110": {
+    "colorImages": {
+      "Brown": [
+        "image/catalog/clothing/wool-cashmere-knitted-vest/raw-v1/brown-front.webp",
+        "image/catalog/clothing/wool-cashmere-knitted-vest/raw-v1/brown-back.webp",
+        "image/catalog/clothing/wool-cashmere-knitted-vest/raw-v1/brown-model-detail.webp",
+        "image/catalog/clothing/wool-cashmere-knitted-vest/raw-v1/brown-model-outfit.webp",
+        "image/catalog/clothing/wool-cashmere-knitted-vest/raw-v1/brown-logo-tag.webp"
+      ],
+      "Beige": [
+        "image/catalog/clothing/wool-cashmere-knitted-vest/raw-v1/beige-front.webp",
+        "image/catalog/clothing/wool-cashmere-knitted-vest/raw-v1/beige-back.webp"
+      ],
+      "Black": [
+        "image/catalog/clothing/wool-cashmere-knitted-vest/raw-v1/black-front.webp",
+        "image/catalog/clothing/wool-cashmere-knitted-vest/raw-v1/black-back.webp"
+      ],
+      "White": [
+        "image/catalog/clothing/wool-cashmere-knitted-vest/raw-v1/white-front.webp",
+        "image/catalog/clothing/wool-cashmere-knitted-vest/raw-v1/white-back.webp"
+      ]
+    }
+  },
+  "111": {
+    "colorImages": {
+      "Navy": [
+        "image/catalog/clothing/cotton-oxford-short-sleeve-shirt/raw-v1/navy-front.webp",
+        "image/catalog/clothing/cotton-oxford-short-sleeve-shirt/raw-v1/navy-back.webp",
+        "image/catalog/clothing/cotton-oxford-short-sleeve-shirt/raw-v1/navy-model-detail.webp",
+        "image/catalog/clothing/cotton-oxford-short-sleeve-shirt/raw-v1/navy-model-outfit.webp",
+        "image/catalog/clothing/cotton-oxford-short-sleeve-shirt/raw-v1/navy-logo-tag.webp"
+      ],
+      "Black": [
+        "image/catalog/clothing/cotton-oxford-short-sleeve-shirt/raw-v1/black-front.webp",
+        "image/catalog/clothing/cotton-oxford-short-sleeve-shirt/raw-v1/black-back.webp"
+      ],
+      "White": [
+        "image/catalog/clothing/cotton-oxford-short-sleeve-shirt/raw-v1/white-front.webp",
+        "image/catalog/clothing/cotton-oxford-short-sleeve-shirt/raw-v1/white-back.webp"
+      ]
+    }
+  },
+  "112": {
+    "colorImages": {
+      "Navy": [
+        "image/catalog/clothing/cotton-oxford-long-sleeve-shirt/raw-v1/navy-front.webp",
+        "image/catalog/clothing/cotton-oxford-long-sleeve-shirt/raw-v1/navy-back.webp",
+        "image/catalog/clothing/cotton-oxford-long-sleeve-shirt/raw-v1/navy-model-detail.webp",
+        "image/catalog/clothing/cotton-oxford-long-sleeve-shirt/raw-v1/navy-model-outfit.webp",
+        "image/catalog/clothing/cotton-oxford-long-sleeve-shirt/raw-v1/navy-logo-tag.webp"
+      ],
+      "Black": [
+        "image/catalog/clothing/cotton-oxford-long-sleeve-shirt/raw-v1/black-front.webp",
+        "image/catalog/clothing/cotton-oxford-long-sleeve-shirt/raw-v1/black-back.webp"
+      ],
+      "White": [
+        "image/catalog/clothing/cotton-oxford-long-sleeve-shirt/raw-v1/white-front.webp",
+        "image/catalog/clothing/cotton-oxford-long-sleeve-shirt/raw-v1/white-back.webp"
+      ]
+    }
+  },
+  "113": {
+    "colorImages": {
+      "Brown": [
+        "image/catalog/clothing/linen-classic-long-sleeve-shirt/raw-v1/brown-front.webp",
+        "image/catalog/clothing/linen-classic-long-sleeve-shirt/raw-v1/brown-back.webp",
+        "image/catalog/clothing/linen-classic-long-sleeve-shirt/raw-v1/brown-model-detail.webp",
+        "image/catalog/clothing/linen-classic-long-sleeve-shirt/raw-v1/brown-model-outfit.webp",
+        "image/catalog/clothing/linen-classic-long-sleeve-shirt/raw-v1/brown-logo-tag.webp"
+      ],
+      "Beige": [
+        "image/catalog/clothing/linen-classic-long-sleeve-shirt/raw-v1/beige-front.webp",
+        "image/catalog/clothing/linen-classic-long-sleeve-shirt/raw-v1/beige-back.webp"
+      ],
+      "White": [
+        "image/catalog/clothing/linen-classic-long-sleeve-shirt/raw-v1/white-front.webp",
+        "image/catalog/clothing/linen-classic-long-sleeve-shirt/raw-v1/white-back.webp"
+      ]
+    }
+  },
+  "114": {
+    "colorImages": {
+      "Brown": [
+        "image/catalog/clothing/linen-classic-short-sleeve-shirt/raw-v1/brown-front.webp",
+        "image/catalog/clothing/linen-classic-short-sleeve-shirt/raw-v1/brown-back.webp",
+        "image/catalog/clothing/linen-classic-short-sleeve-shirt/raw-v1/brown-model-detail.webp",
+        "image/catalog/clothing/linen-classic-short-sleeve-shirt/raw-v1/brown-model-outfit.webp",
+        "image/catalog/clothing/linen-classic-short-sleeve-shirt/raw-v1/brown-logo-tag.webp"
+      ],
+      "Beige": [
+        "image/catalog/clothing/linen-classic-short-sleeve-shirt/raw-v1/beige-front.webp",
+        "image/catalog/clothing/linen-classic-short-sleeve-shirt/raw-v1/beige-back.webp"
+      ],
+      "White": [
+        "image/catalog/clothing/linen-classic-short-sleeve-shirt/raw-v1/white-front.webp",
+        "image/catalog/clothing/linen-classic-short-sleeve-shirt/raw-v1/white-back.webp"
+      ]
+    }
+  },
+  "116": {
+    "colorImages": {
+      "Denim Blue": [
+        "image/catalog/clothing/lightweight-cotton-denim-shirt/raw-v1/denim-blue-front.webp",
+        "image/catalog/clothing/lightweight-cotton-denim-shirt/raw-v1/denim-blue-back.webp",
+        "image/catalog/clothing/lightweight-cotton-denim-shirt/raw-v1/denim-blue-model-detail.webp",
+        "image/catalog/clothing/lightweight-cotton-denim-shirt/raw-v1/denim-blue-model-outfit.webp",
+        "image/catalog/clothing/lightweight-cotton-denim-shirt/raw-v1/denim-blue-logo-tag.webp"
+      ]
+    }
+  },
+  "117": {
+    "colorImages": {
+      "Beige": [
+        "image/catalog/clothing/linen-tailored-trousers/raw-v1/beige-front.webp",
+        "image/catalog/clothing/linen-tailored-trousers/raw-v1/beige-back.webp",
+        "image/catalog/clothing/linen-tailored-trousers/raw-v1/beige-model-detail.webp",
+        "image/catalog/clothing/linen-tailored-trousers/raw-v1/beige-model-outfit.webp",
+        "image/catalog/clothing/linen-tailored-trousers/raw-v1/beige-logo-tag.webp"
+      ],
+      "White": [
+        "image/catalog/clothing/linen-tailored-trousers/raw-v1/white-front.webp",
+        "image/catalog/clothing/linen-tailored-trousers/raw-v1/white-back.webp"
+      ]
+    }
+  },
+  "118": {
+    "colorImages": {
+      "Beige": [
+        "image/catalog/clothing/linen-cotton-trousers/raw-v1/beige-front.webp",
+        "image/catalog/clothing/linen-cotton-trousers/raw-v1/beige-back.webp",
+        "image/catalog/clothing/linen-cotton-trousers/raw-v1/beige-model-detail.webp",
+        "image/catalog/clothing/linen-cotton-trousers/raw-v1/beige-model-outfit.webp",
+        "image/catalog/clothing/linen-cotton-trousers/raw-v1/beige-logo-tag.webp"
+      ],
+      "White": [
+        "image/catalog/clothing/linen-cotton-trousers/raw-v1/white-front.webp",
+        "image/catalog/clothing/linen-cotton-trousers/raw-v1/white-back.webp"
+      ],
+      "Black": [
+        "image/catalog/clothing/linen-cotton-trousers/raw-v1/black-front.webp",
+        "image/catalog/clothing/linen-cotton-trousers/raw-v1/black-back.webp"
+      ]
+    }
+  },
+  "119": {
+    "colorImages": {
+      "Black": [
+        "image/catalog/clothing/cotton-twill-chinos/raw-v1/black-front.webp",
+        "image/catalog/clothing/cotton-twill-chinos/raw-v1/black-back.webp",
+        "image/catalog/clothing/cotton-twill-chinos/raw-v1/black-model-detail.webp",
+        "image/catalog/clothing/cotton-twill-chinos/raw-v1/black-model-outfit.webp",
+        "image/catalog/clothing/cotton-twill-chinos/raw-v1/black-logo-tag.webp"
+      ]
+    }
+  },
+  "120": {
+    "colorImages": {
+      "Beige": [
+        "image/catalog/clothing/linen-bermuda-shorts/raw-v1/beige-front.webp",
+        "image/catalog/clothing/linen-bermuda-shorts/raw-v1/beige-back.webp",
+        "image/catalog/clothing/linen-bermuda-shorts/raw-v1/beige-model-detail.webp",
+        "image/catalog/clothing/linen-bermuda-shorts/raw-v1/beige-model-outfit.webp",
+        "image/catalog/clothing/linen-bermuda-shorts/raw-v1/beige-logo-tag.webp"
+      ],
+      "White": [
+        "image/catalog/clothing/linen-bermuda-shorts/raw-v1/white-front.webp",
+        "image/catalog/clothing/linen-bermuda-shorts/raw-v1/white-back.webp"
+      ]
+    }
+  },
+  "121": {
+    "colorImages": {
+      "Camel": [
+        "image/catalog/clothing/baby-cashmere-overcoat/raw-v1/camel-front.webp",
+        "image/catalog/clothing/baby-cashmere-overcoat/raw-v1/camel-back.webp",
+        "image/catalog/clothing/baby-cashmere-overcoat/raw-v1/camel-model-detail.webp",
+        "image/catalog/clothing/baby-cashmere-overcoat/raw-v1/camel-model-outfit.webp",
+        "image/catalog/clothing/baby-cashmere-overcoat/raw-v1/camel-logo-tag.webp"
+      ]
+    }
+  },
+  "122": {
+    "colorImages": {
+      "Charcoal": [
+        "image/catalog/clothing/wool-cashmere-coat/raw-v1/charcoal-front.webp",
+        "image/catalog/clothing/wool-cashmere-coat/raw-v1/charcoal-back.webp",
+        "image/catalog/clothing/wool-cashmere-coat/raw-v1/charcoal-model-detail.webp",
+        "image/catalog/clothing/wool-cashmere-coat/raw-v1/charcoal-model-outfit.webp",
+        "image/catalog/clothing/wool-cashmere-coat/raw-v1/charcoal-logo-tag.webp"
+      ]
+    }
+  },
+  "123": {
+    "colorImages": {
+      "Sand Beige": [
+        "image/catalog/clothing/linen-unstructured-blazer/raw-v1/sand-beige-front.webp",
+        "image/catalog/clothing/linen-unstructured-blazer/raw-v1/sand-beige-back.webp",
+        "image/catalog/clothing/linen-unstructured-blazer/raw-v1/sand-beige-model-detail.webp",
+        "image/catalog/clothing/linen-unstructured-blazer/raw-v1/sand-beige-model-outfit.webp",
+        "image/catalog/clothing/linen-unstructured-blazer/raw-v1/sand-beige-logo-tag.webp"
+      ]
+    }
+  },
+  "124": {
+    "colorImages": {
+      "Dark Brown": [
+        "image/catalog/clothing/suede-bomber-jacket/raw-v1/dark-brown-front.webp",
+        "image/catalog/clothing/suede-bomber-jacket/raw-v1/dark-brown-back.webp",
+        "image/catalog/clothing/suede-bomber-jacket/raw-v1/dark-brown-model-detail.webp",
+        "image/catalog/clothing/suede-bomber-jacket/raw-v1/dark-brown-model-outfit.webp",
+        "image/catalog/clothing/suede-bomber-jacket/raw-v1/dark-brown-logo-tag.webp"
+      ]
+    }
+  },
+  "125": {
+    "colorImages": {
+      "Stone Beige": [
+        "image/catalog/clothing/cotton-gabardine-trench-coat/raw-v1/stone-beige-front.webp",
+        "image/catalog/clothing/cotton-gabardine-trench-coat/raw-v1/stone-beige-back.webp",
+        "image/catalog/clothing/cotton-gabardine-trench-coat/raw-v1/stone-beige-model-detail.webp",
+        "image/catalog/clothing/cotton-gabardine-trench-coat/raw-v1/stone-beige-model-outfit.webp",
+        "image/catalog/clothing/cotton-gabardine-trench-coat/raw-v1/stone-beige-logo-tag.webp"
+      ]
+    }
+  },
+  "126": {
+    "colorImages": {
+      "Navy": [
+        "image/catalog/clothing/lightweight-technical-nylon-jacket/raw-v1/navy-front.webp",
+        "image/catalog/clothing/lightweight-technical-nylon-jacket/raw-v1/navy-back.webp",
+        "image/catalog/clothing/lightweight-technical-nylon-jacket/raw-v1/navy-model-detail.webp",
+        "image/catalog/clothing/lightweight-technical-nylon-jacket/raw-v1/navy-model-outfit.webp",
+        "image/catalog/clothing/lightweight-technical-nylon-jacket/raw-v1/navy-logo-tag.webp"
+      ]
+    }
+  },
+  "127": {
+    "colorImages": {
+      "Dark Brown": [
+        "image/catalog/footwear/suede-penny-loafers/raw-v1/dark-brown-front.webp",
+        "image/catalog/footwear/suede-penny-loafers/raw-v1/dark-brown-back.webp",
+        "image/catalog/footwear/suede-penny-loafers/raw-v1/dark-brown-model-detail.webp",
+        "image/catalog/footwear/suede-penny-loafers/raw-v1/dark-brown-model-outfit.webp",
+        "image/catalog/footwear/suede-penny-loafers/raw-v1/dark-brown-logo-tag.webp"
+      ]
+    }
+  },
+  "128": {
+    "colorImages": {
+      "Black": [
+        "image/catalog/footwear/calfskin-penny-loafers/raw-v1/black-front.webp",
+        "image/catalog/footwear/calfskin-penny-loafers/raw-v1/black-back.webp",
+        "image/catalog/footwear/calfskin-penny-loafers/raw-v1/black-model-detail.webp",
+        "image/catalog/footwear/calfskin-penny-loafers/raw-v1/black-model-outfit.webp",
+        "image/catalog/footwear/calfskin-penny-loafers/raw-v1/black-logo-tag.webp"
+      ]
+    }
+  },
+  "129": {
+    "colorImages": {
+      "Dark Brown": [
+        "image/catalog/footwear/calfskin-driving-shoes/raw-v1/dark-brown-front.webp",
+        "image/catalog/footwear/calfskin-driving-shoes/raw-v1/dark-brown-back.webp",
+        "image/catalog/footwear/calfskin-driving-shoes/raw-v1/dark-brown-model-detail.webp",
+        "image/catalog/footwear/calfskin-driving-shoes/raw-v1/dark-brown-model-outfit.webp",
+        "image/catalog/footwear/calfskin-driving-shoes/raw-v1/dark-brown-logo-tag.webp"
+      ]
+    }
+  },
+  "130": {
+    "colorImages": {
+      "Natural Ecru": [
+        "image/catalog/footwear/canvas-linen-sneakers/raw-v1/natural-ecru-front.webp",
+        "image/catalog/footwear/canvas-linen-sneakers/raw-v1/natural-ecru-back.webp",
+        "image/catalog/footwear/canvas-linen-sneakers/raw-v1/natural-ecru-model-detail.webp",
+        "image/catalog/footwear/canvas-linen-sneakers/raw-v1/natural-ecru-model-outfit.webp",
+        "image/catalog/footwear/canvas-linen-sneakers/raw-v1/natural-ecru-logo-tag.webp"
+      ]
+    }
+  },
+  "131": {
+    "colorImages": {
+      "Black": [
+        "image/catalog/footwear/polished-calfskin-oxford-shoes/raw-v1/black-front.webp",
+        "image/catalog/footwear/polished-calfskin-oxford-shoes/raw-v1/black-back.webp",
+        "image/catalog/footwear/polished-calfskin-oxford-shoes/raw-v1/black-model-detail.webp",
+        "image/catalog/footwear/polished-calfskin-oxford-shoes/raw-v1/black-model-outfit.webp",
+        "image/catalog/footwear/polished-calfskin-oxford-shoes/raw-v1/black-logo-tag.webp"
+      ]
+    }
+  },
+  "132": {
+    "colorImages": {
+      "Dark Brown": [
+        "image/catalog/footwear/full-grain-leather-slides/raw-v1/dark-brown-front.webp",
+        "image/catalog/footwear/full-grain-leather-slides/raw-v1/dark-brown-back.webp",
+        "image/catalog/footwear/full-grain-leather-slides/raw-v1/dark-brown-model-detail.webp",
+        "image/catalog/footwear/full-grain-leather-slides/raw-v1/dark-brown-model-outfit.webp",
+        "image/catalog/footwear/full-grain-leather-slides/raw-v1/dark-brown-logo-tag.webp"
+      ]
+    }
+  },
+  "133": {
+    "colorImages": {
+      "Dark Brown": [
+        "image/catalog/accessories/grained-calfskin-tote-bag/raw-v1/dark-brown-front.webp",
+        "image/catalog/accessories/grained-calfskin-tote-bag/raw-v1/dark-brown-back.webp",
+        "image/catalog/accessories/grained-calfskin-tote-bag/raw-v1/dark-brown-model-detail.webp",
+        "image/catalog/accessories/grained-calfskin-tote-bag/raw-v1/dark-brown-model-outfit.webp",
+        "image/catalog/accessories/grained-calfskin-tote-bag/raw-v1/dark-brown-logo-tag.webp"
+      ]
+    }
+  },
+  "134": {
+    "colorImages": {
+      "Taupe": [
+        "image/catalog/accessories/suede-leather-crossbody-bag/raw-v1/taupe-front.webp",
+        "image/catalog/accessories/suede-leather-crossbody-bag/raw-v1/taupe-back.webp",
+        "image/catalog/accessories/suede-leather-crossbody-bag/raw-v1/taupe-model-detail.webp",
+        "image/catalog/accessories/suede-leather-crossbody-bag/raw-v1/taupe-model-outfit.webp",
+        "image/catalog/accessories/suede-leather-crossbody-bag/raw-v1/taupe-logo-tag.webp"
+      ]
+    }
+  },
+  "135": {
+    "colorImages": {
+      "Dark Brown": [
+        "image/catalog/accessories/woven-leather-duffle-bag/raw-v1/dark-brown-front.webp",
+        "image/catalog/accessories/woven-leather-duffle-bag/raw-v1/dark-brown-back.webp",
+        "image/catalog/accessories/woven-leather-duffle-bag/raw-v1/dark-brown-model-detail.webp",
+        "image/catalog/accessories/woven-leather-duffle-bag/raw-v1/dark-brown-model-outfit.webp",
+        "image/catalog/accessories/woven-leather-duffle-bag/raw-v1/dark-brown-logo-tag.webp"
+      ]
+    }
+  },
+  "136": {
+    "colorImages": {
+      "Natural Ecru": [
+        "image/catalog/accessories/canvas-leather-weekend-bag/raw-v1/natural-ecru-front.webp",
+        "image/catalog/accessories/canvas-leather-weekend-bag/raw-v1/natural-ecru-back.webp",
+        "image/catalog/accessories/canvas-leather-weekend-bag/raw-v1/natural-ecru-model-detail.webp",
+        "image/catalog/accessories/canvas-leather-weekend-bag/raw-v1/natural-ecru-model-outfit.webp",
+        "image/catalog/accessories/canvas-leather-weekend-bag/raw-v1/natural-ecru-logo-tag.webp"
+      ]
+    }
+  },
+  "137": {
+    "colorImages": {
+      "Dark Brown": [
+        "image/catalog/accessories/smooth-calfskin-leather-belt/men-raw-v1/dark-brown-front.webp",
+        "image/catalog/accessories/smooth-calfskin-leather-belt/men-raw-v1/dark-brown-back.webp",
+        "image/catalog/accessories/smooth-calfskin-leather-belt/men-raw-v1/dark-brown-model-detail.webp",
+        "image/catalog/accessories/smooth-calfskin-leather-belt/men-raw-v1/dark-brown-model-outfit.webp",
+        "image/catalog/accessories/smooth-calfskin-leather-belt/men-raw-v1/dark-brown-logo-tag.webp"
+      ]
+    }
+  },
+  "138": {
+    "colorImages": {
+      "Taupe": [
+        "image/catalog/accessories/suede-leather-belt/men-raw-v1/taupe-front.webp",
+        "image/catalog/accessories/suede-leather-belt/men-raw-v1/taupe-back.webp",
+        "image/catalog/accessories/suede-leather-belt/men-raw-v1/taupe-model-detail.webp",
+        "image/catalog/accessories/suede-leather-belt/men-raw-v1/taupe-model-outfit.webp",
+        "image/catalog/accessories/suede-leather-belt/men-raw-v1/taupe-logo-tag.webp"
+      ]
+    }
+  },
+  "139": {
+    "colorImages": {
+      "Dark Brown": [
+        "image/catalog/accessories/suede-baseball-cap/raw-v1/dark-brown-front.webp",
+        "image/catalog/accessories/suede-baseball-cap/raw-v1/dark-brown-back.webp",
+        "image/catalog/accessories/suede-baseball-cap/raw-v1/dark-brown-model-detail.webp",
+        "image/catalog/accessories/suede-baseball-cap/raw-v1/dark-brown-model-outfit.webp",
+        "image/catalog/accessories/suede-baseball-cap/raw-v1/dark-brown-logo-tag.webp"
+      ]
+    }
+  },
+  "140": {
+    "colorImages": {
+      "Navy": [
+        "image/catalog/accessories/cotton-twill-baseball-cap/men-raw-v1/navy-front.webp",
+        "image/catalog/accessories/cotton-twill-baseball-cap/men-raw-v1/navy-back.webp",
+        "image/catalog/accessories/cotton-twill-baseball-cap/men-raw-v1/navy-model-detail.webp",
+        "image/catalog/accessories/cotton-twill-baseball-cap/men-raw-v1/navy-model-outfit.webp",
+        "image/catalog/accessories/cotton-twill-baseball-cap/men-raw-v1/navy-logo-tag.webp"
+      ]
+    }
+  },
+  "141": {
+    "colorImages": {
+      "Charcoal": [
+        "image/catalog/accessories/cashmere-ribbed-beanie/men-raw-v1/charcoal-front.webp",
+        "image/catalog/accessories/cashmere-ribbed-beanie/men-raw-v1/charcoal-back.webp",
+        "image/catalog/accessories/cashmere-ribbed-beanie/men-raw-v1/charcoal-model-detail.webp",
+        "image/catalog/accessories/cashmere-ribbed-beanie/men-raw-v1/charcoal-model-outfit.webp",
+        "image/catalog/accessories/cashmere-ribbed-beanie/men-raw-v1/charcoal-logo-tag.webp"
+      ]
+    }
+  },
+  "142": {
+    "colorImages": {
+      "Dark Havana": [
+        "image/catalog/accessories/acetate-square-sunglasses/raw-v1/dark-havana-front.webp",
+        "image/catalog/accessories/acetate-square-sunglasses/raw-v1/dark-havana-back.webp",
+        "image/catalog/accessories/acetate-square-sunglasses/raw-v1/dark-havana-model-detail.webp",
+        "image/catalog/accessories/acetate-square-sunglasses/raw-v1/dark-havana-model-outfit.webp",
+        "image/catalog/accessories/acetate-square-sunglasses/raw-v1/dark-havana-logo-tag.webp"
+      ]
+    }
+  },
+  "143": {
+    "colorImages": {
+      "Black": [
+        "image/catalog/accessories/acetate-round-sunglasses/raw-v1/black-front.webp",
+        "image/catalog/accessories/acetate-round-sunglasses/raw-v1/black-back.webp",
+        "image/catalog/accessories/acetate-round-sunglasses/raw-v1/black-model-detail.webp",
+        "image/catalog/accessories/acetate-round-sunglasses/raw-v1/black-model-outfit.webp",
+        "image/catalog/accessories/acetate-round-sunglasses/raw-v1/black-logo-tag.webp"
+      ]
+    }
+  },
+  "144": {
+    "colorImages": {
+      "Brushed Silver": [
+        "image/catalog/accessories/titanium-aviator-sunglasses/raw-v1/brushed-silver-front.webp",
+        "image/catalog/accessories/titanium-aviator-sunglasses/raw-v1/brushed-silver-back.webp",
+        "image/catalog/accessories/titanium-aviator-sunglasses/raw-v1/brushed-silver-model-detail.webp",
+        "image/catalog/accessories/titanium-aviator-sunglasses/raw-v1/brushed-silver-model-outfit.webp",
+        "image/catalog/accessories/titanium-aviator-sunglasses/raw-v1/brushed-silver-logo-tag.webp"
+      ]
+    }
+  },
+  "145": {
+    "colorImages": {
+      "Dark Brown": [
+        "image/catalog/accessories/acetate-rectangular-sunglasses/raw-v1/dark-brown-front.webp",
+        "image/catalog/accessories/acetate-rectangular-sunglasses/raw-v1/dark-brown-back.webp",
+        "image/catalog/accessories/acetate-rectangular-sunglasses/raw-v1/dark-brown-model-detail.webp",
+        "image/catalog/accessories/acetate-rectangular-sunglasses/raw-v1/dark-brown-model-outfit.webp",
+        "image/catalog/accessories/acetate-rectangular-sunglasses/raw-v1/dark-brown-logo-tag.webp"
+      ]
+    }
+  },
+  "146": {
+    "colorImages": {
+      "Black": [
+        "image/catalog/accessories/smooth-calfskin-bifold-wallet/men-raw-v1/black-front.webp",
+        "image/catalog/accessories/smooth-calfskin-bifold-wallet/men-raw-v1/black-back.webp",
+        "image/catalog/accessories/smooth-calfskin-bifold-wallet/men-raw-v1/black-model-detail.webp",
+        "image/catalog/accessories/smooth-calfskin-bifold-wallet/men-raw-v1/black-model-outfit.webp",
+        "image/catalog/accessories/smooth-calfskin-bifold-wallet/men-raw-v1/black-logo-tag.webp"
+      ]
+    }
+  },
+  "147": {
+    "colorImages": {
+      "Dark Brown": [
+        "image/catalog/accessories/grained-calfskin-card-holder/men-raw-v1/dark-brown-front.webp",
+        "image/catalog/accessories/grained-calfskin-card-holder/men-raw-v1/dark-brown-back.webp",
+        "image/catalog/accessories/grained-calfskin-card-holder/men-raw-v1/dark-brown-model-detail.webp",
+        "image/catalog/accessories/grained-calfskin-card-holder/men-raw-v1/dark-brown-model-outfit.webp",
+        "image/catalog/accessories/grained-calfskin-card-holder/men-raw-v1/dark-brown-logo-tag.webp"
+      ]
+    }
+  },
+  "149": {
+    "colorImages": {
+      "Brown": [
+        "image/catalog/clothing/merino-wool-knitted-polo/women-raw-v1/brown-front.webp",
+        "image/catalog/clothing/merino-wool-knitted-polo/women-raw-v1/brown-back.webp",
+        "image/catalog/clothing/merino-wool-knitted-polo/women-raw-v1/brown-model-detail.webp",
+        "image/catalog/clothing/merino-wool-knitted-polo/women-raw-v1/brown-model-outfit.webp",
+        "image/catalog/clothing/merino-wool-knitted-polo/women-raw-v1/brown-logo-tag.webp"
+      ],
+      "Navy": [
+        "image/catalog/clothing/merino-wool-knitted-polo/women-raw-v1/navy-front.webp",
+        "image/catalog/clothing/merino-wool-knitted-polo/women-raw-v1/navy-back.webp"
+      ],
+      "White": [
+        "image/catalog/clothing/merino-wool-knitted-polo/women-raw-v1/white-front.webp",
+        "image/catalog/clothing/merino-wool-knitted-polo/women-raw-v1/white-back.webp"
+      ]
+    }
+  },
+  "158": {
+    "colorImages": {
+      "Beige": [
+        "image/catalog/clothing/linen-tailored-trousers/women-raw-v1/beige-front.webp",
+        "image/catalog/clothing/linen-tailored-trousers/women-raw-v1/beige-back.webp",
+        "image/catalog/clothing/linen-tailored-trousers/women-raw-v1/beige-model-detail.webp",
+        "image/catalog/clothing/linen-tailored-trousers/women-raw-v1/beige-model-outfit.webp",
+        "image/catalog/clothing/linen-tailored-trousers/women-raw-v1/beige-logo-tag.webp"
+      ],
+      "White": [
+        "image/catalog/clothing/linen-tailored-trousers/women-raw-v1/white-front.webp",
+        "image/catalog/clothing/linen-tailored-trousers/women-raw-v1/white-back.webp"
+      ]
+    }
+  },
+  "169": {
+    "colorImages": {
+      "Sand Beige": [
+        "image/catalog/clothing/linen-unstructured-blazer/women-raw-v1/sand-beige-front.webp",
+        "image/catalog/clothing/linen-unstructured-blazer/women-raw-v1/sand-beige-back.webp",
+        "image/catalog/clothing/linen-unstructured-blazer/women-raw-v1/sand-beige-model-detail.webp",
+        "image/catalog/clothing/linen-unstructured-blazer/women-raw-v1/sand-beige-model-outfit.webp",
+        "image/catalog/clothing/linen-unstructured-blazer/women-raw-v1/sand-beige-logo-tag.webp"
+      ]
+    }
+  },
+  "171": {
+    "colorImages": {
+      "Stone Beige": [
+        "image/catalog/clothing/cotton-gabardine-trench-coat/women-raw-v1/stone-beige-front.webp",
+        "image/catalog/clothing/cotton-gabardine-trench-coat/women-raw-v1/stone-beige-back.webp",
+        "image/catalog/clothing/cotton-gabardine-trench-coat/women-raw-v1/stone-beige-model-detail.webp",
+        "image/catalog/clothing/cotton-gabardine-trench-coat/women-raw-v1/stone-beige-model-outfit.webp",
+        "image/catalog/clothing/cotton-gabardine-trench-coat/women-raw-v1/stone-beige-logo-tag.webp"
+      ]
+    }
+  },
+  "176": {
+    "colorImages": {
+      "Natural Ecru": [
+        "image/catalog/footwear/canvas-linen-sneakers/raw-v1/natural-ecru-front.webp",
+        "image/catalog/footwear/canvas-linen-sneakers/raw-v1/natural-ecru-back.webp",
+        "image/catalog/footwear/canvas-linen-sneakers/raw-v1/natural-ecru-model-detail.webp",
+        "image/catalog/footwear/canvas-linen-sneakers/raw-v1/natural-ecru-model-outfit.webp",
+        "image/catalog/footwear/canvas-linen-sneakers/raw-v1/natural-ecru-logo-tag.webp"
+      ]
+    }
+  },
+  "177": {
+    "colorImages": {
+      "Black": [
+        "image/catalog/footwear/leather-minimalist-sandals/raw-v1/black-front.webp",
+        "image/catalog/footwear/leather-minimalist-sandals/raw-v1/black-back.webp",
+        "image/catalog/footwear/leather-minimalist-sandals/raw-v1/black-model-detail.webp",
+        "image/catalog/footwear/leather-minimalist-sandals/raw-v1/black-model-outfit.webp",
+        "image/catalog/footwear/leather-minimalist-sandals/raw-v1/black-logo-tag.webp"
+      ]
+    }
+  },
+  "178": {
+    "colorImages": {
+      "Dark Brown": [
+        "image/catalog/accessories/grained-calfskin-shoulder-bag/raw-v1/dark-brown-front.webp",
+        "image/catalog/accessories/grained-calfskin-shoulder-bag/raw-v1/dark-brown-back.webp",
+        "image/catalog/accessories/grained-calfskin-shoulder-bag/raw-v1/dark-brown-model-detail.webp",
+        "image/catalog/accessories/grained-calfskin-shoulder-bag/raw-v1/dark-brown-model-outfit.webp",
+        "image/catalog/accessories/grained-calfskin-shoulder-bag/raw-v1/dark-brown-logo-tag.webp"
+      ]
+    }
+  },
+  "179": {
+    "colorImages": {
+      "Taupe": [
+        "image/catalog/accessories/suede-leather-top-handle-bag/raw-v1/taupe-front.webp",
+        "image/catalog/accessories/suede-leather-top-handle-bag/raw-v1/taupe-back.webp",
+        "image/catalog/accessories/suede-leather-top-handle-bag/raw-v1/taupe-model-detail.webp",
+        "image/catalog/accessories/suede-leather-top-handle-bag/raw-v1/taupe-model-outfit.webp",
+        "image/catalog/accessories/suede-leather-top-handle-bag/raw-v1/taupe-logo-tag.webp"
+      ]
+    }
+  },
+  "180": {
+    "colorImages": {
+      "Natural Ecru": [
+        "image/catalog/accessories/woven-leather-tote-bag/raw-v1/natural-ecru-front.webp",
+        "image/catalog/accessories/woven-leather-tote-bag/raw-v1/natural-ecru-back.webp",
+        "image/catalog/accessories/woven-leather-tote-bag/raw-v1/natural-ecru-model-detail.webp",
+        "image/catalog/accessories/woven-leather-tote-bag/raw-v1/natural-ecru-model-outfit.webp",
+        "image/catalog/accessories/woven-leather-tote-bag/raw-v1/natural-ecru-logo-tag.webp"
+      ]
+    }
+  },
+  "183": {
+    "colorImages": {
+      "Dark Brown": [
+        "image/catalog/accessories/smooth-calfskin-leather-belt-183/raw-v1/dark-brown-front.webp",
+        "image/catalog/accessories/smooth-calfskin-leather-belt-183/raw-v1/dark-brown-back.webp",
+        "image/catalog/accessories/smooth-calfskin-leather-belt-183/raw-v1/dark-brown-model-detail.webp",
+        "image/catalog/accessories/smooth-calfskin-leather-belt-183/raw-v1/dark-brown-model-outfit.webp",
+        "image/catalog/accessories/smooth-calfskin-leather-belt-183/raw-v1/dark-brown-logo-tag.webp"
+      ]
+    }
+  }
+}

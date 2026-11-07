@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useStore } from "../hooks/useStore";
 import { useFavorites } from "../context/FavoritesContext";
 
 function materialLabel(product) {
+  if (product.material) return product.material.split(/[.;]/)[0].trim();
   if (product.collection === "Heritage Cashmere") return "Cashmere";
 
-  const name = product.name.toLowerCase();
+  const name = (product.name || "").toLowerCase();
   if (/canvas.*leather|leather.*canvas/.test(name)) return "Canvas & Leather";
   if (/linen.*cotton|cotton.*linen/.test(name)) return "Linen & Cotton";
   if (/merino.*cotton|cotton.*merino/.test(name)) return "Merino & Cotton";
@@ -22,7 +24,17 @@ function materialLabel(product) {
   if (/acetate/.test(name)) return "Acetate";
   if (/titanium/.test(name)) return "Titanium";
   if (/nylon/.test(name)) return "Nylon";
+  if (product.productType === "Footwear") return "Footwear";
+  if (product.productType === "Accessories") return "Accessories";
   return "Maison Rue Essentials";
+}
+
+function HeartIcon({ filled = false }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="product-card-heart-icon">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 export default function ProductCard({ product }) {
@@ -32,42 +44,57 @@ export default function ProductCard({ product }) {
   const location = useLocation();
   const stock = getProductStock(product.id);
   const isOutOfStock = stock === 0;
-  const modelImage = product.images?.find((image) => image.toLowerCase().includes("model"));
+  const firstColor = product.colors?.[0] || product.colorOptions?.[0]?.name || "";
+  const [selectedColor, setSelectedColor] = useState(firstColor);
+  const selectedImages = product.colorImages?.[selectedColor]?.length
+    ? product.colorImages[selectedColor]
+    : product.images || [];
+  const modelImage = selectedImages.find((image) => image.toLowerCase().includes("model"));
   // Curate model covers for roughly one third of cards so the catalog keeps visual rhythm.
-  const coverImage = modelImage && product.id % 3 === 0 ? modelImage : product.images?.[0];
+const coverImage = modelImage && product.id % 3 === 0 ? modelImage : selectedImages[0] || product.images?.[0];
+const hoverImage = selectedImages[1] && selectedImages[1] !== coverImage ? selectedImages[1] : null;
 
-  return (
-    <article className="product-card" style={{ position: "relative" }}>
-      <button type="button" aria-label={isFavorite(product.id) ? "Remove from wishlist" : "Add to wishlist"} aria-pressed={isFavorite(product.id)} onClick={async () => { const result = await toggleFavorite(product.id); if (result?.requiresLogin) navigate(`/login?returnTo=${encodeURIComponent(location.pathname)}`); }} style={{ position: "absolute", top: 18, right: 18, zIndex: 12, width: 24, height: 24, padding: 0, border: 0, background: "transparent", color: isFavorite(product.id) ? "#9B2C2C" : "#4E342E", cursor: "pointer", fontSize: 20, lineHeight: 1 }}><i className={isFavorite(product.id) ? "fas fa-heart" : "far fa-heart"} /></button>
-      <Link to={`/product/${product.id}`} style={{ color: "inherit", textDecoration: "none" }}>
-      {isOutOfStock && (
-        <span
-          style={{
-            position: "absolute",
-            top: "12px",
-            left: "12px",
-            backgroundColor: "#2B211C",
-            color: "#F8F5F0",
-            padding: "4px 10px",
-            fontSize: "11px",
-            fontWeight: "700",
-            letterSpacing: "1px",
-            borderRadius: "4px",
-            zIndex: 10,
-          }}
-        >
-          SOLD OUT
-        </span>
-      )}
+return (
+  <article className="product-card">
+    <button className="product-card-favorite" type="button" aria-label={isFavorite(product.id) ? "Remove from wishlist" : "Add to wishlist"} aria-pressed={isFavorite(product.id)} onClick={async () => { const result = await toggleFavorite(product.id); if (result?.requiresLogin) navigate(`/login?returnTo=${encodeURIComponent(location.pathname)}`); }}>
+      <HeartIcon filled={isFavorite(product.id)} />
+    </button>
+    <Link to={`/product/${product.id}`} className="product-card-link">
       <div className="product-image">
-        <img src={`/${coverImage}`} alt={product.name} />
+        {isOutOfStock && <span className="product-card-sold-out">Sold out</span>}
+        <img className="product-image-primary" src={`/${coverImage}`} alt={product.name} />
+        {hoverImage && <img className="product-image-hover" src={`/${hoverImage}`} alt="" aria-hidden="true" />}
       </div>
-      <div className="product-card-meta">{materialLabel(product)}</div>
-      <h3>{product.name}</h3>
-      <p className="product-card-fit">{product.subcategory}</p>
-      {product.promotionDiscount > 0 ? <div className="product-price-sale"><span>{product.price.toLocaleString("vi-VN")}đ</span><strong>{Number(product.promotionPrice).toLocaleString("vi-VN")}đ</strong></div> : <p className="product-price">{product.price.toLocaleString("vi-VN")}đ</p>}
-      {product.colorOptions && <div className="card-swatches">{product.colorOptions.slice(0, 4).map((color) => <span key={color.name} title={color.name} style={{ background: color.hex }} />)}</div>}
-      </Link>
-    </article>
-  );
+      <div className="product-card-copy">
+        <div className="product-card-meta">{materialLabel(product)}</div>
+        <h3>{product.name}</h3>
+        <p className="product-card-fit">{product.subcategory}</p>
+        {product.promotionDiscount > 0 ? (
+          <div className="product-price-sale">
+            <span>{product.price.toLocaleString("vi-VN")}đ</span>
+            <strong>{Number(product.promotionPrice).toLocaleString("vi-VN")}đ</strong>
+          </div>
+        ) : (
+          <p className="product-price">{product.price.toLocaleString("vi-VN")}đ</p>
+        )}
+      </div>
+    </Link>
+    {product.colorOptions && (
+      <div className="card-swatches" aria-label="Available colours">
+        {product.colorOptions.slice(0, 4).map((color) => (
+          <button
+            type="button"
+            key={color.name}
+            title={color.name}
+            aria-label={`Show ${color.name}`}
+            aria-pressed={selectedColor === color.name}
+            className={selectedColor === color.name ? "active" : ""}
+            style={{ background: color.hex }}
+            onClick={() => setSelectedColor(color.name)}
+          />
+        ))}
+      </div>
+    )}
+  </article>
+);
 }

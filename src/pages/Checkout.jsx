@@ -4,7 +4,7 @@ import { useCart } from "../hooks/useCart";
 import { useStore } from "../hooks/useStore";
 import { useAuth } from "../context/AuthContext";
 import useDocumentTitle from "../hooks/useDocumentTitle";
-import { promotionAPI } from "../services/api";
+import { customerAPI, promotionAPI } from "../services/api";
 
 function formatPrice(v) {
   return v.toLocaleString("vi-VN") + "đ";
@@ -23,7 +23,7 @@ export default function Checkout() {
     name: currentUser?.name || "",
     email: currentUser?.email || "",
     phone: currentUser?.phone || "",
-    address: "128 Dong Khoi Street, Ben Nghe Ward, District 1, Ho Chi Minh City",
+    address: "",
     paymentMethod: "cod",
     notes: "",
   });
@@ -36,6 +36,21 @@ export default function Checkout() {
   const [pricing, setPricing] = useState(null);
   const [promotionMessage, setPromotionMessage] = useState("");
   const [previewing, setPreviewing] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState("");
+
+  useEffect(() => {
+    if (currentUser?.role !== "customer") return;
+    customerAPI.getAccount().then((result) => {
+      const addresses = result.addresses || [];
+      setSavedAddresses(addresses);
+      const preferred = addresses.find((item) => item.is_default) || addresses[0];
+      if (preferred) {
+        setSelectedAddressId(String(preferred.id));
+        setFormData((previous) => ({ ...previous, address: preferred.address_text }));
+      }
+    }).catch(() => setSavedAddresses([]));
+  }, [currentUser?.id, currentUser?.role]);
 
   const previewPricing = useCallback(async (code = "") => {
     if (!checkoutItems.length) return;
@@ -65,6 +80,7 @@ export default function Checkout() {
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    if (e.target.name === "address") setSelectedAddressId("");
   };
 
   const handleSubmit = async (e) => {
@@ -303,6 +319,13 @@ export default function Checkout() {
             </div>
 
             <div className="form-group">
+              {savedAddresses.length > 0 && <>
+                <label>Saved delivery address</label>
+                <select className="checkout-address-select" value={selectedAddressId} onChange={(event) => { const selected = savedAddresses.find((item) => String(item.id) === event.target.value); setSelectedAddressId(event.target.value); if (selected) setFormData((previous) => ({ ...previous, address: selected.address_text })); }}>
+                  {savedAddresses.map((item) => <option key={item.id} value={item.id}>{item.is_default ? "Default — " : ""}{item.address_text}</option>)}
+                </select>
+                <p className="checkout-address-note">Choose another saved address or edit the delivery address below for this order.</p>
+              </>}
               <label>Full delivery address *</label>
               <input
                 type="text"

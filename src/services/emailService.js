@@ -1,10 +1,10 @@
 import emailjs from "@emailjs/browser";
 
-const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || "service_az46k1f";
+const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || "";
 const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || "";
-const ORDER_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_ORDER_TEMPLATE_ID || "template_20zssht";
-const STOCK_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_STOCK_TEMPLATE_ID || "template_6xhxjdo";
-const ALERT_EMAILS = import.meta.env.VITE_ALERT_EMAILS || "maisonruestaff2@gmail.com,vanhung29993@gmail.com";
+const ORDER_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_ORDER_TEMPLATE_ID || "";
+const STOCK_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_STOCK_TEMPLATE_ID || "";
+const ALERT_EMAILS = import.meta.env.VITE_ALERT_EMAILS || "";
 
 function formatCurrency(amount) {
   if (typeof amount !== "number") amount = Number(amount) || 0;
@@ -41,12 +41,13 @@ function formatItemsList(items = []) {
  * 1. Gửi email xác nhận khi khách đặt hàng thành công (English for Customer)
  */
 export async function sendOrderConfirmationEmail(order) {
-  if (!PUBLIC_KEY) {
-    console.warn("[EmailJS] Chưa có VITE_EMAILJS_PUBLIC_KEY trong .env. Bỏ qua gửi email.");
-    return { success: false, reason: "missing_public_key" };
+  if (!SERVICE_ID || !PUBLIC_KEY || !ORDER_TEMPLATE_ID) {
+    console.warn("[EmailJS] Chưa cấu hình đầy đủ email đơn hàng. Bỏ qua gửi email.");
+    return { success: false, reason: "missing_email_configuration" };
   }
 
-  const recipientEmail = order.customer_email || order.email || "vudat9532@gmail.com";
+  const recipientEmail = order.customer_email || order.email;
+  if (!recipientEmail) return { success: false, reason: "missing_recipient" };
   const templateParams = {
     to_email: recipientEmail,
     subject: `Order Confirmation #${order.id} — Maison Rue`,
@@ -76,12 +77,13 @@ export async function sendOrderConfirmationEmail(order) {
  * 2. Gửi email khi đơn được xác nhận, giao hàng hoặc hủy (English for Customer)
  */
 export async function sendOrderStatusEmail(order, newStatus, note = "") {
-  if (!PUBLIC_KEY) {
-    console.warn("[EmailJS] Chưa có VITE_EMAILJS_PUBLIC_KEY trong .env. Bỏ qua gửi email.");
-    return { success: false, reason: "missing_public_key" };
+  if (!SERVICE_ID || !PUBLIC_KEY || !ORDER_TEMPLATE_ID) {
+    console.warn("[EmailJS] Chưa cấu hình đầy đủ email đơn hàng. Bỏ qua gửi email.");
+    return { success: false, reason: "missing_email_configuration" };
   }
 
-  const recipientEmail = order.customer_email || order.email || "vudat9532@gmail.com";
+  const recipientEmail = order.customer_email || order.email;
+  if (!recipientEmail) return { success: false, reason: "missing_recipient" };
   let statusTitle = `Order Update #${order.id} — Maison Rue`;
   let statusBadge = newStatus?.toUpperCase() || "PROCESSING";
   let messageIntro = `Your order #${order.id} status has been updated to: ${newStatus}.`;
@@ -152,9 +154,9 @@ export async function sendLowStockAlertEmail({
   minStock = 3,
   note = "",
 }) {
-  if (!PUBLIC_KEY) {
-    console.warn("[EmailJS] Chưa có VITE_EMAILJS_PUBLIC_KEY trong .env. Bỏ qua gửi email.");
-    return { success: false, reason: "missing_public_key" };
+  if (!SERVICE_ID || !PUBLIC_KEY || !STOCK_TEMPLATE_ID || !ALERT_EMAILS) {
+    console.warn("[EmailJS] Chưa cấu hình đầy đủ email cảnh báo kho. Bỏ qua gửi email.");
+    return { success: false, reason: "missing_email_configuration" };
   }
 
   const recipients = ALERT_EMAILS.split(",").map((e) => e.trim()).filter(Boolean);

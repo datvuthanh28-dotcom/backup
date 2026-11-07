@@ -47,19 +47,28 @@ npm install
 ```
 
 ### Bước 2: Cấu hình biến môi trường (`.env`)
-Tệp `.env` đã được thiết lập sẵn trong thư mục gốc:
+Sao chép tệp mẫu; `.env` thật không được đưa lên Git:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Sau đó điền thông tin SQL Server và tạo một `JWT_SECRET` ngẫu nhiên, riêng cho máy của bạn:
 ```env
 PORT=5000
 NODE_ENV=development
 CLIENT_ORIGIN=http://localhost:5173
-JWT_SECRET=maison_rue_super_secret_jwt_key_2026_luxury_old_money
+JWT_SECRET=replace_with_a_long_random_secret
 DB_SERVER=127.0.0.1
 DB_PORT=1433
 DB_NAME=MaisonRueDB
 DB_USER=sa
-DB_PASSWORD=YourStrongPassword123!
+DB_PASSWORD=your_local_sql_server_password
 DB_TRUST_SERVER_CERTIFICATE=true
 ```
+
+Các biến Google Maps, EmailJS và chatbot là tùy chọn. Khi chưa cấu hình, website vẫn
+chạy được nhưng những tích hợp bên ngoài tương ứng sẽ được bỏ qua.
 
 ### Bước 3: Khởi tạo toàn bộ dữ liệu dự án (chạy một lần trên máy mới)
 ```bash
@@ -67,8 +76,10 @@ DB_TRUST_SERVER_CERTIFICATE=true
 npm run setup
 ```
 
-Lệnh `setup` là quy trình chuẩn khi clone/pull dự án sang máy mới. Tồn kho nằm trong
-MSSQL cục bộ và không được Git truyền sang máy khác. Không chạy riêng
+Lệnh `setup` là quy trình chuẩn khi clone/pull dự án sang máy mới. Lệnh này tạo
+`MaisonRueDB` nếu chưa tồn tại, áp dụng toàn bộ migration, đồng bộ catalog/SKU và
+nạp dữ liệu demo phục vụ báo cáo. Tài khoản SQL Server phải có quyền tạo database.
+Tồn kho nằm trong MSSQL cục bộ và không được Git truyền sang máy khác. Không chạy riêng
 `db:replace-catalog` để sửa tồn kho; lệnh này chỉ đồng bộ catalog và luôn giữ nguyên
 tồn kho của SKU đã tồn tại.
 
@@ -101,6 +112,9 @@ npm run db:seed
 
 # Phân bổ lại dữ liệu tồn kho demo theo bốn trạng thái vận hành
 npm run db:seed-metrics
+
+# Chỉ đồng bộ bốn tài khoản demo, không thay đổi catalog/đơn hàng/tồn kho
+npm run db:accounts
 ```
 
 ---
@@ -226,7 +240,19 @@ erDiagram
 
 ---
 
-## 7. Giữ Gìn Bản Sắc Thương Hiệu (Brand Identity)
+## 7. Dữ liệu được chia sẻ và dữ liệu cục bộ
+
+- Git chứa mã nguồn, migration SQL, catalog, SKU và toàn bộ ảnh WebP cần cho giao diện.
+- Git không chứa `.env`, mật khẩu SQL Server, JWT secret, khóa API, `node_modules`,
+  `dist`, hoặc database MSSQL của từng máy.
+- Tài khoản trong mục 2 chỉ là dữ liệu demo phát triển; không dùng cho production.
+- Sau khi pull thay đổi catalog, chạy `npm run setup` trên database demo mới. Với
+  database đang có dữ liệu nghiệp vụ cần giữ, chỉ chạy migration/sync phù hợp và sao
+  lưu trước khi thay đổi dữ liệu.
+
+---
+
+## 8. Giữ Gìn Bản Sắc Thương Hiệu (Brand Identity)
 - Màu sắc chủ đạo: Nền kem `#F8F5F0`, chữ nâu cà phê đậm `#2B211C`, điểm nhấn vàng kim `#B89B5E`.
 - Typography: Tiêu đề Cormorant Garamond cổ điển sang trọng kết hợp thân bài Inter hiện đại sắc nét.
-- Giữ nguyên toàn bộ 9 sản phẩm catalog, bộ lọc danh mục, trợ lý thời trang Rue (AI Chatbot), và luồng EmailJS.
+- Giữ catalog hiện hành, bộ lọc danh mục, trợ lý thời trang Rue và luồng EmailJS tùy chọn.

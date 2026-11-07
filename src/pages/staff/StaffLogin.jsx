@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate, useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
 
@@ -12,10 +12,6 @@ export default function StaffLogin() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  if (currentUser) {
-    return <Navigate to={role === "admin" ? "/admin" : role === "staff" ? "/staff" : "/account/orders"} replace />;
-  }
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -110,6 +106,7 @@ export default function StaffLogin() {
             <div>
               <span>Đang đăng nhập: </span>
               <strong>{currentUser.name}</strong> ({role})
+              {role !== "staff" && <div style={{ marginTop: "4px", color: "#B8A894", fontSize: "11.5px" }}>Đăng nhập Staff thành công sẽ thay thế phiên hiện tại.</div>}
             </div>
             {role === "staff" ? (
               <button
@@ -205,7 +202,7 @@ export default function StaffLogin() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="staffmaisonrue@gmail.com"
+                placeholder="staff@maisonrue.com"
                 style={{
                   width: "100%",
                   padding: "12px 14px",
@@ -285,7 +282,7 @@ export default function StaffLogin() {
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               <button
                 type="button"
-                onClick={() => quickFill("staffmaisonrue@gmail.com", "staff123")}
+                onClick={() => quickFill("staff@maisonrue.com", "staff123")}
                 style={{
                   padding: "8px 12px",
                   backgroundColor: "#1C1512",
@@ -299,13 +296,13 @@ export default function StaffLogin() {
                   justifyContent: "space-between",
                 }}
               >
-                <span>🏷️ Lê Hoàng Yến (Vận hành)</span>
-                <span style={{ color: "#B89B5E" }}>staffmaisonrue@gmail.com</span>
+                <span>Nhân Viên Maison Rue</span>
+                <span style={{ color: "#B89B5E" }}>staff@maisonrue.com</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => quickFill("maisonruestaff2@gmail.com", "staff123")}
+                onClick={() => quickFill("staff2@maisonrue.com", "staff123")}
                 style={{
                   padding: "8px 12px",
                   backgroundColor: "#1C1512",
@@ -319,29 +316,10 @@ export default function StaffLogin() {
                   justifyContent: "space-between",
                 }}
               >
-                <span>📦 Trần Minh Khoa (Kho vận)</span>
-                <span style={{ color: "#B89B5E" }}>maisonruestaff2@gmail.com</span>
+                <span>Nhân Viên Maison Rue 2</span>
+                <span style={{ color: "#B89B5E" }}>staff2@maisonrue.com</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => quickFill("staff.inactive@maisonrue.com", "staff123")}
-                style={{
-                  padding: "8px 12px",
-                  backgroundColor: "rgba(217, 83, 79, 0.1)",
-                  border: "1px solid rgba(217, 83, 79, 0.3)",
-                  borderRadius: "4px",
-                  color: "#FF9E9B",
-                  fontSize: "12px",
-                  textAlign: "left",
-                  cursor: "pointer",
-                  display: "flex",
-                  justifyContent: "space-between",
-                }}
-              >
-                <span>⚠️ Phạm Thu Trang (Tài khoản bị khóa)</span>
-                <span>Test chặn quyền</span>
-              </button>
             </div>
           </div>
 

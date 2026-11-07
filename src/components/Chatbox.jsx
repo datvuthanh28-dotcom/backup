@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./Chatbox.css";
 import foxLogo from "../assets/fox-logo.png";
 import { getCatalogForPrompt, getProductById } from "../data/products";
@@ -32,7 +32,7 @@ ${getCatalogForPrompt()}
 
 Khi gợi ý một sản phẩm cụ thể, PHẢI thêm một dòng riêng ngay dưới câu trả lời theo đúng cú pháp: [[SUGGEST:<id>]] (có thể nhiều dòng nếu gợi ý nhiều sản phẩm, dùng đúng id trong danh mục). Không tự chèn link markdown, hệ thống sẽ tự hiển thị thẻ sản phẩm.
 
-Nếu khách hỏi về đổi trả / hoàn tiền, hãy trả lời ngắn gọn rằng Rue có thể hỗ trợ đổi trả ngay trong khung chat này và hỏi khách muốn tiến hành không.`;
+Nếu khách hỏi về đổi trả / hoàn tiền, hãy hướng dẫn khách đăng nhập, mở My Account → Orders và gửi yêu cầu tại đúng sản phẩm. Không hứa rằng yêu cầu đã được duyệt; Maison Rue phải nhận và kiểm tra sản phẩm trực tiếp trước khi hoàn tiền hoặc đổi hàng.`;
 }
 
 async function callOpenAI(systemPrompt, userMessage) {
@@ -79,6 +79,7 @@ function extractSuggestedProducts(text) {
 
 export default function Chatbox() {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
 
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -392,6 +393,7 @@ export default function Chatbox() {
   }
 
   function handleQuickReplyClick(qr) {
+    if (qr.value === "__OPEN_ORDERS__") { setOpen(false); navigate("/account/orders"); return; }
     if (flow.current.step) {
       if (qr.value === "__TRIGGER_UPLOAD__") {
         fileInputRef.current?.click();
@@ -419,7 +421,9 @@ export default function Chatbox() {
 
     const returnKeywords = /(đổi trả|hoàn tiền|trả hàng|return|refund|lỗi sản phẩm|đổi hàng)/i;
     if (returnKeywords.test(message)) {
-      startReturnFlow();
+      pushBot(currentUser ? "Rue có thể giúp anh/chị gửi yêu cầu từ lịch sử đơn hàng để hệ thống kiểm tra đúng sản phẩm, thời hạn và điều kiện áp dụng. Sau khi gửi, Maison Rue sẽ nhận và kiểm tra trực tiếp sản phẩm trước khi hoàn tiền hoặc đổi hàng." : "Vui lòng đăng nhập và mở lịch sử đơn hàng để gửi yêu cầu đổi trả hoặc hoàn tiền. Hệ thống cần đối chiếu đơn hàng trước khi xét điều kiện.", {
+        quickReplies: currentUser?.role === "customer" ? [{ label: "Open My Orders", value: "__OPEN_ORDERS__" }] : [{ label: "Sign in", value: "__OPEN_ORDERS__" }],
+      });
       return;
     }
 

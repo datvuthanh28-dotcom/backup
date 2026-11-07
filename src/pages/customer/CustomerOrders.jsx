@@ -6,7 +6,7 @@ import useDocumentTitle from "../../hooks/useDocumentTitle";
 import CustomerAccountSidebar from "../../components/CustomerAccountSidebar";
 import OrderItemLine from "../../components/OrderItemLine";
 import OrderFinancialBreakdown from "../../components/OrderFinancialBreakdown";
-import { customerAPI } from "../../services/api";
+import { customerAPI, returnsAPI } from "../../services/api";
 
 function formatPrice(v) {
   return (v || 0).toLocaleString("vi-VN") + "đ";
@@ -28,6 +28,30 @@ const TRACKER_STEPS = ["pending", "confirmed", "processing", "shipping", "delive
 const CUSTOMER_STATUS_LABELS = { pending: "Pending", confirmed: "Confirmed", processing: "Processing", shipping: "Shipping", delivered: "Delivered", cancelled: "Cancelled" };
 const customerStatusLabel = (status) => CUSTOMER_STATUS_LABELS[status] || STATUS_LABELS[status]?.label || status;
 
+const RETURN_REQUEST_STATUS = {
+  manual_review: { label: "Under Client Care review", tone: "review" },
+  return_authorized: { label: "Return authorised", tone: "authorised" },
+  in_transit: { label: "Return on its way", tone: "authorised" },
+  received: { label: "Item received", tone: "review" },
+  inspection_passed: { label: "Inspection passed", tone: "authorised" },
+  inspection_failed: { label: "Return not approved after inspection", tone: "declined" },
+  refunded: { label: "Refund completed", tone: "authorised" },
+  exchanged: { label: "Exchange completed", tone: "authorised" },
+  auto_declined: { label: "Request not approved", tone: "declined" },
+  cancelled: { label: "Request cancelled", tone: "declined" },
+};
+
+function returnRequestMessage(request) {
+  if (request.status === "inspection_passed") {
+    const nextStep = request.request_type === "exchange"
+      ? "Your exchange will be arranged within 3 working days, subject to stock availability. Please contact Client Services if you need further support."
+      : "Your refund will be issued to the original payment method within 3 working days. Please contact Client Services if you need further support.";
+    return { label: "Request approved", tone: "authorised", detail: nextStep };
+  }
+  const meta = RETURN_REQUEST_STATUS[request.status] || { label: "Return request received", tone: "review" };
+  return { ...meta, detail: request.resolution_note || request.inspection_note || request.decision_reason || "Maison Rue will update you when the request progresses." };
+}
+
 export const PAYMENT_STATUS_META = {
   paid: { label: "Paid", color: "#2E8B57", bg: "#EAF7EE" },
   pending_verification: { label: "Payment pending", color: "#B8860B", bg: "#FFF8DC" },
@@ -39,7 +63,7 @@ export const PAYMENT_STATUS_META = {
 
 export default function CustomerOrders() {
   useDocumentTitle("My Orders");
-  const { orders, cancelOrder } = useStore();
+  const { orders, cancelOrder, refreshOrders } = useStore();
   const { currentUser } = useAuth();
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [cancellingId, setCancellingId] = useState(null);
@@ -52,22 +76,80 @@ export default function CustomerOrders() {
   const [reviewForm, setReviewForm] = useState({ rating: 5, title: "", content: "" });
   const [reviewSaving, setReviewSaving] = useState(false);
   const [reviewError, setReviewError] = useState("");
+  const [returnRequests, setReturnRequests] = useState([]);
+  const [returnTarget, setReturnTarget] = useState(null);
+  const [returnForm, setReturnForm] = useState({ requestType: "refund", reasonCode: "", reasonDetail: "", quantity: 1, conditionConfirmed: false, exchangeSize: "", exchangeColor: "" });
+  const [returnSaving, setReturnSaving] = useState(false);
+  const [returnError, setReturnError] = useState("");
+  const [exchangeOptions, setExchangeOptions] = useState({ sizes: [], colors: [], loading: false });
+
+  const refreshReturnRequests = async () => {
+    try { const result = await returnsAPI.getAll(); setReturnRequests(result.requests || []); }
+    catch { /* Keep order history usable when return service is temporarily unavailable. */ }
+  };
 
   useEffect(() => {
     let active = true;
     customerAPI.getMyReviewEligibility().then((result) => {
       if (!active) return;
-      setReviewEligibility(Object.fromEntries((result.items || []).map((item) => [Number(item.product_id), item])));
+      setReviewEligibility(Object.fromEntries((result.items || []).map((item) => [Number(item.order_item_id), item])));
     }).catch(() => {
       // Orders remain usable if review metadata cannot be loaded temporarily.
     });
     return () => { active = false; };
   }, []);
 
+  useEffect(() => { refreshReturnRequests(); }, []);
+
+  // Orders may have loaded while the local API was restarting. Refresh when this
+  // page opens so a signed-in customer never remains on an empty stale state.
+  useEffect(() => {
+    if (currentUser?.role === "customer") refreshOrders();
+  }, [currentUser?.id, currentUser?.role, refreshOrders]);
+
+  const openReturnRequest = async (order, item) => {
+    setReturnTarget({ order, item });
+    setReturnForm({ requestType: "refund", reasonCode: "", reasonDetail: "", quantity: 1, conditionConfirmed: false, exchangeSize: "", exchangeColor: "" });
+    setReturnError("");
+    setExchangeOptions({ sizes: [], colors: [], loading: true });
+    try {
+      const result = await returnsAPI.getExchangeOptions(order.id, item.id);
+      setExchangeOptions({ sizes: result.sizes || [], colors: result.colors || [], loading: false });
+    } catch (error) {
+      setExchangeOptions({ sizes: [], colors: [], loading: false });
+      setReturnError(error.message || "Unable to load the available exchange options.");
+    }
+  };
+
+  const submitReturnRequest = async (event) => {
+    event.preventDefault();
+    if (!returnTarget) return;
+    if (returnForm.requestType === "exchange" && (!returnForm.exchangeSize || !returnForm.exchangeColor)) {
+      setReturnError("Choose the preferred size and colour for your exchange.");
+      return;
+    }
+    setReturnSaving(true); setReturnError("");
+    try {
+      const result = await returnsAPI.submit({
+        orderId: returnTarget.order.id,
+        orderItemId: returnTarget.item.id,
+        ...returnForm,
+      });
+      setReturnTarget(null);
+      const decision = returnRequestMessage(result.request || { status: result.decision, decision_reason: result.message });
+      setActionNotice(`${decision.label}. ${decision.detail}`);
+      await refreshReturnRequests();
+      const reviewResult = await customerAPI.getMyReviewEligibility();
+      setReviewEligibility(Object.fromEntries((reviewResult.items || []).map((item) => [Number(item.order_item_id), item])));
+    } catch (error) { setReturnError(error.message || "Unable to submit your request."); }
+    finally { setReturnSaving(false); }
+  };
+
   const openReview = (order, item) => {
     const productId = Number(item.product_id || item.productId || item.id);
-    const current = reviewEligibility[productId];
-    setReviewTarget({ order, item, productId, current });
+    const orderItemId = Number(item.id);
+    const current = reviewEligibility[orderItemId];
+    setReviewTarget({ order, item, productId, orderItemId, current });
     setReviewForm({ rating: Number(current?.rating || 5), title: current?.title || "", content: current?.content || "" });
     setReviewError("");
   };
@@ -85,7 +167,7 @@ export default function CustomerOrders() {
         orderItemId: reviewTarget.item.id,
       });
       const next = { ...(result.purchase || reviewTarget.current || {}), ...(result.review || {}), product_id: reviewTarget.productId };
-      setReviewEligibility((previous) => ({ ...previous, [reviewTarget.productId]: next }));
+      setReviewEligibility((previous) => ({ ...previous, [reviewTarget.orderItemId]: next }));
       setReviewTarget(null);
       setActionNotice(wasEditing ? "Review updated." : "Review submitted.");
     } catch (error) {
@@ -102,7 +184,7 @@ export default function CustomerOrders() {
       await customerAPI.deleteReview(reviewTarget.productId);
       setReviewEligibility((previous) => ({
         ...previous,
-        [reviewTarget.productId]: { ...previous[reviewTarget.productId], review_id: null, rating: null, title: null, content: null, review_status: null },
+        [reviewTarget.orderItemId]: { ...previous[reviewTarget.orderItemId], review_id: null, rating: null, title: null, content: null, review_status: null },
       }));
       setReviewTarget(null);
       setActionNotice("Review deleted.");
@@ -502,10 +584,16 @@ export default function CustomerOrders() {
                   <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                     {orderItems.map((item, idx) => {
                       const productId = Number(item.product_id || item.productId || item.id);
-                      const review = reviewEligibility[productId];
+                      const review = reviewEligibility[Number(item.id)];
+                      const itemRequests = returnRequests.filter((request) => Number(request.order_item_id) === Number(item.id));
+                      const latestRequest = itemRequests[0];
+                      const hasReturnRequest = itemRequests.length > 0;
+                      const requestMessage = latestRequest ? returnRequestMessage(latestRequest) : null;
                       return <div className="order-review-item" key={item.id || `${item.product_id}-${idx}`}>
                         <OrderItemLine item={item} formatPrice={formatPrice} linkProduct />
-                        {currentStatus === "delivered" && (
+                        {currentStatus === "delivered" && !hasReturnRequest && <button type="button" className="order-review-button" onClick={() => openReturnRequest(order, item)}>Request return / refund</button>}
+                        {requestMessage && <p className={`return-request-status return-request-status--${requestMessage.tone}`}><strong>{requestMessage.label}</strong><span>{requestMessage.detail}</span></p>}
+                        {currentStatus === "delivered" && review && (
                           <button type="button" className="order-review-button" onClick={() => openReview(order, item)}>
                             <span aria-hidden="true">{review?.review_id ? "★" : "☆"}</span>
                             {review?.review_id ? "Edit review" : "Review product"}
@@ -571,6 +659,33 @@ export default function CustomerOrders() {
           </form>
         </div>
       )}
+
+      {returnTarget && <div className="order-review-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setReturnTarget(null); }}>
+        <form className="order-review-modal return-request-modal" onSubmit={submitReturnRequest}>
+          <button type="button" className="order-review-close" aria-label="Close" onClick={() => setReturnTarget(null)}>×</button>
+          <p className="eyebrow">Order #{returnTarget.order.id}</p>
+          <h2>Return or exchange request</h2>
+          <p className="order-review-product-name">{returnTarget.item.product_name || returnTarget.item.productName || returnTarget.item.name}</p>
+          <label>Request type<select value={returnForm.requestType} onChange={(event) => setReturnForm({ ...returnForm, requestType: event.target.value })}><option value="refund">Return and refund</option><option value="exchange">Exchange</option></select></label>
+          <label>Reason<select required value={returnForm.reasonCode} onChange={(event) => setReturnForm({ ...returnForm, reasonCode: event.target.value })}><option value="">Choose a reason</option><option value="wrong_item">Wrong item received</option><option value="wrong_color">Wrong colour received</option><option value="wrong_size_sent">Wrong size received</option><option value="missing_item">An item is missing</option><option value="damaged_on_arrival">Damaged on arrival</option><option value="manufacturing_defect">Possible manufacturing defect</option><option value="size_does_not_fit">The size does not fit</option><option value="changed_mind">I changed my mind</option><option value="other">Other</option></select></label>
+          <label>Quantity<input type="number" min="1" max={returnTarget.item.quantity} value={returnForm.quantity} onChange={(event) => setReturnForm({ ...returnForm, quantity: Number(event.target.value) })} required /></label>
+          {returnForm.requestType === "exchange" && <div className="return-exchange-fields">
+            <label>Preferred size<select required disabled={exchangeOptions.loading || exchangeOptions.sizes.length === 0} value={returnForm.exchangeSize} onChange={(event) => setReturnForm({ ...returnForm, exchangeSize: event.target.value })}>
+              <option value="">{exchangeOptions.loading ? "Loading sizes…" : exchangeOptions.sizes.length ? "Choose a size" : "No sizes available"}</option>
+              {exchangeOptions.sizes.map((size) => <option key={size} value={size}>{size}</option>)}
+            </select></label>
+            <label>Preferred colour<select required disabled={exchangeOptions.loading || exchangeOptions.colors.length === 0} value={returnForm.exchangeColor} onChange={(event) => setReturnForm({ ...returnForm, exchangeColor: event.target.value })}>
+              <option value="">{exchangeOptions.loading ? "Loading colours…" : exchangeOptions.colors.length ? "Choose a colour" : "No colours available"}</option>
+              {exchangeOptions.colors.map((color) => <option key={color} value={color}>{color}</option>)}
+            </select></label>
+          </div>}
+          <label>Details<textarea maxLength="1000" value={returnForm.reasonDetail} onChange={(event) => setReturnForm({ ...returnForm, reasonDetail: event.target.value })} placeholder="Tell us briefly what happened or what you would like to exchange." /></label>
+          {!(["wrong_item", "wrong_color", "wrong_size_sent", "missing_item", "damaged_on_arrival", "manufacturing_defect"].includes(returnForm.reasonCode)) && <label className="return-condition-confirm"><input type="checkbox" checked={returnForm.conditionConfirmed} onChange={(event) => setReturnForm({ ...returnForm, conditionConfirmed: event.target.checked })} /> I confirm the item is unworn, unwashed and unaltered.</label>}
+          <p className="return-inspection-note">No photo is needed to submit. Maison Rue will inspect the item in person after receiving it. A refund or exchange is completed only after inspection passes.</p>
+          {returnError && <p className="order-review-error">{returnError}</p>}
+          <div className="order-review-actions"><button type="button" className="account-cancel" disabled={returnSaving} onClick={() => setReturnTarget(null)}>Cancel</button><button type="submit" className="account-action" disabled={returnSaving || !returnForm.reasonCode || (returnForm.requestType === "exchange" && (exchangeOptions.loading || !returnForm.exchangeSize || !returnForm.exchangeColor))}>{returnSaving ? "Submitting…" : "Submit request"}</button></div>
+        </form>
+      </div>}
 
       {/* Cancel Confirmation Modal */}
       {cancellingId && (

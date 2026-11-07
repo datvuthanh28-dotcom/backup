@@ -1,11 +1,12 @@
 import { Router } from "express";
 import { authenticateToken, requireRole } from "../middleware/auth.js";
-import { getAccount, addAddress, updateAddress, deleteAddress, updatePreferences, updateProfile } from "../controllers/customerController.js";
+import { getAccount, getAddressSuggestions, addAddress, updateAddress, deleteAddress, updatePreferences, updateProfile } from "../controllers/customerController.js";
 import { deleteReview, getFavorites, getMyReviewEligibility, getReviewEligibility, saveReview, setFavorite } from "../controllers/engagementController.js";
 import { clearCart, getCart, saveCart } from "../controllers/cartController.js";
 const router = Router();
 router.use(authenticateToken, requireRole("customer"));
 router.get("/account", getAccount);
+router.get("/address-suggestions", getAddressSuggestions);
 router.post("/addresses", addAddress);
 router.patch("/addresses/:id", updateAddress);
 router.delete("/addresses/:id", deleteAddress);
