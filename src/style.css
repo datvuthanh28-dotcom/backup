@@ -2588,6 +2588,29 @@ body{overflow-y:scroll}
 .account-edit-form>div{display:flex;gap:8px;align-items:center;align-self:end;margin-top:18px}
 .address-card-actions{display:flex;gap:8px;margin-left:auto}.address-card-actions button{border:1px solid #D8CEC1;background:#fff;border-radius:8px;padding:7px 10px;color:#6B5A4B;cursor:pointer}.address-card-actions button:hover{background:#F8F5F0}
 .default-address-badge{display:inline-block;margin-left:10px;padding:3px 8px;border-radius:999px;background:#F5EAD7;color:#8A6735;font-size:11px;font-style:normal;font-weight:600}
+
+/* Account address book — quiet Maison Rue treatment */
+.account-simple .address-book-heading{align-items:flex-end;margin-top:36px}
+.account-simple .address-book-heading h3{font-size:32px}
+.address-book-heading p{margin:6px 0 0;color:#887767;font-size:13px;line-height:1.5}
+.account-simple .account-outline:disabled{cursor:not-allowed;opacity:.55}
+.address-list{display:grid;gap:10px}
+.account-simple .address-card{min-height:0;padding:20px 0;border:0;border-bottom:1px solid #dfd4c5;border-radius:0;background:transparent;box-shadow:none;align-items:flex-start}
+.account-simple .address-card.is-default{border-top:1px solid #dfd4c5}
+.account-simple .address-card .address-marker{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:#f0ebe2;color:#8e7351;font-size:16px}
+.address-copy{min-width:0;flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:3px 0}
+.account-simple .address-copy strong{max-width:570px;color:#42352d;font-size:14px;font-weight:400;line-height:1.6}
+.default-address-badge{margin:0;padding:0;border-radius:0;background:transparent;color:#9e8058;font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-weight:700}
+.address-card-actions{align-items:center;gap:12px;margin:1px 0 0 16px}
+.address-card-actions button{padding:2px 0!important;border:0!important;border-radius:0!important;background:transparent!important;color:#69594c!important;font-size:12px!important;text-decoration:underline;text-underline-offset:3px}
+.address-card-actions .address-remove{color:#a14b46!important}
+.address-empty{display:flex;align-items:center;gap:16px;padding:25px 0;border-top:1px solid #dfd4c5;border-bottom:1px solid #dfd4c5;color:#5e5045}
+.address-empty>span{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#f0ebe2;color:#8e7351}
+.address-empty>div{flex:1}.address-empty strong{font:500 18px 'Cormorant Garamond',serif;color:#372a24}.address-empty p{margin:4px 0 0;font-size:13px;color:#887767}.address-empty .account-action{white-space:nowrap}
+.address-modal{border:1px solid #d9ccba!important;border-radius:0!important;background:#fbf9f5!important;box-shadow:0 24px 70px rgba(47,34,26,.28)!important}
+.address-modal h2{font:500 32px 'Cormorant Garamond',serif!important;color:#372a24!important}.address-modal-eyebrow{margin:0 0 6px;color:#a07f55;font-size:11px;font-weight:700;letter-spacing:.17em}.address-modal-close{color:#755e4b!important}.address-grid input,.address-country,.phone-field{border-color:#d9ccba!important;border-radius:0!important;background:#fffdf9!important}.address-grid input:focus,.address-country:focus{outline:1px solid #8d6d4a!important}.address-default{color:#5f5147!important}.address-modal .account-action{border-color:#402d23!important;background:#402d23!important;color:#fff!important;border-radius:0!important}.address-modal .account-cancel{border:1px solid #d0c1ae!important;border-radius:0!important;color:#56463a!important;text-decoration:none!important;background:transparent!important}
+.checkout-address-select{width:100%;margin:0 0 7px;padding:13px 40px 13px 14px;border:1px solid #d8cec1;border-radius:0;background:#fff;color:#3e312a;font:14px Arial,sans-serif}.checkout-address-note{margin:0 0 16px;color:#8b7867;font-size:12px;line-height:1.45}
+.address-autocomplete{position:relative;grid-column:1/-1}.address-autocomplete>input{width:100%;box-sizing:border-box}.address-suggestions{position:absolute;z-index:20;top:calc(100% - 2px);left:0;right:0;margin:0;padding:5px 0;list-style:none;background:#fffdf9;border:1px solid #d9ccba;box-shadow:0 12px 24px rgba(47,34,26,.14)}.address-suggestions button{display:block;width:100%;padding:12px 14px;border:0;background:transparent;text-align:left;color:#493a30;font:14px Arial,sans-serif;line-height:1.45;cursor:pointer}.address-suggestions button:hover,.address-suggestions button:focus{background:#f3eee5}.address-suggestion-status,.address-suggestion-verified{display:block;margin:7px 0;color:#8b7867;font-size:12px}.address-suggestion-verified{color:#7b684f}
 .account-loading,.account-error{padding:14px 16px;margin-bottom:16px;border-radius:10px;font-size:14px}.account-loading{background:#F5F0E9;color:#8A7350}.account-error{background:#FFF0F0;border:1px solid #E7B8B8;color:#A33A3A}
 @media(max-width:900px){.account-page,.customer-orders-page{padding:48px 24px!important}.account-page .account-shell,.customer-orders-page{grid-template-columns:190px minmax(0,1fr)!important;gap:36px!important}.customer-account-sidebar{width:190px!important;min-width:190px!important}.customer-account-sidebar h1{font-size:32px!important}.customer-orders-content>div:first-child h1{font-size:34px!important;white-space:normal}.account-panel{min-width:0}}
 @media(max-width:640px){.account-page,.customer-orders-page{padding:32px 16px!important}.account-page .account-shell,.customer-orders-page{display:block!important}.customer-account-sidebar{position:static!important;width:100%!important;margin-bottom:32px}.customer-account-sidebar h1{font-size:34px!important}.account-panel,.customer-orders-content{width:100%!important}.customer-orders-content>div:first-child>div:last-child{text-align:left!important;margin-top:14px}.account-card{flex-wrap:wrap}.account-card strong{max-width:100%;word-break:break-word}.address-card-actions{width:100%;margin-left:0}.account-logout-row{flex-wrap:wrap}}

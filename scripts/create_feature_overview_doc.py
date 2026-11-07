@@ -71,6 +71,16 @@ def keep_with_next(paragraph):
     paragraph.paragraph_format.keep_with_next = True
 
 
+def remove_paragraph_bottom_rule(paragraph):
+    """Override Word's built-in Title bottom border without abandoning Title style."""
+    p_pr = paragraph._p.get_or_add_pPr()
+    borders = OxmlElement("w:pBdr")
+    bottom = OxmlElement("w:bottom")
+    bottom.set(qn("w:val"), "nil")
+    borders.append(bottom)
+    p_pr.append(borders)
+
+
 def add_run(paragraph, text, bold=False, italic=False, color=CHARCOAL, size=11, font="Aptos"):
     run = paragraph.add_run(text)
     run.bold = bold
@@ -150,6 +160,7 @@ p = doc.add_paragraph(style="Title")
 p.alignment = WD_ALIGN_PARAGRAPH.LEFT
 p.paragraph_format.space_before = Pt(76)
 p.paragraph_format.space_after = Pt(13)
+remove_paragraph_bottom_rule(p)
 add_run(p, "Website Feature Overview", size=30, font="Georgia", color=INK)
 
 p = doc.add_paragraph()
@@ -234,8 +245,6 @@ for row_values in rows:
 
 add_heading(doc, "Current and future refinement", 2)
 add_body(doc, "The current recommendation logic prioritises category complementarity, material compatibility and colour palette. As order data grows, the catalogue can also rank recommendations using products commonly purchased together, while retaining the category rules so the suggestions remain appropriate and varied.")
-
-doc.add_page_break()
 
 # Returns section
 add_heading(doc, "Return Refund and Exchange")
