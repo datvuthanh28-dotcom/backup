@@ -58,9 +58,13 @@ export async function runMigration() {
 }
 
 if (process.argv[1]?.endsWith("migrate.js")) {
-  runMigration().catch((err) => {
-    console.error("[Migration] Fatal error:", err);
-    process.exit(1);
-  });
+  runMigration()
+    .then(() => {
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error("[Migration] Fatal error:", err);
+      process.exit(1);
+    });
 }
 
