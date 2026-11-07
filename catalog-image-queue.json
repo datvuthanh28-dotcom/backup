@@ -1,0 +1,1347 @@
+{
+  "targetSize": 1254,
+  "generatedAt": "2026-11-07T02:47:17.745Z",
+  "queue": [
+    {
+      "productId": 181,
+      "productName": "Smooth Calfskin Bifold Wallet",
+      "color": "Black",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/accessories/smooth-calfskin-bifold-wallet-181/raw-v1/black-front.png",
+      "prompt": "Maison Rue women's Smooth Calfskin Bifold Wallet; color Black; category Accessories, Wallets & Small Leather Goods; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 181,
+      "productName": "Smooth Calfskin Bifold Wallet",
+      "color": "Black",
+      "view": "back",
+      "referenceImage": "public/image/catalog/accessories/smooth-calfskin-bifold-wallet-181/raw-v1/black-front.webp",
+      "output": "public/image/catalog/accessories/smooth-calfskin-bifold-wallet-181/raw-v1/black-back.png",
+      "prompt": "Maison Rue women's Smooth Calfskin Bifold Wallet; color Black; category Accessories, Wallets & Small Leather Goods; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 181,
+      "productName": "Smooth Calfskin Bifold Wallet",
+      "color": "Black",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/accessories/smooth-calfskin-bifold-wallet-181/raw-v1/black-front.webp",
+      "output": "public/image/catalog/accessories/smooth-calfskin-bifold-wallet-181/raw-v1/black-model-detail.png",
+      "prompt": "Maison Rue women's Smooth Calfskin Bifold Wallet; color Black; category Accessories, Wallets & Small Leather Goods; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 181,
+      "productName": "Smooth Calfskin Bifold Wallet",
+      "color": "Black",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/accessories/smooth-calfskin-bifold-wallet-181/raw-v1/black-front.webp",
+      "output": "public/image/catalog/accessories/smooth-calfskin-bifold-wallet-181/raw-v1/black-model-outfit.png",
+      "prompt": "Maison Rue women's Smooth Calfskin Bifold Wallet; color Black; category Accessories, Wallets & Small Leather Goods; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 181,
+      "productName": "Smooth Calfskin Bifold Wallet",
+      "color": "Black",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/accessories/smooth-calfskin-bifold-wallet-181/raw-v1/black-front.webp",
+      "output": "public/image/catalog/accessories/smooth-calfskin-bifold-wallet-181/raw-v1/black-logo-tag.png",
+      "prompt": "Maison Rue women's Smooth Calfskin Bifold Wallet; color Black; category Accessories, Wallets & Small Leather Goods; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 182,
+      "productName": "Grained Calfskin Card Holder",
+      "color": "Dark Brown",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/accessories/grained-calfskin-card-holder-182/raw-v1/dark-brown-front.png",
+      "prompt": "Maison Rue women's Grained Calfskin Card Holder; color Dark Brown; category Accessories, Wallets & Small Leather Goods; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 182,
+      "productName": "Grained Calfskin Card Holder",
+      "color": "Dark Brown",
+      "view": "back",
+      "referenceImage": "public/image/catalog/accessories/grained-calfskin-card-holder-182/raw-v1/dark-brown-front.webp",
+      "output": "public/image/catalog/accessories/grained-calfskin-card-holder-182/raw-v1/dark-brown-back.png",
+      "prompt": "Maison Rue women's Grained Calfskin Card Holder; color Dark Brown; category Accessories, Wallets & Small Leather Goods; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 182,
+      "productName": "Grained Calfskin Card Holder",
+      "color": "Dark Brown",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/accessories/grained-calfskin-card-holder-182/raw-v1/dark-brown-front.webp",
+      "output": "public/image/catalog/accessories/grained-calfskin-card-holder-182/raw-v1/dark-brown-model-detail.png",
+      "prompt": "Maison Rue women's Grained Calfskin Card Holder; color Dark Brown; category Accessories, Wallets & Small Leather Goods; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 182,
+      "productName": "Grained Calfskin Card Holder",
+      "color": "Dark Brown",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/accessories/grained-calfskin-card-holder-182/raw-v1/dark-brown-front.webp",
+      "output": "public/image/catalog/accessories/grained-calfskin-card-holder-182/raw-v1/dark-brown-model-outfit.png",
+      "prompt": "Maison Rue women's Grained Calfskin Card Holder; color Dark Brown; category Accessories, Wallets & Small Leather Goods; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 182,
+      "productName": "Grained Calfskin Card Holder",
+      "color": "Dark Brown",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/accessories/grained-calfskin-card-holder-182/raw-v1/dark-brown-front.webp",
+      "output": "public/image/catalog/accessories/grained-calfskin-card-holder-182/raw-v1/dark-brown-logo-tag.png",
+      "prompt": "Maison Rue women's Grained Calfskin Card Holder; color Dark Brown; category Accessories, Wallets & Small Leather Goods; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 184,
+      "productName": "Suede Leather Belt",
+      "color": "Taupe",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/accessories/suede-leather-belt-184/raw-v1/taupe-front.png",
+      "prompt": "Maison Rue women's Suede Leather Belt; color Taupe; category Accessories, Belts; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 184,
+      "productName": "Suede Leather Belt",
+      "color": "Taupe",
+      "view": "back",
+      "referenceImage": "public/image/catalog/accessories/suede-leather-belt-184/raw-v1/taupe-front.webp",
+      "output": "public/image/catalog/accessories/suede-leather-belt-184/raw-v1/taupe-back.png",
+      "prompt": "Maison Rue women's Suede Leather Belt; color Taupe; category Accessories, Belts; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 184,
+      "productName": "Suede Leather Belt",
+      "color": "Taupe",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/accessories/suede-leather-belt-184/raw-v1/taupe-front.webp",
+      "output": "public/image/catalog/accessories/suede-leather-belt-184/raw-v1/taupe-model-detail.png",
+      "prompt": "Maison Rue women's Suede Leather Belt; color Taupe; category Accessories, Belts; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 184,
+      "productName": "Suede Leather Belt",
+      "color": "Taupe",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/accessories/suede-leather-belt-184/raw-v1/taupe-front.webp",
+      "output": "public/image/catalog/accessories/suede-leather-belt-184/raw-v1/taupe-model-outfit.png",
+      "prompt": "Maison Rue women's Suede Leather Belt; color Taupe; category Accessories, Belts; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 184,
+      "productName": "Suede Leather Belt",
+      "color": "Taupe",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/accessories/suede-leather-belt-184/raw-v1/taupe-front.webp",
+      "output": "public/image/catalog/accessories/suede-leather-belt-184/raw-v1/taupe-logo-tag.png",
+      "prompt": "Maison Rue women's Suede Leather Belt; color Taupe; category Accessories, Belts; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 185,
+      "productName": "Cotton Twill Baseball Cap",
+      "color": "Beige",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/accessories/cotton-twill-baseball-cap-185/raw-v1/beige-front.png",
+      "prompt": "Maison Rue women's Cotton Twill Baseball Cap; color Beige; category Accessories, Hats; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 185,
+      "productName": "Cotton Twill Baseball Cap",
+      "color": "Beige",
+      "view": "back",
+      "referenceImage": "public/image/catalog/accessories/cotton-twill-baseball-cap-185/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/accessories/cotton-twill-baseball-cap-185/raw-v1/beige-back.png",
+      "prompt": "Maison Rue women's Cotton Twill Baseball Cap; color Beige; category Accessories, Hats; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 185,
+      "productName": "Cotton Twill Baseball Cap",
+      "color": "Beige",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/accessories/cotton-twill-baseball-cap-185/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/accessories/cotton-twill-baseball-cap-185/raw-v1/beige-model-detail.png",
+      "prompt": "Maison Rue women's Cotton Twill Baseball Cap; color Beige; category Accessories, Hats; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 185,
+      "productName": "Cotton Twill Baseball Cap",
+      "color": "Beige",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/accessories/cotton-twill-baseball-cap-185/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/accessories/cotton-twill-baseball-cap-185/raw-v1/beige-model-outfit.png",
+      "prompt": "Maison Rue women's Cotton Twill Baseball Cap; color Beige; category Accessories, Hats; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 185,
+      "productName": "Cotton Twill Baseball Cap",
+      "color": "Beige",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/accessories/cotton-twill-baseball-cap-185/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/accessories/cotton-twill-baseball-cap-185/raw-v1/beige-logo-tag.png",
+      "prompt": "Maison Rue women's Cotton Twill Baseball Cap; color Beige; category Accessories, Hats; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 186,
+      "productName": "Cashmere Ribbed Beanie",
+      "color": "Charcoal",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/accessories/cashmere-ribbed-beanie-186/raw-v1/charcoal-front.png",
+      "prompt": "Maison Rue women's Cashmere Ribbed Beanie; color Charcoal; category Accessories, Hats; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 186,
+      "productName": "Cashmere Ribbed Beanie",
+      "color": "Charcoal",
+      "view": "back",
+      "referenceImage": "public/image/catalog/accessories/cashmere-ribbed-beanie-186/raw-v1/charcoal-front.webp",
+      "output": "public/image/catalog/accessories/cashmere-ribbed-beanie-186/raw-v1/charcoal-back.png",
+      "prompt": "Maison Rue women's Cashmere Ribbed Beanie; color Charcoal; category Accessories, Hats; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 186,
+      "productName": "Cashmere Ribbed Beanie",
+      "color": "Charcoal",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/accessories/cashmere-ribbed-beanie-186/raw-v1/charcoal-front.webp",
+      "output": "public/image/catalog/accessories/cashmere-ribbed-beanie-186/raw-v1/charcoal-model-detail.png",
+      "prompt": "Maison Rue women's Cashmere Ribbed Beanie; color Charcoal; category Accessories, Hats; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 186,
+      "productName": "Cashmere Ribbed Beanie",
+      "color": "Charcoal",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/accessories/cashmere-ribbed-beanie-186/raw-v1/charcoal-front.webp",
+      "output": "public/image/catalog/accessories/cashmere-ribbed-beanie-186/raw-v1/charcoal-model-outfit.png",
+      "prompt": "Maison Rue women's Cashmere Ribbed Beanie; color Charcoal; category Accessories, Hats; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 186,
+      "productName": "Cashmere Ribbed Beanie",
+      "color": "Charcoal",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/accessories/cashmere-ribbed-beanie-186/raw-v1/charcoal-front.webp",
+      "output": "public/image/catalog/accessories/cashmere-ribbed-beanie-186/raw-v1/charcoal-logo-tag.png",
+      "prompt": "Maison Rue women's Cashmere Ribbed Beanie; color Charcoal; category Accessories, Hats; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 187,
+      "productName": "Acetate Cat-Eye Sunglasses",
+      "color": "Dark Havana",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/accessories/acetate-cat-eye-sunglasses/raw-v1/dark-havana-front.png",
+      "prompt": "Maison Rue women's Acetate Cat-Eye Sunglasses; color Dark Havana; category Accessories, Eyewear; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 187,
+      "productName": "Acetate Cat-Eye Sunglasses",
+      "color": "Dark Havana",
+      "view": "back",
+      "referenceImage": "public/image/catalog/accessories/acetate-cat-eye-sunglasses/raw-v1/dark-havana-front.webp",
+      "output": "public/image/catalog/accessories/acetate-cat-eye-sunglasses/raw-v1/dark-havana-back.png",
+      "prompt": "Maison Rue women's Acetate Cat-Eye Sunglasses; color Dark Havana; category Accessories, Eyewear; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 187,
+      "productName": "Acetate Cat-Eye Sunglasses",
+      "color": "Dark Havana",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/accessories/acetate-cat-eye-sunglasses/raw-v1/dark-havana-front.webp",
+      "output": "public/image/catalog/accessories/acetate-cat-eye-sunglasses/raw-v1/dark-havana-model-detail.png",
+      "prompt": "Maison Rue women's Acetate Cat-Eye Sunglasses; color Dark Havana; category Accessories, Eyewear; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 187,
+      "productName": "Acetate Cat-Eye Sunglasses",
+      "color": "Dark Havana",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/accessories/acetate-cat-eye-sunglasses/raw-v1/dark-havana-front.webp",
+      "output": "public/image/catalog/accessories/acetate-cat-eye-sunglasses/raw-v1/dark-havana-model-outfit.png",
+      "prompt": "Maison Rue women's Acetate Cat-Eye Sunglasses; color Dark Havana; category Accessories, Eyewear; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 187,
+      "productName": "Acetate Cat-Eye Sunglasses",
+      "color": "Dark Havana",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/accessories/acetate-cat-eye-sunglasses/raw-v1/dark-havana-front.webp",
+      "output": "public/image/catalog/accessories/acetate-cat-eye-sunglasses/raw-v1/dark-havana-logo-tag.png",
+      "prompt": "Maison Rue women's Acetate Cat-Eye Sunglasses; color Dark Havana; category Accessories, Eyewear; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 188,
+      "productName": "Acetate Oval Sunglasses",
+      "color": "Black",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/accessories/acetate-oval-sunglasses/raw-v1/black-front.png",
+      "prompt": "Maison Rue women's Acetate Oval Sunglasses; color Black; category Accessories, Eyewear; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 188,
+      "productName": "Acetate Oval Sunglasses",
+      "color": "Black",
+      "view": "back",
+      "referenceImage": "public/image/catalog/accessories/acetate-oval-sunglasses/raw-v1/black-front.webp",
+      "output": "public/image/catalog/accessories/acetate-oval-sunglasses/raw-v1/black-back.png",
+      "prompt": "Maison Rue women's Acetate Oval Sunglasses; color Black; category Accessories, Eyewear; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 188,
+      "productName": "Acetate Oval Sunglasses",
+      "color": "Black",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/accessories/acetate-oval-sunglasses/raw-v1/black-front.webp",
+      "output": "public/image/catalog/accessories/acetate-oval-sunglasses/raw-v1/black-model-detail.png",
+      "prompt": "Maison Rue women's Acetate Oval Sunglasses; color Black; category Accessories, Eyewear; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 188,
+      "productName": "Acetate Oval Sunglasses",
+      "color": "Black",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/accessories/acetate-oval-sunglasses/raw-v1/black-front.webp",
+      "output": "public/image/catalog/accessories/acetate-oval-sunglasses/raw-v1/black-model-outfit.png",
+      "prompt": "Maison Rue women's Acetate Oval Sunglasses; color Black; category Accessories, Eyewear; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 188,
+      "productName": "Acetate Oval Sunglasses",
+      "color": "Black",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/accessories/acetate-oval-sunglasses/raw-v1/black-front.webp",
+      "output": "public/image/catalog/accessories/acetate-oval-sunglasses/raw-v1/black-logo-tag.png",
+      "prompt": "Maison Rue women's Acetate Oval Sunglasses; color Black; category Accessories, Eyewear; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 189,
+      "productName": "Titanium Minimalist Sunglasses",
+      "color": "Brushed Gold",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/accessories/titanium-minimalist-sunglasses/raw-v1/brushed-gold-front.png",
+      "prompt": "Maison Rue women's Titanium Minimalist Sunglasses; color Brushed Gold; category Accessories, Eyewear; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 189,
+      "productName": "Titanium Minimalist Sunglasses",
+      "color": "Brushed Gold",
+      "view": "back",
+      "referenceImage": "public/image/catalog/accessories/titanium-minimalist-sunglasses/raw-v1/brushed-gold-front.webp",
+      "output": "public/image/catalog/accessories/titanium-minimalist-sunglasses/raw-v1/brushed-gold-back.png",
+      "prompt": "Maison Rue women's Titanium Minimalist Sunglasses; color Brushed Gold; category Accessories, Eyewear; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 189,
+      "productName": "Titanium Minimalist Sunglasses",
+      "color": "Brushed Gold",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/accessories/titanium-minimalist-sunglasses/raw-v1/brushed-gold-front.webp",
+      "output": "public/image/catalog/accessories/titanium-minimalist-sunglasses/raw-v1/brushed-gold-model-detail.png",
+      "prompt": "Maison Rue women's Titanium Minimalist Sunglasses; color Brushed Gold; category Accessories, Eyewear; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 189,
+      "productName": "Titanium Minimalist Sunglasses",
+      "color": "Brushed Gold",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/accessories/titanium-minimalist-sunglasses/raw-v1/brushed-gold-front.webp",
+      "output": "public/image/catalog/accessories/titanium-minimalist-sunglasses/raw-v1/brushed-gold-model-outfit.png",
+      "prompt": "Maison Rue women's Titanium Minimalist Sunglasses; color Brushed Gold; category Accessories, Eyewear; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 189,
+      "productName": "Titanium Minimalist Sunglasses",
+      "color": "Brushed Gold",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/accessories/titanium-minimalist-sunglasses/raw-v1/brushed-gold-front.webp",
+      "output": "public/image/catalog/accessories/titanium-minimalist-sunglasses/raw-v1/brushed-gold-logo-tag.png",
+      "prompt": "Maison Rue women's Titanium Minimalist Sunglasses; color Brushed Gold; category Accessories, Eyewear; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 190,
+      "productName": "Organic Cotton Baby Bodysuit",
+      "color": "Ivory",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/clothing/organic-cotton-baby-bodysuit/raw-v1/ivory-front.png",
+      "prompt": "Maison Rue men's Organic Cotton Baby Bodysuit; color Ivory; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 190,
+      "productName": "Organic Cotton Baby Bodysuit",
+      "color": "Ivory",
+      "view": "back",
+      "referenceImage": "public/image/catalog/clothing/organic-cotton-baby-bodysuit/raw-v1/ivory-front.webp",
+      "output": "public/image/catalog/clothing/organic-cotton-baby-bodysuit/raw-v1/ivory-back.png",
+      "prompt": "Maison Rue men's Organic Cotton Baby Bodysuit; color Ivory; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 190,
+      "productName": "Organic Cotton Baby Bodysuit",
+      "color": "Ivory",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/clothing/organic-cotton-baby-bodysuit/raw-v1/ivory-front.webp",
+      "output": "public/image/catalog/clothing/organic-cotton-baby-bodysuit/raw-v1/ivory-model-detail.png",
+      "prompt": "Maison Rue men's Organic Cotton Baby Bodysuit; color Ivory; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 190,
+      "productName": "Organic Cotton Baby Bodysuit",
+      "color": "Ivory",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/clothing/organic-cotton-baby-bodysuit/raw-v1/ivory-front.webp",
+      "output": "public/image/catalog/clothing/organic-cotton-baby-bodysuit/raw-v1/ivory-model-outfit.png",
+      "prompt": "Maison Rue men's Organic Cotton Baby Bodysuit; color Ivory; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 190,
+      "productName": "Organic Cotton Baby Bodysuit",
+      "color": "Ivory",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/clothing/organic-cotton-baby-bodysuit/raw-v1/ivory-front.webp",
+      "output": "public/image/catalog/clothing/organic-cotton-baby-bodysuit/raw-v1/ivory-logo-tag.png",
+      "prompt": "Maison Rue men's Organic Cotton Baby Bodysuit; color Ivory; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 191,
+      "productName": "Cotton Footed Sleepsuit",
+      "color": "Beige",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/clothing/cotton-footed-sleepsuit/raw-v1/beige-front.png",
+      "prompt": "Maison Rue men's Cotton Footed Sleepsuit; color Beige; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 191,
+      "productName": "Cotton Footed Sleepsuit",
+      "color": "Beige",
+      "view": "back",
+      "referenceImage": "public/image/catalog/clothing/cotton-footed-sleepsuit/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/clothing/cotton-footed-sleepsuit/raw-v1/beige-back.png",
+      "prompt": "Maison Rue men's Cotton Footed Sleepsuit; color Beige; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 191,
+      "productName": "Cotton Footed Sleepsuit",
+      "color": "Beige",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/clothing/cotton-footed-sleepsuit/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/clothing/cotton-footed-sleepsuit/raw-v1/beige-model-detail.png",
+      "prompt": "Maison Rue men's Cotton Footed Sleepsuit; color Beige; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 191,
+      "productName": "Cotton Footed Sleepsuit",
+      "color": "Beige",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/clothing/cotton-footed-sleepsuit/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/clothing/cotton-footed-sleepsuit/raw-v1/beige-model-outfit.png",
+      "prompt": "Maison Rue men's Cotton Footed Sleepsuit; color Beige; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 191,
+      "productName": "Cotton Footed Sleepsuit",
+      "color": "Beige",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/clothing/cotton-footed-sleepsuit/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/clothing/cotton-footed-sleepsuit/raw-v1/beige-logo-tag.png",
+      "prompt": "Maison Rue men's Cotton Footed Sleepsuit; color Beige; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 192,
+      "productName": "Cashmere-Cotton Baby Cardigan",
+      "color": "Oatmeal",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/clothing/cashmere-cotton-baby-cardigan/raw-v1/oatmeal-front.png",
+      "prompt": "Maison Rue men's Cashmere-Cotton Baby Cardigan; color Oatmeal; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 192,
+      "productName": "Cashmere-Cotton Baby Cardigan",
+      "color": "Oatmeal",
+      "view": "back",
+      "referenceImage": "public/image/catalog/clothing/cashmere-cotton-baby-cardigan/raw-v1/oatmeal-front.webp",
+      "output": "public/image/catalog/clothing/cashmere-cotton-baby-cardigan/raw-v1/oatmeal-back.png",
+      "prompt": "Maison Rue men's Cashmere-Cotton Baby Cardigan; color Oatmeal; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 192,
+      "productName": "Cashmere-Cotton Baby Cardigan",
+      "color": "Oatmeal",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/clothing/cashmere-cotton-baby-cardigan/raw-v1/oatmeal-front.webp",
+      "output": "public/image/catalog/clothing/cashmere-cotton-baby-cardigan/raw-v1/oatmeal-model-detail.png",
+      "prompt": "Maison Rue men's Cashmere-Cotton Baby Cardigan; color Oatmeal; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 192,
+      "productName": "Cashmere-Cotton Baby Cardigan",
+      "color": "Oatmeal",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/clothing/cashmere-cotton-baby-cardigan/raw-v1/oatmeal-front.webp",
+      "output": "public/image/catalog/clothing/cashmere-cotton-baby-cardigan/raw-v1/oatmeal-model-outfit.png",
+      "prompt": "Maison Rue men's Cashmere-Cotton Baby Cardigan; color Oatmeal; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 192,
+      "productName": "Cashmere-Cotton Baby Cardigan",
+      "color": "Oatmeal",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/clothing/cashmere-cotton-baby-cardigan/raw-v1/oatmeal-front.webp",
+      "output": "public/image/catalog/clothing/cashmere-cotton-baby-cardigan/raw-v1/oatmeal-logo-tag.png",
+      "prompt": "Maison Rue men's Cashmere-Cotton Baby Cardigan; color Oatmeal; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 193,
+      "productName": "Organic Cotton Baby Romper",
+      "color": "Soft Beige",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/clothing/organic-cotton-baby-romper/raw-v1/soft-beige-front.png",
+      "prompt": "Maison Rue men's Organic Cotton Baby Romper; color Soft Beige; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 193,
+      "productName": "Organic Cotton Baby Romper",
+      "color": "Soft Beige",
+      "view": "back",
+      "referenceImage": "public/image/catalog/clothing/organic-cotton-baby-romper/raw-v1/soft-beige-front.webp",
+      "output": "public/image/catalog/clothing/organic-cotton-baby-romper/raw-v1/soft-beige-back.png",
+      "prompt": "Maison Rue men's Organic Cotton Baby Romper; color Soft Beige; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 193,
+      "productName": "Organic Cotton Baby Romper",
+      "color": "Soft Beige",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/clothing/organic-cotton-baby-romper/raw-v1/soft-beige-front.webp",
+      "output": "public/image/catalog/clothing/organic-cotton-baby-romper/raw-v1/soft-beige-model-detail.png",
+      "prompt": "Maison Rue men's Organic Cotton Baby Romper; color Soft Beige; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 193,
+      "productName": "Organic Cotton Baby Romper",
+      "color": "Soft Beige",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/clothing/organic-cotton-baby-romper/raw-v1/soft-beige-front.webp",
+      "output": "public/image/catalog/clothing/organic-cotton-baby-romper/raw-v1/soft-beige-model-outfit.png",
+      "prompt": "Maison Rue men's Organic Cotton Baby Romper; color Soft Beige; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 193,
+      "productName": "Organic Cotton Baby Romper",
+      "color": "Soft Beige",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/clothing/organic-cotton-baby-romper/raw-v1/soft-beige-front.webp",
+      "output": "public/image/catalog/clothing/organic-cotton-baby-romper/raw-v1/soft-beige-logo-tag.png",
+      "prompt": "Maison Rue men's Organic Cotton Baby Romper; color Soft Beige; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 194,
+      "productName": "Cotton Piqué Polo Shirt",
+      "color": "Navy",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/clothing/cotton-pique-polo-shirt/raw-v1/navy-front.png",
+      "prompt": "Maison Rue men's Cotton Piqué Polo Shirt; color Navy; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 194,
+      "productName": "Cotton Piqué Polo Shirt",
+      "color": "Navy",
+      "view": "back",
+      "referenceImage": "public/image/catalog/clothing/cotton-pique-polo-shirt/raw-v1/navy-front.webp",
+      "output": "public/image/catalog/clothing/cotton-pique-polo-shirt/raw-v1/navy-back.png",
+      "prompt": "Maison Rue men's Cotton Piqué Polo Shirt; color Navy; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 194,
+      "productName": "Cotton Piqué Polo Shirt",
+      "color": "Navy",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/clothing/cotton-pique-polo-shirt/raw-v1/navy-front.webp",
+      "output": "public/image/catalog/clothing/cotton-pique-polo-shirt/raw-v1/navy-model-detail.png",
+      "prompt": "Maison Rue men's Cotton Piqué Polo Shirt; color Navy; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 194,
+      "productName": "Cotton Piqué Polo Shirt",
+      "color": "Navy",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/clothing/cotton-pique-polo-shirt/raw-v1/navy-front.webp",
+      "output": "public/image/catalog/clothing/cotton-pique-polo-shirt/raw-v1/navy-model-outfit.png",
+      "prompt": "Maison Rue men's Cotton Piqué Polo Shirt; color Navy; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 194,
+      "productName": "Cotton Piqué Polo Shirt",
+      "color": "Navy",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/clothing/cotton-pique-polo-shirt/raw-v1/navy-front.webp",
+      "output": "public/image/catalog/clothing/cotton-pique-polo-shirt/raw-v1/navy-logo-tag.png",
+      "prompt": "Maison Rue men's Cotton Piqué Polo Shirt; color Navy; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 195,
+      "productName": "Linen-Cotton Easy Trousers",
+      "color": "Beige",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/clothing/linen-cotton-easy-trousers/raw-v1/beige-front.png",
+      "prompt": "Maison Rue men's Linen-Cotton Easy Trousers; color Beige; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 195,
+      "productName": "Linen-Cotton Easy Trousers",
+      "color": "Beige",
+      "view": "back",
+      "referenceImage": "public/image/catalog/clothing/linen-cotton-easy-trousers/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/clothing/linen-cotton-easy-trousers/raw-v1/beige-back.png",
+      "prompt": "Maison Rue men's Linen-Cotton Easy Trousers; color Beige; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 195,
+      "productName": "Linen-Cotton Easy Trousers",
+      "color": "Beige",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/clothing/linen-cotton-easy-trousers/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/clothing/linen-cotton-easy-trousers/raw-v1/beige-model-detail.png",
+      "prompt": "Maison Rue men's Linen-Cotton Easy Trousers; color Beige; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 195,
+      "productName": "Linen-Cotton Easy Trousers",
+      "color": "Beige",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/clothing/linen-cotton-easy-trousers/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/clothing/linen-cotton-easy-trousers/raw-v1/beige-model-outfit.png",
+      "prompt": "Maison Rue men's Linen-Cotton Easy Trousers; color Beige; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 195,
+      "productName": "Linen-Cotton Easy Trousers",
+      "color": "Beige",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/clothing/linen-cotton-easy-trousers/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/clothing/linen-cotton-easy-trousers/raw-v1/beige-logo-tag.png",
+      "prompt": "Maison Rue men's Linen-Cotton Easy Trousers; color Beige; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 196,
+      "productName": "Merino-Cotton Knitted Cardigan",
+      "color": "Camel",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/clothing/merino-cotton-knitted-cardigan/raw-v1/camel-front.png",
+      "prompt": "Maison Rue men's Merino-Cotton Knitted Cardigan; color Camel; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 196,
+      "productName": "Merino-Cotton Knitted Cardigan",
+      "color": "Camel",
+      "view": "back",
+      "referenceImage": "public/image/catalog/clothing/merino-cotton-knitted-cardigan/raw-v1/camel-front.webp",
+      "output": "public/image/catalog/clothing/merino-cotton-knitted-cardigan/raw-v1/camel-back.png",
+      "prompt": "Maison Rue men's Merino-Cotton Knitted Cardigan; color Camel; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 196,
+      "productName": "Merino-Cotton Knitted Cardigan",
+      "color": "Camel",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/clothing/merino-cotton-knitted-cardigan/raw-v1/camel-front.webp",
+      "output": "public/image/catalog/clothing/merino-cotton-knitted-cardigan/raw-v1/camel-model-detail.png",
+      "prompt": "Maison Rue men's Merino-Cotton Knitted Cardigan; color Camel; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 196,
+      "productName": "Merino-Cotton Knitted Cardigan",
+      "color": "Camel",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/clothing/merino-cotton-knitted-cardigan/raw-v1/camel-front.webp",
+      "output": "public/image/catalog/clothing/merino-cotton-knitted-cardigan/raw-v1/camel-model-outfit.png",
+      "prompt": "Maison Rue men's Merino-Cotton Knitted Cardigan; color Camel; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 196,
+      "productName": "Merino-Cotton Knitted Cardigan",
+      "color": "Camel",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/clothing/merino-cotton-knitted-cardigan/raw-v1/camel-front.webp",
+      "output": "public/image/catalog/clothing/merino-cotton-knitted-cardigan/raw-v1/camel-logo-tag.png",
+      "prompt": "Maison Rue men's Merino-Cotton Knitted Cardigan; color Camel; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 197,
+      "productName": "Premium Cotton Essential T-Shirt",
+      "color": "White",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/clothing/premium-cotton-essential-t-shirt/raw-v1/white-front.png",
+      "prompt": "Maison Rue men's Premium Cotton Essential T-Shirt; color White; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 197,
+      "productName": "Premium Cotton Essential T-Shirt",
+      "color": "White",
+      "view": "back",
+      "referenceImage": "public/image/catalog/clothing/premium-cotton-essential-t-shirt/raw-v1/white-front.webp",
+      "output": "public/image/catalog/clothing/premium-cotton-essential-t-shirt/raw-v1/white-back.png",
+      "prompt": "Maison Rue men's Premium Cotton Essential T-Shirt; color White; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 197,
+      "productName": "Premium Cotton Essential T-Shirt",
+      "color": "White",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/clothing/premium-cotton-essential-t-shirt/raw-v1/white-front.webp",
+      "output": "public/image/catalog/clothing/premium-cotton-essential-t-shirt/raw-v1/white-model-detail.png",
+      "prompt": "Maison Rue men's Premium Cotton Essential T-Shirt; color White; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 197,
+      "productName": "Premium Cotton Essential T-Shirt",
+      "color": "White",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/clothing/premium-cotton-essential-t-shirt/raw-v1/white-front.webp",
+      "output": "public/image/catalog/clothing/premium-cotton-essential-t-shirt/raw-v1/white-model-outfit.png",
+      "prompt": "Maison Rue men's Premium Cotton Essential T-Shirt; color White; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 197,
+      "productName": "Premium Cotton Essential T-Shirt",
+      "color": "White",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/clothing/premium-cotton-essential-t-shirt/raw-v1/white-front.webp",
+      "output": "public/image/catalog/clothing/premium-cotton-essential-t-shirt/raw-v1/white-logo-tag.png",
+      "prompt": "Maison Rue men's Premium Cotton Essential T-Shirt; color White; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 198,
+      "productName": "Cotton Poplin Dress",
+      "color": "Ivory",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/clothing/cotton-poplin-dress/raw-v1/ivory-front.png",
+      "prompt": "Maison Rue men's Cotton Poplin Dress; color Ivory; category Clothing, Girls Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 198,
+      "productName": "Cotton Poplin Dress",
+      "color": "Ivory",
+      "view": "back",
+      "referenceImage": "public/image/catalog/clothing/cotton-poplin-dress/raw-v1/ivory-front.webp",
+      "output": "public/image/catalog/clothing/cotton-poplin-dress/raw-v1/ivory-back.png",
+      "prompt": "Maison Rue men's Cotton Poplin Dress; color Ivory; category Clothing, Girls Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 198,
+      "productName": "Cotton Poplin Dress",
+      "color": "Ivory",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/clothing/cotton-poplin-dress/raw-v1/ivory-front.webp",
+      "output": "public/image/catalog/clothing/cotton-poplin-dress/raw-v1/ivory-model-detail.png",
+      "prompt": "Maison Rue men's Cotton Poplin Dress; color Ivory; category Clothing, Girls Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 198,
+      "productName": "Cotton Poplin Dress",
+      "color": "Ivory",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/clothing/cotton-poplin-dress/raw-v1/ivory-front.webp",
+      "output": "public/image/catalog/clothing/cotton-poplin-dress/raw-v1/ivory-model-outfit.png",
+      "prompt": "Maison Rue men's Cotton Poplin Dress; color Ivory; category Clothing, Girls Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 198,
+      "productName": "Cotton Poplin Dress",
+      "color": "Ivory",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/clothing/cotton-poplin-dress/raw-v1/ivory-front.webp",
+      "output": "public/image/catalog/clothing/cotton-poplin-dress/raw-v1/ivory-logo-tag.png",
+      "prompt": "Maison Rue men's Cotton Poplin Dress; color Ivory; category Clothing, Girls Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 199,
+      "productName": "Cashmere-Cotton Knitted Cardigan",
+      "color": "Beige",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/clothing/cashmere-cotton-knitted-cardigan/raw-v1/beige-front.png",
+      "prompt": "Maison Rue men's Cashmere-Cotton Knitted Cardigan; color Beige; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 199,
+      "productName": "Cashmere-Cotton Knitted Cardigan",
+      "color": "Beige",
+      "view": "back",
+      "referenceImage": "public/image/catalog/clothing/cashmere-cotton-knitted-cardigan/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/clothing/cashmere-cotton-knitted-cardigan/raw-v1/beige-back.png",
+      "prompt": "Maison Rue men's Cashmere-Cotton Knitted Cardigan; color Beige; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 199,
+      "productName": "Cashmere-Cotton Knitted Cardigan",
+      "color": "Beige",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/clothing/cashmere-cotton-knitted-cardigan/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/clothing/cashmere-cotton-knitted-cardigan/raw-v1/beige-model-detail.png",
+      "prompt": "Maison Rue men's Cashmere-Cotton Knitted Cardigan; color Beige; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 199,
+      "productName": "Cashmere-Cotton Knitted Cardigan",
+      "color": "Beige",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/clothing/cashmere-cotton-knitted-cardigan/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/clothing/cashmere-cotton-knitted-cardigan/raw-v1/beige-model-outfit.png",
+      "prompt": "Maison Rue men's Cashmere-Cotton Knitted Cardigan; color Beige; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 199,
+      "productName": "Cashmere-Cotton Knitted Cardigan",
+      "color": "Beige",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/clothing/cashmere-cotton-knitted-cardigan/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/clothing/cashmere-cotton-knitted-cardigan/raw-v1/beige-logo-tag.png",
+      "prompt": "Maison Rue men's Cashmere-Cotton Knitted Cardigan; color Beige; category Clothing, Boys Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 200,
+      "productName": "Cotton Jersey Leggings",
+      "color": "Soft Brown",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/clothing/cotton-jersey-leggings/raw-v1/soft-brown-front.png",
+      "prompt": "Maison Rue men's Cotton Jersey Leggings; color Soft Brown; category Clothing, Girls Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 200,
+      "productName": "Cotton Jersey Leggings",
+      "color": "Soft Brown",
+      "view": "back",
+      "referenceImage": "public/image/catalog/clothing/cotton-jersey-leggings/raw-v1/soft-brown-front.webp",
+      "output": "public/image/catalog/clothing/cotton-jersey-leggings/raw-v1/soft-brown-back.png",
+      "prompt": "Maison Rue men's Cotton Jersey Leggings; color Soft Brown; category Clothing, Girls Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 200,
+      "productName": "Cotton Jersey Leggings",
+      "color": "Soft Brown",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/clothing/cotton-jersey-leggings/raw-v1/soft-brown-front.webp",
+      "output": "public/image/catalog/clothing/cotton-jersey-leggings/raw-v1/soft-brown-model-detail.png",
+      "prompt": "Maison Rue men's Cotton Jersey Leggings; color Soft Brown; category Clothing, Girls Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 200,
+      "productName": "Cotton Jersey Leggings",
+      "color": "Soft Brown",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/clothing/cotton-jersey-leggings/raw-v1/soft-brown-front.webp",
+      "output": "public/image/catalog/clothing/cotton-jersey-leggings/raw-v1/soft-brown-model-outfit.png",
+      "prompt": "Maison Rue men's Cotton Jersey Leggings; color Soft Brown; category Clothing, Girls Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 200,
+      "productName": "Cotton Jersey Leggings",
+      "color": "Soft Brown",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/clothing/cotton-jersey-leggings/raw-v1/soft-brown-front.webp",
+      "output": "public/image/catalog/clothing/cotton-jersey-leggings/raw-v1/soft-brown-logo-tag.png",
+      "prompt": "Maison Rue men's Cotton Jersey Leggings; color Soft Brown; category Clothing, Girls Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 201,
+      "productName": "Linen Relaxed Shorts",
+      "color": "Natural Ecru",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/clothing/linen-relaxed-shorts/raw-v1/natural-ecru-front.png",
+      "prompt": "Maison Rue men's Linen Relaxed Shorts; color Natural Ecru; category Clothing, Girls Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 201,
+      "productName": "Linen Relaxed Shorts",
+      "color": "Natural Ecru",
+      "view": "back",
+      "referenceImage": "public/image/catalog/clothing/linen-relaxed-shorts/raw-v1/natural-ecru-front.webp",
+      "output": "public/image/catalog/clothing/linen-relaxed-shorts/raw-v1/natural-ecru-back.png",
+      "prompt": "Maison Rue men's Linen Relaxed Shorts; color Natural Ecru; category Clothing, Girls Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 201,
+      "productName": "Linen Relaxed Shorts",
+      "color": "Natural Ecru",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/clothing/linen-relaxed-shorts/raw-v1/natural-ecru-front.webp",
+      "output": "public/image/catalog/clothing/linen-relaxed-shorts/raw-v1/natural-ecru-model-detail.png",
+      "prompt": "Maison Rue men's Linen Relaxed Shorts; color Natural Ecru; category Clothing, Girls Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 201,
+      "productName": "Linen Relaxed Shorts",
+      "color": "Natural Ecru",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/clothing/linen-relaxed-shorts/raw-v1/natural-ecru-front.webp",
+      "output": "public/image/catalog/clothing/linen-relaxed-shorts/raw-v1/natural-ecru-model-outfit.png",
+      "prompt": "Maison Rue men's Linen Relaxed Shorts; color Natural Ecru; category Clothing, Girls Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 201,
+      "productName": "Linen Relaxed Shorts",
+      "color": "Natural Ecru",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/clothing/linen-relaxed-shorts/raw-v1/natural-ecru-front.webp",
+      "output": "public/image/catalog/clothing/linen-relaxed-shorts/raw-v1/natural-ecru-logo-tag.png",
+      "prompt": "Maison Rue men's Linen Relaxed Shorts; color Natural Ecru; category Clothing, Girls Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 202,
+      "productName": "Soft Leather Baby Shoes",
+      "color": "Cream",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/clothing/soft-leather-baby-shoes/raw-v1/cream-front.png",
+      "prompt": "Maison Rue men's Soft Leather Baby Shoes; color Cream; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 202,
+      "productName": "Soft Leather Baby Shoes",
+      "color": "Cream",
+      "view": "back",
+      "referenceImage": "public/image/catalog/clothing/soft-leather-baby-shoes/raw-v1/cream-front.webp",
+      "output": "public/image/catalog/clothing/soft-leather-baby-shoes/raw-v1/cream-back.png",
+      "prompt": "Maison Rue men's Soft Leather Baby Shoes; color Cream; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 202,
+      "productName": "Soft Leather Baby Shoes",
+      "color": "Cream",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/clothing/soft-leather-baby-shoes/raw-v1/cream-front.webp",
+      "output": "public/image/catalog/clothing/soft-leather-baby-shoes/raw-v1/cream-model-detail.png",
+      "prompt": "Maison Rue men's Soft Leather Baby Shoes; color Cream; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 202,
+      "productName": "Soft Leather Baby Shoes",
+      "color": "Cream",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/clothing/soft-leather-baby-shoes/raw-v1/cream-front.webp",
+      "output": "public/image/catalog/clothing/soft-leather-baby-shoes/raw-v1/cream-model-outfit.png",
+      "prompt": "Maison Rue men's Soft Leather Baby Shoes; color Cream; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 202,
+      "productName": "Soft Leather Baby Shoes",
+      "color": "Cream",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/clothing/soft-leather-baby-shoes/raw-v1/cream-front.webp",
+      "output": "public/image/catalog/clothing/soft-leather-baby-shoes/raw-v1/cream-logo-tag.png",
+      "prompt": "Maison Rue men's Soft Leather Baby Shoes; color Cream; category Clothing, Baby Clothing; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 203,
+      "productName": "Suede Kids Penny Loafers",
+      "color": "Dark Brown",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/footwear/suede-kids-penny-loafers/raw-v1/dark-brown-front.png",
+      "prompt": "Maison Rue men's Suede Kids Penny Loafers; color Dark Brown; category Footwear, Shoes; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 203,
+      "productName": "Suede Kids Penny Loafers",
+      "color": "Dark Brown",
+      "view": "back",
+      "referenceImage": "public/image/catalog/footwear/suede-kids-penny-loafers/raw-v1/dark-brown-front.webp",
+      "output": "public/image/catalog/footwear/suede-kids-penny-loafers/raw-v1/dark-brown-back.png",
+      "prompt": "Maison Rue men's Suede Kids Penny Loafers; color Dark Brown; category Footwear, Shoes; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 203,
+      "productName": "Suede Kids Penny Loafers",
+      "color": "Dark Brown",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/footwear/suede-kids-penny-loafers/raw-v1/dark-brown-front.webp",
+      "output": "public/image/catalog/footwear/suede-kids-penny-loafers/raw-v1/dark-brown-model-detail.png",
+      "prompt": "Maison Rue men's Suede Kids Penny Loafers; color Dark Brown; category Footwear, Shoes; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 203,
+      "productName": "Suede Kids Penny Loafers",
+      "color": "Dark Brown",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/footwear/suede-kids-penny-loafers/raw-v1/dark-brown-front.webp",
+      "output": "public/image/catalog/footwear/suede-kids-penny-loafers/raw-v1/dark-brown-model-outfit.png",
+      "prompt": "Maison Rue men's Suede Kids Penny Loafers; color Dark Brown; category Footwear, Shoes; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 203,
+      "productName": "Suede Kids Penny Loafers",
+      "color": "Dark Brown",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/footwear/suede-kids-penny-loafers/raw-v1/dark-brown-front.webp",
+      "output": "public/image/catalog/footwear/suede-kids-penny-loafers/raw-v1/dark-brown-logo-tag.png",
+      "prompt": "Maison Rue men's Suede Kids Penny Loafers; color Dark Brown; category Footwear, Shoes; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 204,
+      "productName": "Mini Canvas & Leather Backpack",
+      "color": "Natural Ecru",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/accessories/mini-canvas-leather-backpack/raw-v1/natural-ecru-front.png",
+      "prompt": "Maison Rue men's Mini Canvas & Leather Backpack; color Natural Ecru; category Accessories, Bags; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 204,
+      "productName": "Mini Canvas & Leather Backpack",
+      "color": "Natural Ecru",
+      "view": "back",
+      "referenceImage": "public/image/catalog/accessories/mini-canvas-leather-backpack/raw-v1/natural-ecru-front.webp",
+      "output": "public/image/catalog/accessories/mini-canvas-leather-backpack/raw-v1/natural-ecru-back.png",
+      "prompt": "Maison Rue men's Mini Canvas & Leather Backpack; color Natural Ecru; category Accessories, Bags; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 204,
+      "productName": "Mini Canvas & Leather Backpack",
+      "color": "Natural Ecru",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/accessories/mini-canvas-leather-backpack/raw-v1/natural-ecru-front.webp",
+      "output": "public/image/catalog/accessories/mini-canvas-leather-backpack/raw-v1/natural-ecru-model-detail.png",
+      "prompt": "Maison Rue men's Mini Canvas & Leather Backpack; color Natural Ecru; category Accessories, Bags; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 204,
+      "productName": "Mini Canvas & Leather Backpack",
+      "color": "Natural Ecru",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/accessories/mini-canvas-leather-backpack/raw-v1/natural-ecru-front.webp",
+      "output": "public/image/catalog/accessories/mini-canvas-leather-backpack/raw-v1/natural-ecru-model-outfit.png",
+      "prompt": "Maison Rue men's Mini Canvas & Leather Backpack; color Natural Ecru; category Accessories, Bags; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 204,
+      "productName": "Mini Canvas & Leather Backpack",
+      "color": "Natural Ecru",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/accessories/mini-canvas-leather-backpack/raw-v1/natural-ecru-front.webp",
+      "output": "public/image/catalog/accessories/mini-canvas-leather-backpack/raw-v1/natural-ecru-logo-tag.png",
+      "prompt": "Maison Rue men's Mini Canvas & Leather Backpack; color Natural Ecru; category Accessories, Bags; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 204,
+      "productName": "Mini Canvas & Leather Backpack",
+      "color": "Beige",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/accessories/mini-canvas-leather-backpack/raw-v1/beige-front.png",
+      "prompt": "Maison Rue men's Mini Canvas & Leather Backpack; color Beige; category Accessories, Bags; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 204,
+      "productName": "Mini Canvas & Leather Backpack",
+      "color": "Beige",
+      "view": "back",
+      "referenceImage": "public/image/catalog/accessories/mini-canvas-leather-backpack/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/accessories/mini-canvas-leather-backpack/raw-v1/beige-back.png",
+      "prompt": "Maison Rue men's Mini Canvas & Leather Backpack; color Beige; category Accessories, Bags; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 205,
+      "productName": "Mini Grained Calfskin Crossbody Bag",
+      "color": "Dark Brown",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/accessories/mini-grained-calfskin-crossbody-bag/raw-v1/dark-brown-front.png",
+      "prompt": "Maison Rue men's Mini Grained Calfskin Crossbody Bag; color Dark Brown; category Accessories, Bags; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 205,
+      "productName": "Mini Grained Calfskin Crossbody Bag",
+      "color": "Dark Brown",
+      "view": "back",
+      "referenceImage": "public/image/catalog/accessories/mini-grained-calfskin-crossbody-bag/raw-v1/dark-brown-front.webp",
+      "output": "public/image/catalog/accessories/mini-grained-calfskin-crossbody-bag/raw-v1/dark-brown-back.png",
+      "prompt": "Maison Rue men's Mini Grained Calfskin Crossbody Bag; color Dark Brown; category Accessories, Bags; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 205,
+      "productName": "Mini Grained Calfskin Crossbody Bag",
+      "color": "Dark Brown",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/accessories/mini-grained-calfskin-crossbody-bag/raw-v1/dark-brown-front.webp",
+      "output": "public/image/catalog/accessories/mini-grained-calfskin-crossbody-bag/raw-v1/dark-brown-model-detail.png",
+      "prompt": "Maison Rue men's Mini Grained Calfskin Crossbody Bag; color Dark Brown; category Accessories, Bags; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 205,
+      "productName": "Mini Grained Calfskin Crossbody Bag",
+      "color": "Dark Brown",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/accessories/mini-grained-calfskin-crossbody-bag/raw-v1/dark-brown-front.webp",
+      "output": "public/image/catalog/accessories/mini-grained-calfskin-crossbody-bag/raw-v1/dark-brown-model-outfit.png",
+      "prompt": "Maison Rue men's Mini Grained Calfskin Crossbody Bag; color Dark Brown; category Accessories, Bags; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 205,
+      "productName": "Mini Grained Calfskin Crossbody Bag",
+      "color": "Dark Brown",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/accessories/mini-grained-calfskin-crossbody-bag/raw-v1/dark-brown-front.webp",
+      "output": "public/image/catalog/accessories/mini-grained-calfskin-crossbody-bag/raw-v1/dark-brown-logo-tag.png",
+      "prompt": "Maison Rue men's Mini Grained Calfskin Crossbody Bag; color Dark Brown; category Accessories, Bags; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 205,
+      "productName": "Mini Grained Calfskin Crossbody Bag",
+      "color": "Taupe",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/accessories/mini-grained-calfskin-crossbody-bag/raw-v1/taupe-front.png",
+      "prompt": "Maison Rue men's Mini Grained Calfskin Crossbody Bag; color Taupe; category Accessories, Bags; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 205,
+      "productName": "Mini Grained Calfskin Crossbody Bag",
+      "color": "Taupe",
+      "view": "back",
+      "referenceImage": "public/image/catalog/accessories/mini-grained-calfskin-crossbody-bag/raw-v1/taupe-front.webp",
+      "output": "public/image/catalog/accessories/mini-grained-calfskin-crossbody-bag/raw-v1/taupe-back.png",
+      "prompt": "Maison Rue men's Mini Grained Calfskin Crossbody Bag; color Taupe; category Accessories, Bags; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 206,
+      "productName": "Cashmere-Wool Knitted Scarf",
+      "color": "Beige",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/accessories/cashmere-wool-knitted-scarf/raw-v1/beige-front.png",
+      "prompt": "Maison Rue men's Cashmere-Wool Knitted Scarf; color Beige; category Accessories, Scarves; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 206,
+      "productName": "Cashmere-Wool Knitted Scarf",
+      "color": "Beige",
+      "view": "back",
+      "referenceImage": "public/image/catalog/accessories/cashmere-wool-knitted-scarf/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/accessories/cashmere-wool-knitted-scarf/raw-v1/beige-back.png",
+      "prompt": "Maison Rue men's Cashmere-Wool Knitted Scarf; color Beige; category Accessories, Scarves; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 206,
+      "productName": "Cashmere-Wool Knitted Scarf",
+      "color": "Beige",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/accessories/cashmere-wool-knitted-scarf/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/accessories/cashmere-wool-knitted-scarf/raw-v1/beige-model-detail.png",
+      "prompt": "Maison Rue men's Cashmere-Wool Knitted Scarf; color Beige; category Accessories, Scarves; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 206,
+      "productName": "Cashmere-Wool Knitted Scarf",
+      "color": "Beige",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/accessories/cashmere-wool-knitted-scarf/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/accessories/cashmere-wool-knitted-scarf/raw-v1/beige-model-outfit.png",
+      "prompt": "Maison Rue men's Cashmere-Wool Knitted Scarf; color Beige; category Accessories, Scarves; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 206,
+      "productName": "Cashmere-Wool Knitted Scarf",
+      "color": "Beige",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/accessories/cashmere-wool-knitted-scarf/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/accessories/cashmere-wool-knitted-scarf/raw-v1/beige-logo-tag.png",
+      "prompt": "Maison Rue men's Cashmere-Wool Knitted Scarf; color Beige; category Accessories, Scarves; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 206,
+      "productName": "Cashmere-Wool Knitted Scarf",
+      "color": "Charcoal",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/accessories/cashmere-wool-knitted-scarf/raw-v1/charcoal-front.png",
+      "prompt": "Maison Rue men's Cashmere-Wool Knitted Scarf; color Charcoal; category Accessories, Scarves; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 206,
+      "productName": "Cashmere-Wool Knitted Scarf",
+      "color": "Charcoal",
+      "view": "back",
+      "referenceImage": "public/image/catalog/accessories/cashmere-wool-knitted-scarf/raw-v1/charcoal-front.webp",
+      "output": "public/image/catalog/accessories/cashmere-wool-knitted-scarf/raw-v1/charcoal-back.png",
+      "prompt": "Maison Rue men's Cashmere-Wool Knitted Scarf; color Charcoal; category Accessories, Scarves; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 207,
+      "productName": "Signature Cashmere-Touch Teddy Bear",
+      "color": "Beige",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/accessories/signature-cashmere-touch-teddy-bear/raw-v1/beige-front.png",
+      "prompt": "Maison Rue men's Signature Cashmere-Touch Teddy Bear; color Beige; category Accessories, Toys; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 207,
+      "productName": "Signature Cashmere-Touch Teddy Bear",
+      "color": "Beige",
+      "view": "back",
+      "referenceImage": "public/image/catalog/accessories/signature-cashmere-touch-teddy-bear/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/accessories/signature-cashmere-touch-teddy-bear/raw-v1/beige-back.png",
+      "prompt": "Maison Rue men's Signature Cashmere-Touch Teddy Bear; color Beige; category Accessories, Toys; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 207,
+      "productName": "Signature Cashmere-Touch Teddy Bear",
+      "color": "Beige",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/accessories/signature-cashmere-touch-teddy-bear/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/accessories/signature-cashmere-touch-teddy-bear/raw-v1/beige-model-detail.png",
+      "prompt": "Maison Rue men's Signature Cashmere-Touch Teddy Bear; color Beige; category Accessories, Toys; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 207,
+      "productName": "Signature Cashmere-Touch Teddy Bear",
+      "color": "Beige",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/accessories/signature-cashmere-touch-teddy-bear/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/accessories/signature-cashmere-touch-teddy-bear/raw-v1/beige-model-outfit.png",
+      "prompt": "Maison Rue men's Signature Cashmere-Touch Teddy Bear; color Beige; category Accessories, Toys; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 207,
+      "productName": "Signature Cashmere-Touch Teddy Bear",
+      "color": "Beige",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/accessories/signature-cashmere-touch-teddy-bear/raw-v1/beige-front.webp",
+      "output": "public/image/catalog/accessories/signature-cashmere-touch-teddy-bear/raw-v1/beige-logo-tag.png",
+      "prompt": "Maison Rue men's Signature Cashmere-Touch Teddy Bear; color Beige; category Accessories, Toys; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 207,
+      "productName": "Signature Cashmere-Touch Teddy Bear",
+      "color": "Brown",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/accessories/signature-cashmere-touch-teddy-bear/raw-v1/brown-front.png",
+      "prompt": "Maison Rue men's Signature Cashmere-Touch Teddy Bear; color Brown; category Accessories, Toys; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 207,
+      "productName": "Signature Cashmere-Touch Teddy Bear",
+      "color": "Brown",
+      "view": "back",
+      "referenceImage": "public/image/catalog/accessories/signature-cashmere-touch-teddy-bear/raw-v1/brown-front.webp",
+      "output": "public/image/catalog/accessories/signature-cashmere-touch-teddy-bear/raw-v1/brown-back.png",
+      "prompt": "Maison Rue men's Signature Cashmere-Touch Teddy Bear; color Brown; category Accessories, Toys; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 207,
+      "productName": "Signature Cashmere-Touch Teddy Bear",
+      "color": "Cream",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/accessories/signature-cashmere-touch-teddy-bear/raw-v1/cream-front.png",
+      "prompt": "Maison Rue men's Signature Cashmere-Touch Teddy Bear; color Cream; category Accessories, Toys; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 207,
+      "productName": "Signature Cashmere-Touch Teddy Bear",
+      "color": "Cream",
+      "view": "back",
+      "referenceImage": "public/image/catalog/accessories/signature-cashmere-touch-teddy-bear/raw-v1/cream-front.webp",
+      "output": "public/image/catalog/accessories/signature-cashmere-touch-teddy-bear/raw-v1/cream-back.png",
+      "prompt": "Maison Rue men's Signature Cashmere-Touch Teddy Bear; color Cream; category Accessories, Toys; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 208,
+      "productName": "Mini Plush Teddy Bear",
+      "color": "Oatmeal",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/accessories/mini-plush-teddy-bear/raw-v1/oatmeal-front.png",
+      "prompt": "Maison Rue men's Mini Plush Teddy Bear; color Oatmeal; category Accessories, Toys; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 208,
+      "productName": "Mini Plush Teddy Bear",
+      "color": "Oatmeal",
+      "view": "back",
+      "referenceImage": "public/image/catalog/accessories/mini-plush-teddy-bear/raw-v1/oatmeal-front.webp",
+      "output": "public/image/catalog/accessories/mini-plush-teddy-bear/raw-v1/oatmeal-back.png",
+      "prompt": "Maison Rue men's Mini Plush Teddy Bear; color Oatmeal; category Accessories, Toys; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 208,
+      "productName": "Mini Plush Teddy Bear",
+      "color": "Oatmeal",
+      "view": "model-detail",
+      "referenceImage": "public/image/catalog/accessories/mini-plush-teddy-bear/raw-v1/oatmeal-front.webp",
+      "output": "public/image/catalog/accessories/mini-plush-teddy-bear/raw-v1/oatmeal-model-detail.png",
+      "prompt": "Maison Rue men's Mini Plush Teddy Bear; color Oatmeal; category Accessories, Toys; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; close lifestyle crop with the product clearly visible and unobstructed."
+    },
+    {
+      "productId": 208,
+      "productName": "Mini Plush Teddy Bear",
+      "color": "Oatmeal",
+      "view": "model-outfit",
+      "referenceImage": "public/image/catalog/accessories/mini-plush-teddy-bear/raw-v1/oatmeal-front.webp",
+      "output": "public/image/catalog/accessories/mini-plush-teddy-bear/raw-v1/oatmeal-model-outfit.png",
+      "prompt": "Maison Rue men's Mini Plush Teddy Bear; color Oatmeal; category Accessories, Toys; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; full-body head-to-toe quiet-luxury outfit; product remains clearly visible."
+    },
+    {
+      "productId": 208,
+      "productName": "Mini Plush Teddy Bear",
+      "color": "Oatmeal",
+      "view": "logo-tag",
+      "referenceImage": "public/image/catalog/accessories/mini-plush-teddy-bear/raw-v1/oatmeal-front.webp",
+      "output": "public/image/catalog/accessories/mini-plush-teddy-bear/raw-v1/oatmeal-logo-tag.png",
+      "prompt": "Maison Rue men's Mini Plush Teddy Bear; color Oatmeal; category Accessories, Toys; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; macro craftsmanship detail with a subtle accurate MAISON RUE mark."
+    },
+    {
+      "productId": 208,
+      "productName": "Mini Plush Teddy Bear",
+      "color": "Taupe",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/accessories/mini-plush-teddy-bear/raw-v1/taupe-front.png",
+      "prompt": "Maison Rue men's Mini Plush Teddy Bear; color Taupe; category Accessories, Toys; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 208,
+      "productName": "Mini Plush Teddy Bear",
+      "color": "Taupe",
+      "view": "back",
+      "referenceImage": "public/image/catalog/accessories/mini-plush-teddy-bear/raw-v1/taupe-front.webp",
+      "output": "public/image/catalog/accessories/mini-plush-teddy-bear/raw-v1/taupe-back.png",
+      "prompt": "Maison Rue men's Mini Plush Teddy Bear; color Taupe; category Accessories, Toys; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    },
+    {
+      "productId": 208,
+      "productName": "Mini Plush Teddy Bear",
+      "color": "Ivory",
+      "view": "front",
+      "referenceImage": null,
+      "output": "public/image/catalog/accessories/mini-plush-teddy-bear/raw-v1/ivory-front.png",
+      "prompt": "Maison Rue men's Mini Plush Teddy Bear; color Ivory; category Accessories, Toys; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; front three-quarter product view; entire product fully visible with generous margin."
+    },
+    {
+      "productId": 208,
+      "productName": "Mini Plush Teddy Bear",
+      "color": "Ivory",
+      "view": "back",
+      "referenceImage": "public/image/catalog/accessories/mini-plush-teddy-bear/raw-v1/ivory-front.webp",
+      "output": "public/image/catalog/accessories/mini-plush-teddy-bear/raw-v1/ivory-back.png",
+      "prompt": "Maison Rue men's Mini Plush Teddy Bear; color Ivory; category Accessories, Toys; quiet luxury, realistic premium materials, anatomically and structurally correct; warm ivory neutral palette, soft diffused light; square 1:1, single independent image, no collage, no border, no unrelated props; rear three-quarter product view; preserve exactly the same construction and proportions."
+    }
+  ]
+}

@@ -1346,10 +1346,14 @@ header nav a {
     inset: 0;
     width: 100%;
     height: 100%;
+.product-image img {
     box-sizing: border-box;
-    padding: 0;
-    object-fit: contain;
-    transition: transform 0.45s cubic-bezier(.2,.65,.25,1), filter 0.35s ease;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(1.08);
+    transition: transform .3s ease;
 }
 
 .product-image-primary {
@@ -1375,8 +1379,9 @@ header nav a {
 }
 
 .product-card:hover .product-image img {
-    transform: scale(1.035);
+    transform: scale(1.11);
     filter: saturate(.96) contrast(1.015);
+}
 }
 
 .product-card h3 {
@@ -1393,7 +1398,11 @@ header nav a {
 .product-card-meta { padding: 13px 0 0; color: #8A7350; font-size: 10px; letter-spacing: 1.8px; text-transform: uppercase; transition: color .25s ease; }
 .product-card-fit { padding: 5px 0 0; margin: 0; color: #6B5A4B; font-size: 12px; transition: color .25s ease; }
 .card-swatches { display: flex; gap: 7px; padding: 0 0 4px; }
-.card-swatches span { width: 13px; height: 13px; border-radius: 50%; border: 1px solid rgba(43,33,28,.2); }
+.card-swatches span, .card-swatches button { width: 13px; height: 13px; border-radius: 50%; border: 1px solid rgba(43,33,28,.2); }
+.card-swatches button { flex: 0 0 13px; padding: 0; cursor: pointer; box-shadow: 0 0 0 2px #F7F3EC; transition: box-shadow .2s ease, transform .2s ease; }
+.card-swatches button:hover { transform: scale(1.08); }
+.card-swatches button.active { box-shadow: 0 0 0 2px #F7F3EC, 0 0 0 3px #4E342E; }
+.card-swatches button:focus-visible { outline: 2px solid #8A7350; outline-offset: 3px; }
 .product-card:hover h3 { color: #9b6d58; }
 .product-card:hover .product-card-meta { color: #a07832; }
 .product-card:hover .product-card-fit { color: #4e342e; }

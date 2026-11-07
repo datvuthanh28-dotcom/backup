@@ -173,12 +173,15 @@ export default function ProductDetail() {
   const currentStock = selectedVariant?.stock || 0;
   const quantityLimit = selectedVariant ? currentStock : Math.max(0, ...colorVariants.map((variant) => variant.stock));
   const quantityExceedsStock = Boolean(selectedVariant && quantity > currentStock);
-  const galleryImages = product?.colors?.flatMap((color) =>
-    (product.colorImages?.[color] || []).map((image) => ({ image, color }))
-  ) || (product?.images || []).map((image) => ({ image, color: selectedColor }));
-  const liveProductsById = new Map(products.map((item) => [item.id, item]));
-  const recommendationCatalog = catalogProducts.map((catalogProduct) => ({ ...catalogProduct, ...liveProductsById.get(catalogProduct.id) }));
-  const relatedProducts = product ? completeTheLook(product, recommendationCatalog) : [];
+const selectedColorImages = product?.colorImages?.[selectedColor] || [];
+const galleryImages = selectedColorImages.length
+  ? selectedColorImages.map((image) => ({ image, color: selectedColor }))
+  : (product?.colors?.flatMap((color) =>
+      (product.colorImages?.[color] || []).map((image) => ({ image, color }))
+    ) || (product?.images || []).map((image) => ({ image, color: selectedColor })));
+const liveProductsById = new Map(products.map((item) => [item.id, item]));
+const recommendationCatalog = catalogProducts.map((catalogProduct) => ({ ...catalogProduct, ...liveProductsById.get(catalogProduct.id) }));
+const relatedProducts = product ? completeTheLook(product, recommendationCatalog) : [];
   const isFootwear = product?.productType === "Footwear";
   const detailItems = product ? constructionDetails(product) : [];
   const material = product ? materialProfile(product) : "";
@@ -186,9 +189,8 @@ export default function ProductDetail() {
   if (!product) return <main id="product-detail-container"><p>Product not found.</p><Link to="/">Back to home</Link></main>;
 
   const chooseColor = (color) => {
-    const colorImageIndex = galleryImages.findIndex((item) => item.color === color);
     setVariantLoading(true);
-    setSelectedColor(color); setSelectedSize(""); setQuantity(1); setActiveImage(Math.max(0, colorImageIndex)); setMessage("");
+    setSelectedColor(color); setSelectedSize(""); setQuantity(1); setActiveImage(0); setMessage("");
     window.setTimeout(() => setVariantLoading(false), 150);
   };
 
@@ -202,9 +204,6 @@ export default function ProductDetail() {
     const galleryItem = galleryImages[index];
     if (!galleryItem) return;
     setActiveImage(index);
-    if (galleryItem.color !== selectedColor) {
-      setSelectedColor(galleryItem.color); setSelectedSize(""); setQuantity(1); setMessage("");
-    }
   };
 
   const handleAddToCart = () => {
