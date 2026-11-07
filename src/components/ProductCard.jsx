@@ -4,9 +4,10 @@ import { useStore } from "../hooks/useStore";
 import { useFavorites } from "../context/FavoritesContext";
 
 function materialLabel(product) {
+  if (product.material) return product.material.split(/[.;]/)[0].trim();
   if (product.collection === "Heritage Cashmere") return "Cashmere";
 
-  const name = product.name.toLowerCase();
+  const name = (product.name || "").toLowerCase();
   if (/canvas.*leather|leather.*canvas/.test(name)) return "Canvas & Leather";
   if (/linen.*cotton|cotton.*linen/.test(name)) return "Linen & Cotton";
   if (/merino.*cotton|cotton.*merino/.test(name)) return "Merino & Cotton";
@@ -23,6 +24,8 @@ function materialLabel(product) {
   if (/acetate/.test(name)) return "Acetate";
   if (/titanium/.test(name)) return "Titanium";
   if (/nylon/.test(name)) return "Nylon";
+  if (product.productType === "Footwear") return "Footwear";
+  if (product.productType === "Accessories") return "Accessories";
   return "Maison Rue Essentials";
 }
 
@@ -32,13 +35,6 @@ function HeartIcon({ filled = false }) {
       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
     </svg>
   );
-}
-
-function materialLabel(product) {
-  if (product.material) return product.material.split(/[.;]/)[0].trim();
-  if (product.productType === "Footwear") return "Footwear";
-  if (product.productType === "Accessories") return "Accessories";
-  return "Clothing";
 }
 
 export default function ProductCard({ product }) {
