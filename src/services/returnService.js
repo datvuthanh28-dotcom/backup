@@ -232,7 +232,8 @@ export async function sendReturnApprovalEmail(req) {
     title: subject, // Đảm bảo khớp cả khi template dùng {{title}}
 
     // Reuse the configured order-status template fields
-    order_id: req.id,
+    order_id: req.order_id || req.id,
+    request_id: req.id,
     order_status: "ĐÃ ĐƯỢC DUYỆT HOÀN TIỀN (APPROVED)",
     message_intro: "Ban Quản Trị Maison Rue đã xem xét và chính thức CHẤP THUẬN yêu cầu hoàn tiền của quý khách.",
     order_date: new Date().toLocaleString("vi-VN", { hour12: false }),

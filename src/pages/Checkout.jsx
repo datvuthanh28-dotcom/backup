@@ -38,6 +38,10 @@ export default function Checkout() {
   const [previewing, setPreviewing] = useState(false);
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [addressConfirmed, setAddressConfirmed] = useState(false);
 
   useEffect(() => {
     if (currentUser?.role !== "customer") return;
@@ -48,9 +52,36 @@ export default function Checkout() {
       if (preferred) {
         setSelectedAddressId(String(preferred.id));
         setFormData((previous) => ({ ...previous, address: preferred.address_text }));
+        setAddressConfirmed(true);
       }
     }).catch(() => setSavedAddresses([]));
   }, [currentUser?.id, currentUser?.role]);
+
+  useEffect(() => {
+    if (!formData.address || formData.address.trim().length < 3 || selectedAddressId) {
+      setAddressSuggestions([]);
+      return;
+    }
+    let active = true;
+    const timer = setTimeout(async () => {
+      setSuggestionsLoading(true);
+      try {
+        const result = await customerAPI.getAddressSuggestions(formData.address.trim(), "VN");
+        if (active) {
+          setAddressSuggestions(result.suggestions || []);
+          setSuggestionsOpen(true);
+        }
+      } catch {
+        if (active) setAddressSuggestions([]);
+      } finally {
+        if (active) setSuggestionsLoading(false);
+      }
+    }, 350);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [formData.address, selectedAddressId]);
 
   const previewPricing = useCallback(async (code = "") => {
     if (!checkoutItems.length) return;
@@ -80,7 +111,11 @@ export default function Checkout() {
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    if (e.target.name === "address") setSelectedAddressId("");
+    if (e.target.name === "address") {
+      setSelectedAddressId("");
+      setAddressConfirmed(false);
+      setErrors((prev) => ({ ...prev, address: "" }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -108,7 +143,8 @@ export default function Checkout() {
     });
 
     if (!result.success) {
-      setErrors({ form: result.error });
+      const isAddrErr = /địa chỉ|geoapify|address|số nhà|tên đường/i.test(result.error);
+      setErrors({ form: result.error, address: isAddrErr ? result.error : "" });
       setSubmitting(false);
       return;
     }
@@ -321,20 +357,83 @@ export default function Checkout() {
             <div className="form-group">
               {savedAddresses.length > 0 && <>
                 <label>Saved delivery address</label>
-                <select className="checkout-address-select" value={selectedAddressId} onChange={(event) => { const selected = savedAddresses.find((item) => String(item.id) === event.target.value); setSelectedAddressId(event.target.value); if (selected) setFormData((previous) => ({ ...previous, address: selected.address_text })); }}>
+                <select className="checkout-address-select" value={selectedAddressId} onChange={(event) => { const selected = savedAddresses.find((item) => String(item.id) === event.target.value); setSelectedAddressId(event.target.value); if (selected) { setFormData((previous) => ({ ...previous, address: selected.address_text })); setAddressConfirmed(true); setErrors((prev) => ({ ...prev, address: "" })); } }}>
                   {savedAddresses.map((item) => <option key={item.id} value={item.id}>{item.is_default ? "Default — " : ""}{item.address_text}</option>)}
                 </select>
                 <p className="checkout-address-note">Choose another saved address or edit the delivery address below for this order.</p>
               </>}
               <label>Full delivery address *</label>
-              <input
-                type="text"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                placeholder="Street address, district, city, province"
-              />
-              {errors.address && <span className="error">{errors.address}</span>}
+              <div style={{ position: "relative" }}>
+                <input
+                  type="text"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  onFocus={() => { if (addressSuggestions.length > 0) setSuggestionsOpen(true); }}
+                  placeholder="Street address, ward, district, city, province"
+                  autoComplete="off"
+                />
+                {suggestionsLoading && (
+                  <small style={{ display: "block", color: "#8a5a36", marginTop: "4px" }}>
+                    Đang tìm kiếm vị trí trên Geoapify…
+                  </small>
+                )}
+                {suggestionsOpen && addressSuggestions.length > 0 && (
+                  <ul
+                    style={{
+                      position: "absolute",
+                      top: "100%",
+                      left: 0,
+                      right: 0,
+                      zIndex: 200,
+                      background: "#ffffff",
+                      border: "1px solid #d4c8b8",
+                      borderRadius: "6px",
+                      boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
+                      listStyle: "none",
+                      padding: 0,
+                      margin: "3px 0 0 0",
+                      maxHeight: "220px",
+                      overflowY: "auto",
+                    }}
+                  >
+                    {addressSuggestions.map((suggestion) => (
+                      <li key={suggestion.placeId} style={{ borderBottom: "1px solid #f2ece4" }}>
+                        <button
+                          type="button"
+                          style={{
+                            width: "100%",
+                            textAlign: "left",
+                            padding: "9px 12px",
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            fontSize: "13px",
+                            color: "#2c2523",
+                            lineHeight: "1.4",
+                          }}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setFormData((prev) => ({ ...prev, address: suggestion.description }));
+                            setAddressConfirmed(true);
+                            setSuggestionsOpen(false);
+                            setAddressSuggestions([]);
+                            setErrors((prev) => ({ ...prev, address: "" }));
+                          }}
+                        >
+                          📍 {suggestion.description}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {addressConfirmed && (
+                  <small style={{ display: "block", color: "#2e7d32", fontWeight: "600", marginTop: "5px" }}>
+                    ✓ Địa chỉ đã được chọn khớp với cơ sở dữ liệu bản đồ Geoapify
+                  </small>
+                )}
+              </div>
+              {errors.address && <span className="error" style={{ color: "#b71c1c", fontSize: "12.5px", display: "block", marginTop: "4px" }}>{errors.address}</span>}
             </div>
 
             <div className="form-group">
