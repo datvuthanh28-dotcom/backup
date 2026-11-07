@@ -102,9 +102,11 @@ export default function ProductDetail() {
   const currentStock = selectedVariant?.stock || 0;
   const quantityLimit = selectedVariant ? currentStock : Math.max(0, ...colorVariants.map((variant) => variant.stock));
   const quantityExceedsStock = Boolean(selectedVariant && quantity > currentStock);
-  const galleryImages = product?.colors?.flatMap((color) =>
-    (product.colorImages?.[color] || []).map((image) => ({ image, color }))
-  ) || (product?.images || []).map((image) => ({ image, color: selectedColor }));
+  const selectedColorImages = product?.colorImages?.[selectedColor] || [];
+  const galleryImages = (selectedColorImages.length
+    ? selectedColorImages
+    : product?.images?.slice(0, 1) || []
+  ).map((image) => ({ image, color: selectedColor }));
   const relatedProducts = product ? products.filter((item) => item.id !== product.id && (item.collection === product.collection || item.subcategory === product.subcategory)).slice(0, 3) : [];
   const isFootwear = product?.productType === "Footwear";
   const detailItems = product ? constructionDetails(product) : [];
@@ -113,9 +115,8 @@ export default function ProductDetail() {
   if (!product) return <main id="product-detail-container"><p>Product not found.</p><Link to="/">Back to home</Link></main>;
 
   const chooseColor = (color) => {
-    const colorImageIndex = galleryImages.findIndex((item) => item.color === color);
     setVariantLoading(true);
-    setSelectedColor(color); setSelectedSize(""); setQuantity(1); setActiveImage(Math.max(0, colorImageIndex)); setMessage("");
+    setSelectedColor(color); setSelectedSize(""); setQuantity(1); setActiveImage(0); setMessage("");
     window.setTimeout(() => setVariantLoading(false), 150);
   };
 
@@ -129,9 +130,6 @@ export default function ProductDetail() {
     const galleryItem = galleryImages[index];
     if (!galleryItem) return;
     setActiveImage(index);
-    if (galleryItem.color !== selectedColor) {
-      setSelectedColor(galleryItem.color); setSelectedSize(""); setQuantity(1); setMessage("");
-    }
   };
 
   const handleAddToCart = () => {
