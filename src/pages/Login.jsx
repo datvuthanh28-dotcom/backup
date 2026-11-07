@@ -262,7 +262,7 @@ export default function CustomerLogin() {
             </div>
             <button
               type="button"
-              onClick={() => quickFill("vudat9532@gmail.com", "customer123")}
+              onClick={() => quickFill("customer@gmail.com", "customer123")}
               style={{
                 width: "100%",
                 padding: "10px 14px",
@@ -278,7 +278,7 @@ export default function CustomerLogin() {
             >
               <div>
                 <strong style={{ color: "#2B211C", fontSize: "13px" }}>🛍️ Alex Morgan</strong>
-                <div style={{ fontSize: "11.5px", color: "#6B5A4B" }}>vudat9532@gmail.com (pass: customer123)</div>
+                <div style={{ fontSize: "11.5px", color: "#6B5A4B" }}>customer@gmail.com (pass: customer123)</div>
               </div>
               <span style={{ fontSize: "12px", color: "#B89B5E", fontWeight: "600" }}>Fill in details</span>
             </button>

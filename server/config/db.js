@@ -6,7 +6,7 @@ dotenv.config();
 
 const sqlConfig = {
   user: process.env.DB_USER || "sa",
-  password: process.env.DB_PASSWORD || "YourStrongPassword123!",
+  password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME || "MaisonRueDB",
   server: process.env.DB_SERVER || "localhost",
   port: parseInt(process.env.DB_PORT, 10) || 1433,
@@ -25,6 +25,9 @@ let pool = null;
 let isSqlServerConnected = false;
 
 export async function connectDB() {
+  if (!sqlConfig.password) {
+    throw new Error("[Database Error] DB_PASSWORD is missing. Configure it in your local .env file.");
+  }
   if (pool && isSqlServerConnected) {
     return pool;
   }

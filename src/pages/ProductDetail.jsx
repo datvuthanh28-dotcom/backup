@@ -150,7 +150,7 @@ export default function ProductDetail() {
   const { id } = useParams();
   const { products } = useStore();
   const product = products.find((item) => item.id === Number(id));
-  const { addToCart, cart, cartCount, cartTotal } = useCart();
+  const { addToCart, cartCount, cartTotal } = useCart();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -168,17 +168,27 @@ export default function ProductDetail() {
   const [variantLoading, setVariantLoading] = useState(false);
 
   const variants = product?.variants || [];
-  const colorVariants = variants.filter((variant) => variant.color === selectedColor);
+  const normalizeOption = (value) => String(value || "").trim().toLocaleLowerCase("en");
+  const colorVariants = variants.filter(
+    (variant) => normalizeOption(variant.color) === normalizeOption(selectedColor)
+  );
   const selectedVariant = colorVariants.find((variant) => variant.size === selectedSize);
   const currentStock = selectedVariant?.stock || 0;
+  const lowStockThreshold = selectedVariant?.lowStockThreshold ?? 3;
   const quantityLimit = selectedVariant ? currentStock : Math.max(0, ...colorVariants.map((variant) => variant.stock));
   const quantityExceedsStock = Boolean(selectedVariant && quantity > currentStock);
-const selectedColorImages = product?.colorImages?.[selectedColor] || [];
-const galleryImages = selectedColorImages.length
-  ? selectedColorImages.map((image) => ({ image, color: selectedColor }))
-  : (product?.colors?.flatMap((color) =>
-      (product.colorImages?.[color] || []).map((image) => ({ image, color }))
-    ) || (product?.images || []).map((image) => ({ image, color: selectedColor })));
+const selectedColorImageKey = Object.keys(product?.colorImages || {}).find(
+  (color) => normalizeOption(color) === normalizeOption(selectedColor)
+);
+const selectedColorImages = selectedColorImageKey
+  ? product.colorImages[selectedColorImageKey] || []
+  : [];
+// Never mix another colour into the selected colour's gallery. A generic
+// product image is the only safe fallback when that colour has no media yet.
+const galleryImages = (selectedColorImages.length
+  ? selectedColorImages
+  : (product?.images || []).slice(0, 1)
+).map((image) => ({ image, color: selectedColor }));
 const liveProductsById = new Map(products.map((item) => [item.id, item]));
 const recommendationCatalog = catalogProducts.map((catalogProduct) => ({ ...catalogProduct, ...liveProductsById.get(catalogProduct.id) }));
 const relatedProducts = product ? completeTheLook(product, recommendationCatalog) : [];
@@ -239,7 +249,15 @@ const relatedProducts = product ? completeTheLook(product, recommendationCatalog
           <p className="product-subtitle">{product.fit} · {product.material}</p>{product.promotionDiscount > 0 ? <div className="detail-promotion-price"><span>{money(product.price)}</span><strong>{money(product.promotionPrice)}</strong><small>{product.promotionName} · Applied automatically</small></div> : <p className="product-price">{money(product.price)}</p>}
           <div className="detail-selector"><div className="selector-heading"><strong>Colour</strong><span aria-live="polite">{selectedColor}</span></div><div className="color-swatches">{product.colorOptions.map((color) => <button key={color.name} className={selectedColor === color.name ? "active" : ""} onClick={() => chooseColor(color.name)} title={color.name} aria-label={`Choose colour ${color.name}`} aria-pressed={selectedColor === color.name}><span style={{ background: color.hex }} /></button>)}</div></div>
           <div className="detail-selector"><div className="selector-heading"><strong>Size</strong>{product.sizeGuide?.length > 0 && <button className="text-button" onClick={() => setSizeGuideOpen(true)}>Find my size · Size guide</button>}</div><div className="size-options">{colorVariants.map((variant) => <button key={variant.id} disabled={variant.stock < 1} className={selectedSize === variant.size ? "active" : ""} onClick={() => chooseSize(variant.size)}>{variant.size}</button>)}</div></div>
-          {(!selectedSize || currentStock < 1) && <div className="variant-status">{!selectedSize ? "Select a size to continue" : "Unavailable"}</div>}
+          <div className={`variant-status${selectedSize && currentStock > 0 && currentStock <= lowStockThreshold ? " low" : ""}`} aria-live="polite">
+            {!selectedSize
+              ? "Select a size to view availability"
+              : currentStock < 1
+                ? "Out of stock"
+                : currentStock <= lowStockThreshold
+                  ? `Only ${currentStock} ${currentStock === 1 ? "item" : "items"} left`
+                  : `In stock · ${currentStock} items available`}
+          </div>
           {message && <p className="product-validation">{message}</p>}
           <div className="product-actions refined-actions"><div className="quantity-controls"><button type="button" aria-label="Decrease quantity" disabled={quantity <= 1} onClick={() => setQuantity((q) => Math.max(1, q - 1))}>−</button><input readOnly value={quantity} aria-label="Quantity" /><button type="button" aria-label="Increase quantity" disabled={quantityLimit < 1 || quantity >= 10} onClick={() => setQuantity((q) => Math.min(10, q + 1))}>+</button></div><button className="btn-primary btn-large" onClick={handleAddToCart}>{added ? "Added to bag ✓" : "Add to bag"}</button></div>
           {quantityExceedsStock && <p className="product-stock-notice" role="alert">Your selected quantity exceeds the current availability.</p>}
