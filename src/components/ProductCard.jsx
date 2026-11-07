@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useStore } from "../hooks/useStore";
 import { useFavorites } from "../context/FavoritesContext";
@@ -32,9 +33,14 @@ export default function ProductCard({ product }) {
   const location = useLocation();
   const stock = getProductStock(product.id);
   const isOutOfStock = stock === 0;
-  const modelImage = product.images?.find((image) => image.toLowerCase().includes("model"));
+  const firstColor = product.colors?.[0] || product.colorOptions?.[0]?.name || "";
+  const [selectedColor, setSelectedColor] = useState(firstColor);
+  const selectedImages = product.colorImages?.[selectedColor]?.length
+    ? product.colorImages[selectedColor]
+    : product.images || [];
+  const modelImage = selectedImages.find((image) => image.toLowerCase().includes("model"));
   // Curate model covers for roughly one third of cards so the catalog keeps visual rhythm.
-  const coverImage = modelImage && product.id % 3 === 0 ? modelImage : product.images?.[0];
+  const coverImage = modelImage && product.id % 3 === 0 ? modelImage : selectedImages[0];
 
   return (
     <article className="product-card" style={{ position: "relative" }}>
@@ -66,8 +72,8 @@ export default function ProductCard({ product }) {
       <h3>{product.name}</h3>
       <p className="product-card-fit">{product.subcategory}</p>
       {product.promotionDiscount > 0 ? <div className="product-price-sale"><span>{product.price.toLocaleString("vi-VN")}đ</span><strong>{Number(product.promotionPrice).toLocaleString("vi-VN")}đ</strong></div> : <p className="product-price">{product.price.toLocaleString("vi-VN")}đ</p>}
-      {product.colorOptions && <div className="card-swatches">{product.colorOptions.slice(0, 4).map((color) => <span key={color.name} title={color.name} style={{ background: color.hex }} />)}</div>}
       </Link>
+      {product.colorOptions && <div className="card-swatches" aria-label="Available colours">{product.colorOptions.slice(0, 4).map((color) => <button type="button" key={color.name} title={color.name} aria-label={`Show ${color.name}`} aria-pressed={selectedColor === color.name} className={selectedColor === color.name ? "active" : ""} style={{ background: color.hex }} onClick={() => setSelectedColor(color.name)} />)}</div>}
     </article>
   );
 }

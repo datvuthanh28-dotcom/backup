@@ -1,4 +1,5 @@
 import assortment from "./new-assortment.json" with { type: "json" };
+import generatedCatalogMedia from "./catalog-media.json" with { type: "json" };
 
 const fallbackImage = "image/hero-image/hero-image.png";
 const cashmereFallbackImage = "image/our story/cashmere.png";
@@ -27,6 +28,29 @@ const materialByProductId = {
 // stable product id. Keep this mapping explicit: guessing paths from product
 // names would break as soon as a product is renamed.
 const productMediaById = {
+  106: {
+    colorImages: {
+      Brown: [
+        "image/catalog/clothing/merino-wool-knitted-polo/review-v1/brown-front.webp",
+        "image/catalog/clothing/merino-wool-knitted-polo/review-v1/brown-back.webp",
+        "image/catalog/clothing/merino-wool-knitted-polo/review-v1/brown-model-detail.webp",
+        "image/catalog/clothing/merino-wool-knitted-polo/review-v1/brown-model-outfit.webp",
+        "image/catalog/clothing/merino-wool-knitted-polo/review-v1/brown-logo-tag.webp"
+      ],
+      Beige: [
+        "image/catalog/clothing/merino-wool-knitted-polo/review-v1/beige-front.webp",
+        "image/catalog/clothing/merino-wool-knitted-polo/review-v1/beige-back.webp"
+      ],
+      Black: [
+        "image/catalog/clothing/merino-wool-knitted-polo/review-v1/black-front.webp",
+        "image/catalog/clothing/merino-wool-knitted-polo/review-v1/black-back.webp"
+      ],
+      White: [
+        "image/catalog/clothing/merino-wool-knitted-polo/review-v1/white-front.webp",
+        "image/catalog/clothing/merino-wool-knitted-polo/review-v1/white-back.webp"
+      ]
+    }
+  },
   107: {
     images: ["image/Heritage Cashmere Crewneck/navy.png"]
   },
@@ -49,10 +73,12 @@ const productMediaById = {
         "image/catalog/clothing/suede-long-sleeve-overshirt/review-v1/brown-logo-tag.webp"
       ],
       "Deep Teal": [
-        "image/catalog/clothing/suede-long-sleeve-overshirt/review-v1/deep-teal-front.webp"
+        "image/catalog/clothing/suede-long-sleeve-overshirt/review-v1/deep-teal-front.webp",
+        "image/catalog/clothing/suede-long-sleeve-overshirt/review-v1/deep-teal-back.webp"
       ],
       Navy: [
-        "image/catalog/clothing/suede-long-sleeve-overshirt/review-v1/navy-front.webp"
+        "image/catalog/clothing/suede-long-sleeve-overshirt/review-v1/navy-front.webp",
+        "image/catalog/clothing/suede-long-sleeve-overshirt/review-v1/navy-back.webp"
       ]
     }
   },
@@ -95,13 +121,24 @@ const productMediaById = {
   174: {
     images: [1, 2, 3].map((number) => `image/Suede Loafers - Women/${number}.png`)
   },
+  183: {
+    colorImages: {
+      "Dark Brown": [
+        "image/catalog/accessories/smooth-calfskin-leather-belt-183/raw-v1/dark-brown-front.webp",
+        "image/catalog/accessories/smooth-calfskin-leather-belt-183/raw-v1/dark-brown-back.webp",
+        "image/catalog/accessories/smooth-calfskin-leather-belt-183/raw-v1/dark-brown-model-detail.webp",
+        "image/catalog/accessories/smooth-calfskin-leather-belt-183/raw-v1/dark-brown-model-outfit.webp",
+        "image/catalog/accessories/smooth-calfskin-leather-belt-183/raw-v1/dark-brown-logo-tag.webp"
+      ]
+    }
+  },
   206: {
     images: ["image/Heritage Cashmere Scarf/camel.png"]
   }
 };
 
 const resolveProductMedia = (item) => {
-  const configured = productMediaById[item.id] || {};
+  const configured = productMediaById[item.id] || generatedCatalogMedia[item.id] || {};
   const configuredColorImages = configured.colorImages || {};
   const configuredImages = configured.images || Object.values(configuredColorImages).flat();
   const images = configuredImages.length > 0

@@ -1289,14 +1289,14 @@ header nav a {
 .product-image img {
     width: 100%;
     height: 100%;
-    box-sizing: border-box;
-    padding: 10px;
-    object-fit: contain;
+    display: block;
+    object-fit: cover;
+    transform: scale(1.08);
     transition: transform 0.3s ease;
 }
 
 .product-card:hover .product-image img {
-    transform: scale(1.02);
+    transform: scale(1.11);
 }
 
 .product-card h3 {
@@ -1311,7 +1311,10 @@ header nav a {
 .product-card-meta { padding: 16px 20px 0; color: #8A7350; font-size: 10px; letter-spacing: 1.8px; text-transform: uppercase; }
 .product-card-fit { padding: 5px 20px 0; margin: 0; color: #6B5A4B; font-size: 12px; }
 .card-swatches { display: flex; gap: 7px; padding: 0 20px 20px; }
-.card-swatches span { width: 13px; height: 13px; border-radius: 50%; border: 1px solid rgba(43,33,28,.2); }
+.card-swatches button { width: 15px; height: 15px; flex: 0 0 15px; padding: 0; border-radius: 50%; border: 1px solid rgba(43,33,28,.28); cursor: pointer; box-shadow: 0 0 0 2px #F7F3EC; transition: box-shadow .2s ease, transform .2s ease; }
+.card-swatches button:hover { transform: scale(1.08); }
+.card-swatches button.active { box-shadow: 0 0 0 2px #F7F3EC, 0 0 0 3px #4E342E; }
+.card-swatches button:focus-visible { outline: 2px solid #8A7350; outline-offset: 3px; }
 
 .collection-hero { text-align: center; max-width: 720px; margin: 60px auto 20px; padding: 0 24px; }
 .collection-hero .page-title { margin: 8px 0; font: 500 52px/1.05 'Cormorant Garamond', serif; color: #2B211C; }
