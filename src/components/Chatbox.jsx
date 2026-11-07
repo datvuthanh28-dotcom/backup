@@ -89,6 +89,7 @@ export default function Chatbox() {
   const [greeted, setGreeted] = useState(false);
   const [zoomedImage, setZoomedImage] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [flowStep, setFlowStep] = useState(null);
 
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -175,6 +176,7 @@ export default function Chatbox() {
       proofImageBase64: null,
       email: null,
     };
+    setFlowStep("REASON");
     pushBot(
       "🤖 Rue rất tiếc khi sản phẩm chưa làm anh/chị hoàn toàn hài lòng. Để Rue hỗ trợ lập hồ sơ đổi/trả cho Admin Maison Rue xét duyệt, anh/chị vui lòng chọn lý do hoàn trả:",
       {
@@ -193,6 +195,7 @@ export default function Chatbox() {
   function proceedToEmailStep() {
     const f = flow.current;
     f.step = "EMAIL";
+    setFlowStep("EMAIL");
     if (currentUser?.email) {
       pushBot(
         `Rue thấy anh/chị đang đăng nhập tài khoản: "${currentUser.email}". Anh/chị có muốn dùng email này để nhận thông báo duyệt hoàn tiền từ Admin không ạ?`,
@@ -273,6 +276,7 @@ export default function Chatbox() {
         proofImageBase64: null,
         email: null,
       };
+      setFlowStep(null);
     }
   }
 
@@ -310,6 +314,7 @@ export default function Chatbox() {
 
       f.reason = chosenReason;
       f.step = "DETAIL";
+      setFlowStep("DETAIL");
       pushBot(
         `Đã ghi nhận lý do: "${chosenReason}".\n\nAnh/chị vui lòng mô tả ngắn gọn tình trạng sản phẩm (ví dụ: rách đường chỉ, giao sai size M, trầy xước đế giày...) giúp Rue nhé.`
       );
@@ -324,6 +329,7 @@ export default function Chatbox() {
       }
       f.detailNote = val;
       f.step = "ITEM";
+      setFlowStep("ITEM");
       pushBot(
         "Cảm ơn anh/chị. Vui lòng cho Rue biết Tên sản phẩm hoặc Mã đơn hàng (ví dụ: Áo len Cashmere Cardigan hoặc #MR-2026-...) cần đổi trả ạ?"
       );
@@ -338,6 +344,7 @@ export default function Chatbox() {
       }
       f.item = val;
       f.step = "IMAGE";
+      setFlowStep("IMAGE");
       pushBot(
         "Để Admin kiểm duyệt nhanh chóng và chính xác, anh/chị vui lòng tải lên hình ảnh minh chứng sản phẩm (chụp vết lỗi, tem mác hoặc bao bì).\n\nNếu không có ảnh hoặc đổi ý/không vừa size, anh/chị có thể bấm 'Bỏ qua ảnh' ạ.",
         {
@@ -421,9 +428,7 @@ export default function Chatbox() {
 
     const returnKeywords = /(đổi trả|hoàn tiền|trả hàng|return|refund|lỗi sản phẩm|đổi hàng)/i;
     if (returnKeywords.test(message)) {
-      pushBot(currentUser ? "Rue có thể giúp anh/chị gửi yêu cầu từ lịch sử đơn hàng để hệ thống kiểm tra đúng sản phẩm, thời hạn và điều kiện áp dụng. Sau khi gửi, Maison Rue sẽ nhận và kiểm tra trực tiếp sản phẩm trước khi hoàn tiền hoặc đổi hàng." : "Vui lòng đăng nhập và mở lịch sử đơn hàng để gửi yêu cầu đổi trả hoặc hoàn tiền. Hệ thống cần đối chiếu đơn hàng trước khi xét điều kiện.", {
-        quickReplies: currentUser?.role === "customer" ? [{ label: "Open My Orders", value: "__OPEN_ORDERS__" }] : [{ label: "Sign in", value: "__OPEN_ORDERS__" }],
-      });
+      startReturnFlow();
       return;
     }
 
@@ -533,7 +538,7 @@ export default function Chatbox() {
           {typing && <div id="chat-typing">Rue đang soạn câu trả lời...</div>}
 
           <form id="chat-form" onSubmit={handleSend}>
-            {flow.current.step === "IMAGE" && (
+            {flowStep === "IMAGE" && (
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -557,11 +562,11 @@ export default function Chatbox() {
               id="chat-input"
               type="text"
               placeholder={
-                flow.current.step === "DETAIL"
+                flowStep === "DETAIL"
                   ? "Mô tả tình trạng lỗi của sản phẩm..."
-                  : flow.current.step === "ITEM"
+                  : flowStep === "ITEM"
                   ? "Tên sản phẩm hoặc mã đơn hàng..."
-                  : flow.current.step === "EMAIL"
+                  : flowStep === "EMAIL"
                   ? "Nhập email của anh/chị..."
                   : "Nhập tin nhắn..."
               }

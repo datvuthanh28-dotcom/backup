@@ -583,7 +583,6 @@ export default function CustomerOrders() {
                 <div style={{ padding: "20px 24px" }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                     {orderItems.map((item, idx) => {
-                      const productId = Number(item.product_id || item.productId || item.id);
                       const review = reviewEligibility[Number(item.id)];
                       const itemRequests = returnRequests.filter((request) => Number(request.order_item_id) === Number(item.id));
                       const latestRequest = itemRequests[0];
