@@ -34,6 +34,13 @@ function HeartIcon({ filled = false }) {
   );
 }
 
+function materialLabel(product) {
+  if (product.material) return product.material.split(/[.;]/)[0].trim();
+  if (product.productType === "Footwear") return "Footwear";
+  if (product.productType === "Accessories") return "Accessories";
+  return "Clothing";
+}
+
 export default function ProductCard({ product }) {
   const { getProductStock } = useStore();
   const { isFavorite, toggleFavorite } = useFavorites();

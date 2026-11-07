@@ -149,7 +149,7 @@ function completeTheLook(product, products) {
 export default function ProductDetail() {
   const { id } = useParams();
   const { products } = useStore();
-  const product = products.find((item) => item.id === Number(id));
+  const product = products.find((item) => Number(item.id) === Number(id));
   const { addToCart, cartCount, cartTotal } = useCart();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { currentUser } = useAuth();
@@ -189,7 +189,7 @@ const galleryImages = (selectedColorImages.length
   ? selectedColorImages
   : (product?.images || []).slice(0, 1)
 ).map((image) => ({ image, color: selectedColor }));
-const liveProductsById = new Map(products.map((item) => [item.id, item]));
+const liveProductsById = new Map(products.map((item) => [Number(item.id), item]));
 const recommendationCatalog = catalogProducts.map((catalogProduct) => ({ ...catalogProduct, ...liveProductsById.get(catalogProduct.id) }));
 const relatedProducts = product ? completeTheLook(product, recommendationCatalog) : [];
   const isFootwear = product?.productType === "Footwear";

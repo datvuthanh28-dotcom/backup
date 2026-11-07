@@ -31,6 +31,7 @@ export default function ProductListPage({ gender, audience, collection, productT
     }
   };
   const requestedProductType = productType || searchParams.get("type");
+  const normalizedProductType = requestedProductType?.trim().toLowerCase();
   const requestedSubcategory = searchParams.get("subcategory");
   const matchesAudience = (product) => {
     if (audience) return product.audience === audience;
@@ -39,16 +40,16 @@ export default function ProductListPage({ gender, audience, collection, productT
     if (gender === "nữ") return product.audience === "women";
     return !gender || product.gender === gender;
   };
-  const matchesProduct = (product) => matchesAudience(product) && (!requestedProductType || product.productType === requestedProductType);
+  const matchesProduct = (product) => matchesAudience(product) && (!normalizedProductType || product.productType?.toLowerCase() === normalizedProductType);
   const belongsToCollection = (product) => {
     if (isSuedeCollection) return /suede/i.test(product.name);
     return !collection || product.collection === collection || product.collections?.includes(collection);
   };
   const types = [...new Set(products.filter((p) => matchesProduct(p) && belongsToCollection(p)).map((p) => p.subcategory))];
-  const catalogItems = useMemo(() => products.filter((p) => matchesProduct(p)
+  const catalogItems = products.filter((p) => matchesProduct(p)
       && belongsToCollection(p)
       && (!isAudienceCollection || p.audience === selectedAudience)
-      && ((requestedSubcategory || type) === "all" || p.subcategory === (requestedSubcategory || type))), [products, gender, audience, collection, requestedProductType, requestedSubcategory, type, isAudienceCollection, selectedAudience]);
+      && ((requestedSubcategory || type) === "all" || p.subcategory === (requestedSubcategory || type)));
   const availableColors = useMemo(() => [...new Set(catalogItems.flatMap((product) => product.colors || []))].sort(), [catalogItems]);
   const items = useMemo(() => {
     const min = priceRange.min === "" ? 0 : Number(priceRange.min);
