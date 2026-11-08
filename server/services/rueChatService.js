@@ -253,7 +253,7 @@ Thông tin bộ sưu tập Maison Rue:
   "reply": "Nội dung phản hồi tinh tế của bạn"
 }`;
 
-export async function processRueChat({ user, message, conversationHistory = [], clientIp = "local" }) {
+export async function processRueChat({ user, message, conversationHistory = [] }) {
   const trimmed = String(message || "").trim();
   if (!trimmed) {
     return {

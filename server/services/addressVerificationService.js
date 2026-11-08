@@ -122,7 +122,7 @@ export async function verifyDeliveryAddress(address, options = {}) {
       geoapifyEvidence: geoResult,
     });
   } catch {
-    aiAudit = null;
+    // Map evidence and backend rules remain authoritative when AI is unavailable.
   }
 
   // 3. Backend Rules & Final Arbiter Decision (Section III)
@@ -158,14 +158,13 @@ export async function verifyDeliveryAddress(address, options = {}) {
   }
 
   // Determine final status & honest explanation
-  let finalStatus = "MATCHED";
+  const finalStatus = "MATCHED";
   let explanation = "Địa chỉ phù hợp với dữ liệu bản đồ.";
 
   if (aiAudit && typeof aiAudit === "object") {
     // If AI identified missing components or detected that address is not deliverable
     if (aiAudit.status === "NEEDS_CORRECTION" || aiAudit.status === "UNVERIFIED" || aiAudit.isDeliverable === false) {
       if (aiAudit.missingComponents?.includes("housenumber") && !geoResult.housenumber) {
-        finalStatus = "NEEDS_CORRECTION";
         explanation = aiAudit.explanation || "Chưa đủ thông tin để xác minh: thiếu số nhà/tòa nhà cụ thể.";
         const err = new Error(explanation);
         err.status = 422;
@@ -174,11 +173,7 @@ export async function verifyDeliveryAddress(address, options = {}) {
       }
     }
 
-    if (finalStatus === "MATCHED") {
-      explanation = "Địa chỉ phù hợp với dữ liệu bản đồ.";
-    } else if (aiAudit.explanation && typeof aiAudit.explanation === "string") {
-      explanation = aiAudit.explanation;
-    }
+    explanation = "Địa chỉ phù hợp với dữ liệu bản đồ.";
   }
 
   return {

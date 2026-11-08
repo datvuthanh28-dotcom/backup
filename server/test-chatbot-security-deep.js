@@ -4,7 +4,7 @@ process.env.PORT = "5099";
 
 const http = await import("http");
 const { default: app } = await import("./index.js");
-const { connectDB, db, getPool } = await import("./config/db.js");
+const { connectDB, getPool } = await import("./config/db.js");
 const { runMigration } = await import("./db/migrate.js");
 const { runSeed } = await import("./db/seed.js");
 const sql = (await import("mssql")).default;
