@@ -1140,6 +1140,25 @@
       "Beige": [
         "image/catalog/accessories/mini-canvas-leather-backpack-204/raw-v1/beige-front.webp"
       ]
+    }
+  },
+  "205": {
+    "colorImages": {
+      "Dark Brown": [
+        "image/catalog/accessories/mini-grained-calfskin-crossbody-bag-205/raw-v1/dark-brown-front.webp"
+      ],
+      "Taupe": [
+        "image/catalog/accessories/mini-grained-calfskin-crossbody-bag-205/raw-v1/taupe-front.webp"
+      ]
+    }
+  },
+  "206": {
+    "colorImages": {
+      "Beige": [
+        "image/Heritage Cashmere Scarf/camel.png"
+      ],
+      "Charcoal": [
+        "image/Heritage Cashmere Scarf/camel.png"
       ]
     }
   },
