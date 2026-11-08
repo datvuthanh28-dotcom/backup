@@ -137,7 +137,7 @@ async function runTests() {
 
     // Inactive staff login rejection
     const inactiveStaff = await makeRequest("POST", "/api/auth/staff/login", {
-      email: "staff.inactive@maisonrue.com",
+      email: "phamthutrang.maisonrue@gmail.com",
       password: "staff123",
     });
     assert(inactiveStaff.status === 403, "Inactive staff account login rejected (HTTP 403)");
