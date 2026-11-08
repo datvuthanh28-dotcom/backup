@@ -2,14 +2,10 @@ import bcrypt from "bcryptjs";
 import { connectDB, db, getPool } from "../config/db.js";
 
 const accounts = [
-  ["usr_admin_01", "Quản Trị Viên Maison Rue (Văn Hưng)", "vanhung29993@gmail.com", "admin123", "admin"],
-  ["usr_admin_demo", "Quản Trị Viên Demo", "admin@maisonrue.com", "admin123", "admin"],
+  ["usr_admin_01", "Văn Hưng (Quản Trị Viên)", "vanhung29993@gmail.com", "admin123", "admin"],
   ["usr_staff_01", "Lê Hoàng Yến (Vận Hành)", "staffmaisonrue@gmail.com", "staff123", "staff"],
-  ["usr_staff_demo", "Nhân Viên Vận Hành Demo", "staff@maisonrue.com", "staff123", "staff"],
   ["usr_staff_02", "Trần Minh Khoa (Kho Vận)", "maisonruestaff2@gmail.com", "staff123", "staff"],
-  ["usr_staff2_demo", "Nhân Viên Kho Demo", "staff2@maisonrue.com", "staff123", "staff"],
   ["usr_cust_01", "Vũ Thành Đạt", "vudat9532@gmail.com", "customer123", "customer"],
-  ["usr_cust_demo", "Khách Hàng Demo", "customer@gmail.com", "customer123", "customer"],
 ];
 
 await connectDB();

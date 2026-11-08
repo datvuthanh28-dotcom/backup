@@ -75,7 +75,7 @@ async function runTests() {
   try {
     // Log in customer
     const custLogin = await makeRequest("POST", "/api/auth/customer/login", {
-      email: "customer@gmail.com",
+      email: "vudat9532@gmail.com",
       password: "customer123",
     });
     assert(custLogin.status === 200, "Customer logged in successfully");
@@ -115,7 +115,7 @@ async function runTests() {
 
     // 2.3 Valid detailed address accepted & standardized
     const pool = getPool();
-    await pool.request().query("DELETE FROM CustomerAddresses WHERE user_id IN (SELECT id FROM Users WHERE email='customer@gmail.com') OR user_id='usr_cust_01'");
+    await pool.request().query("DELETE FROM CustomerAddresses WHERE user_id IN (SELECT id FROM Users WHERE email='vudat9532@gmail.com') OR user_id='usr_cust_01'");
 
     const validAddrRes = await makeRequest("POST", "/api/customer/addresses", {
       address: "72 Le Thanh Ton, Ben Nghe, Quan 1, Ho Chi Minh",
@@ -129,8 +129,8 @@ async function runTests() {
     console.log("\n--- 3. Testing Server-Side Address Enforcement in createOrder ---");
 
     const orderBasePayload = {
-      name: "Nguyễn Văn Test",
-      email: "customer@gmail.com",
+      name: "Vũ Thành Đạt",
+      email: "vudat9532@gmail.com",
       phone: "0901234567",
       paymentMethod: "cod",
       items: [

@@ -202,7 +202,7 @@ export default function StaffLogin() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="staff@maisonrue.com"
+                placeholder="staffmaisonrue@gmail.com"
                 style={{
                   width: "100%",
                   padding: "12px 14px",
@@ -319,47 +319,6 @@ export default function StaffLogin() {
                 <span>Trần Minh Khoa (Kho Vận)</span>
                 <span style={{ color: "#B89B5E" }}>maisonruestaff2@gmail.com</span>
               </button>
-
-              <button
-                type="button"
-                onClick={() => quickFill("staff@maisonrue.com", "staff123")}
-                style={{
-                  padding: "8px 12px",
-                  backgroundColor: "#1C1512",
-                  border: "1px solid #4E342E",
-                  borderRadius: "4px",
-                  color: "#E8E1D6",
-                  fontSize: "12px",
-                  textAlign: "left",
-                  cursor: "pointer",
-                  display: "flex",
-                  justifyContent: "space-between",
-                }}
-              >
-                <span>Nhân Viên Demo 1</span>
-                <span style={{ color: "#B89B5E" }}>staff@maisonrue.com</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => quickFill("staff2@maisonrue.com", "staff123")}
-                style={{
-                  padding: "8px 12px",
-                  backgroundColor: "#1C1512",
-                  border: "1px solid #4E342E",
-                  borderRadius: "4px",
-                  color: "#E8E1D6",
-                  fontSize: "12px",
-                  textAlign: "left",
-                  cursor: "pointer",
-                  display: "flex",
-                  justifyContent: "space-between",
-                }}
-              >
-                <span>Nhân Viên Demo 2</span>
-                <span style={{ color: "#B89B5E" }}>staff2@maisonrue.com</span>
-              </button>
-
             </div>
           </div>
 

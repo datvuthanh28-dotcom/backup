@@ -7,7 +7,7 @@ const INITIAL_DEMO_RETURNS = [
   {
     id: "RET-784201",
     createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    customerEmail: "customer@gmail.com",
+    customerEmail: "vudat9532@gmail.com",
     customerName: "Vũ Thành Đạt",
     item: "Merino Wool Knitted Polo (MR-106 - Beige / M)",
     reason: "Không vừa size",
