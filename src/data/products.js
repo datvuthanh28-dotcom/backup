@@ -51,9 +51,7 @@ const productMediaById = {
       ]
     }
   },
-  107: {
-    images: ["image/Heritage Cashmere Crewneck/navy.png"]
-  },
+
   109: {
     colorImages: {
       Beige: [1, 2, 3, 4].map((number) => `image/Cashmere Cardigan - Men/BEIGE/${number}.png`),
@@ -99,9 +97,7 @@ const productMediaById = {
       ]
     }
   },
-  148: {
-    images: ["image/Heritage Cashmere Crewneck/navy.png"]
-  },
+
   150: {
     colorImages: {
       Beige: [
