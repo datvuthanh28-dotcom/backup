@@ -88,7 +88,7 @@ async function runTests() {
 
     // Staff user login
     const staffLogin = await makeRequest("POST", "/api/auth/staff/login", {
-      email: "staff@maisonrue.com",
+      email: "staffmaisonrue@gmail.com",
       password: "staff123",
     });
     assert(staffLogin.status === 200, "Staff logged in successfully");
@@ -100,7 +100,7 @@ async function runTests() {
 
     // Admin user login
     const adminLogin = await makeRequest("POST", "/api/auth/admin/login", {
-      email: "admin@maisonrue.com",
+      email: "vanhung29993@gmail.com",
       password: "admin123",
     });
     assert(adminLogin.status === 200, "Admin logged in successfully");
@@ -112,7 +112,7 @@ async function runTests() {
 
     // Customer user login
     const custLogin = await makeRequest("POST", "/api/auth/customer/login", {
-      email: "customer@gmail.com",
+      email: "vudat9532@gmail.com",
       password: "customer123",
     });
     assert(custLogin.status === 200, "Customer logged in successfully");
@@ -192,7 +192,7 @@ async function runTests() {
     // Create a new test order for customer
     const orderPayload = {
       name: "Vũ Thành Đạt",
-      email: "customer@gmail.com",
+      email: "vudat9532@gmail.com",
       phone: "0901234567",
       address: "88 Lý Tự Trọng, Q.1, TP.HCM",
       paymentMethod: "cod",
@@ -270,10 +270,10 @@ async function runTests() {
 
     // Check account email snapshot in DB (malicious client-supplied email must be IGNORED)
     const returnRecord = await db.getReturnRequestById(returnRequestId);
-    console.log("Snapshot returnRecord:", returnRecord?.customer_email, "Expected: customer@gmail.com");
+    console.log("Snapshot returnRecord:", returnRecord?.customer_email, "Expected: vudat9532@gmail.com");
     assert(
-      returnRecord && returnRecord.customer_email === "customer@gmail.com",
-      "Account email snapshot: client email injected override was IGNORED; DB persisted 'customer@gmail.com'"
+      returnRecord && returnRecord.customer_email === "vudat9532@gmail.com",
+      "Account email snapshot: client email injected override was IGNORED; DB persisted 'vudat9532@gmail.com'"
     );
 
     // Rule 3: Duplicate return submission for the same order item is blocked (HTTP 409)

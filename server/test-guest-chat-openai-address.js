@@ -154,7 +154,7 @@ async function runAllTests() {
 
     // 2.3 Staff user blocked from using chatbot as customer
     console.log("[HTTP] POST /api/auth/staff/login");
-    const staffLogin = await makeRequest("POST", "/api/auth/staff/login", { email: "staff@maisonrue.com", password: "staff123" });
+    const staffLogin = await makeRequest("POST", "/api/auth/staff/login", { email: "staffmaisonrue@gmail.com", password: "staff123" });
     const staffCookie = staffLogin.cookie;
 
     console.log("[HTTP] POST /api/chat");
@@ -171,7 +171,7 @@ async function runAllTests() {
     console.log("\n--- 3. Testing Logged-in Customer Privileges & Ownership Isolation ---");
 
     console.log("[HTTP] POST /api/auth/customer/login");
-    const customerLogin = await makeRequest("POST", "/api/auth/customer/login", { email: "customer@gmail.com", password: "customer123" });
+    const customerLogin = await makeRequest("POST", "/api/auth/customer/login", { email: "vudat9532@gmail.com", password: "customer123" });
     assert(customerLogin.status === 200, "Customer logged in successfully");
     const customerCookie = customerLogin.cookie;
 
@@ -286,7 +286,7 @@ async function runAllTests() {
     console.log("[HTTP] POST /api/orders");
     const validOrder = await makeRequest("POST", "/api/orders", {
       name: "Nguyễn Văn Hùng",
-      email: "customer@gmail.com",
+      email: "vudat9532@gmail.com",
       phone: "0908889999",
       address: "88 Lý Tự Trọng, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh",
       paymentMethod: "cod",
