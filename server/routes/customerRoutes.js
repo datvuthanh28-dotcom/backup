@@ -17,6 +17,7 @@ router.patch("/addresses/:id", updateAddress);
 router.delete("/addresses/:id", deleteAddress);
 router.patch("/preferences", updatePreferences);
 router.patch("/profile", updateProfile);
+router.put("/profile", updateProfile);
 router.get("/favorites", getFavorites);
 router.put("/favorites/:productId", setFavorite);
 router.get("/reviews", getMyReviewEligibility);
