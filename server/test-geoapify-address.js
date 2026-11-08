@@ -4,7 +4,7 @@ process.env.PORT = "5097";
 
 const http = await import("http");
 const { default: app } = await import("./index.js");
-const { connectDB } = await import("./config/db.js");
+const { connectDB, getPool } = await import("./config/db.js");
 const { runMigration } = await import("./db/migrate.js");
 const { runSeed } = await import("./db/seed.js");
 
@@ -114,6 +114,9 @@ async function runTests() {
     assert(vagueAddrRes.status === 422, "Vague city-only address rejected with HTTP 422 (coordinates alone are NOT enough)");
 
     // 2.3 Valid detailed address accepted & standardized
+    const pool = getPool();
+    await pool.request().query("DELETE FROM CustomerAddresses WHERE user_id IN (SELECT id FROM Users WHERE email='customer@gmail.com') OR user_id='usr_cust_01'");
+
     const validAddrRes = await makeRequest("POST", "/api/customer/addresses", {
       address: "72 Le Thanh Ton, Ben Nghe, Quan 1, Ho Chi Minh",
       isDefault: false,
@@ -190,3 +193,4 @@ runTests()
     console.error("Test failed:", err);
     process.exit(1);
   });
+

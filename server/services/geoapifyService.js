@@ -98,25 +98,40 @@ export async function verifyAddressWithGeoapify(address, options = {}) {
   let results = data.results || [];
   let best = results[0];
 
-  // If search returns low confidence (< 0.45), missing street, or empty, fallback to autocomplete parser using raw text
+  // If search returns low confidence (< 0.45), missing street, or empty, fallback to autocomplete parser using raw text & cleaned variants
   const needsAutocompleteFallback = !best || ((best.rank?.confidence ?? 0) < 0.45) || (!best.street && !best.housenumber && best.result_type !== "amenity");
   if (needsAutocompleteFallback) {
     try {
-      const autoUrl = new URL("https://api.geoapify.com/v1/geocode/autocomplete");
-      autoUrl.searchParams.set("text", raw);
-      autoUrl.searchParams.set("apiKey", apiKey);
-      autoUrl.searchParams.set("format", "json");
-      autoUrl.searchParams.set("lang", "vi");
-      autoUrl.searchParams.set("limit", "5");
-      if (targetCountry) autoUrl.searchParams.set("filter", `countrycode:${targetCountry}`);
+      const cleanVariant = raw
+        .replace(/\bTP\.?\s*HCM\b/gi, "Hồ Chí Minh")
+        .replace(/\bThành phố\s+/gi, "")
+        .replace(/\bTP\.?\s+/gi, "")
+        .replace(/\bPhường\s+/gi, "")
+        .replace(/\bP\.\s*/gi, "")
+        .replace(/\bQ\.\s*/gi, "Quận ")
+        .replace(/\s+/g, " ")
+        .trim();
 
-      const autoRes = await fetch(autoUrl, { signal: AbortSignal.timeout(5000) });
-      if (autoRes.ok) {
-        const autoData = await autoRes.json();
-        const candidate = (autoData.results || []).find((r) => r.street || r.housenumber || r.result_type === "building" || r.result_type === "amenity");
-        if (candidate) {
-          best = candidate;
-          results = autoData.results;
+      const candidateTexts = cleanVariant !== raw ? [cleanVariant, raw] : [raw];
+
+      for (const queryText of candidateTexts) {
+        const autoUrl = new URL("https://api.geoapify.com/v1/geocode/autocomplete");
+        autoUrl.searchParams.set("text", queryText);
+        autoUrl.searchParams.set("apiKey", apiKey);
+        autoUrl.searchParams.set("format", "json");
+        autoUrl.searchParams.set("lang", "vi");
+        autoUrl.searchParams.set("limit", "5");
+        if (targetCountry) autoUrl.searchParams.set("filter", `countrycode:${targetCountry}`);
+
+        const autoRes = await fetch(autoUrl, { signal: AbortSignal.timeout(5000) });
+        if (autoRes.ok) {
+          const autoData = await autoRes.json();
+          const candidate = (autoData.results || []).find((r) => r.street || r.housenumber || r.result_type === "building" || r.result_type === "amenity");
+          if (candidate && (candidate.rank?.confidence ?? 0) >= 0.20) {
+            best = candidate;
+            results = autoData.results;
+            break;
+          }
         }
       }
     } catch {

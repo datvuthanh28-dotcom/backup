@@ -42,6 +42,8 @@ export default function Checkout() {
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [addressConfirmed, setAddressConfirmed] = useState(false);
+  const [verifyingAddress, setVerifyingAddress] = useState(false);
+  const [verifiedExplanation, setVerifiedExplanation] = useState("");
 
   useEffect(() => {
     if (currentUser?.role !== "customer") return;
@@ -109,11 +111,41 @@ export default function Checkout() {
     );
   }
 
+  const handleVerifyAddress = async (addrToVerify) => {
+    const text = (addrToVerify || formData.address || "").trim();
+    if (!text) {
+      setErrors((prev) => ({ ...prev, address: "Please enter a complete delivery address to verify." }));
+      return false;
+    }
+    setVerifyingAddress(true);
+    setErrors((prev) => ({ ...prev, address: "" }));
+    try {
+      const res = await customerAPI.verifyAddress(text, "VN");
+      if (res.success && res.verifiedAddress) {
+        setFormData((prev) => ({ ...prev, address: res.verifiedAddress.formatted || text }));
+        setAddressConfirmed(true);
+        setVerifiedExplanation(res.verifiedAddress.explanation || "Địa chỉ phù hợp với dữ liệu bản đồ.");
+        return true;
+      } else {
+        setAddressConfirmed(false);
+        setErrors((prev) => ({ ...prev, address: res.error || "Chưa đủ thông tin để xác minh địa chỉ này." }));
+        return false;
+      }
+    } catch (err) {
+      setAddressConfirmed(false);
+      setErrors((prev) => ({ ...prev, address: err.message || "Chưa đủ thông tin để xác minh địa chỉ này." }));
+      return false;
+    } finally {
+      setVerifyingAddress(false);
+    }
+  };
+
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     if (e.target.name === "address") {
       setSelectedAddressId("");
       setAddressConfirmed(false);
+      setVerifiedExplanation("");
       setErrors((prev) => ({ ...prev, address: "" }));
     }
   };
@@ -128,6 +160,11 @@ export default function Checkout() {
 
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
+
+    if (!addressConfirmed) {
+      const ok = await handleVerifyAddress(formData.address.trim());
+      if (!ok) return;
+    }
 
     setSubmitting(true);
 
@@ -414,11 +451,10 @@ export default function Checkout() {
                           }}
                           onMouseDown={(e) => {
                             e.preventDefault();
-                            setFormData((prev) => ({ ...prev, address: suggestion.description }));
-                            setAddressConfirmed(true);
                             setSuggestionsOpen(false);
                             setAddressSuggestions([]);
-                            setErrors((prev) => ({ ...prev, address: "" }));
+                            setFormData((prev) => ({ ...prev, address: suggestion.description }));
+                            handleVerifyAddress(suggestion.description);
                           }}
                         >
                           📍 {suggestion.description}
@@ -427,11 +463,30 @@ export default function Checkout() {
                     ))}
                   </ul>
                 )}
-                {addressConfirmed && (
-                  <small style={{ display: "block", color: "#2e7d32", fontWeight: "600", marginTop: "5px" }}>
-                    ✓ Địa chỉ đã được chọn khớp với cơ sở dữ liệu bản đồ Geoapify
-                  </small>
-                )}
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "6px" }}>
+                  <button
+                    type="button"
+                    disabled={verifyingAddress || !formData.address.trim()}
+                    onClick={() => handleVerifyAddress(formData.address)}
+                    style={{
+                      padding: "6px 14px",
+                      backgroundColor: addressConfirmed ? "#2e7d32" : "#1a1615",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "4px",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                      transition: "background-color 0.2s ease",
+                    }}
+                  >
+                    {verifyingAddress ? "Đang thẩm định địa chỉ…" : addressConfirmed ? "✓ Đã xác nhận" : "Xác nhận địa chỉ"}
+                  </button>
+                  {addressConfirmed && (
+                    <small style={{ color: "#2e7d32", fontWeight: "600", fontSize: "12px" }}>
+                      ✓ {verifiedExplanation || "Địa chỉ phù hợp với dữ liệu bản đồ."}
+                    </small>
+                  )}
+                </div>
               </div>
               {errors.address && <span className="error" style={{ color: "#b71c1c", fontSize: "12.5px", display: "block", marginTop: "4px" }}>{errors.address}</span>}
             </div>

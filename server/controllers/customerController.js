@@ -1,6 +1,6 @@
 import { getPool } from "../config/db.js";
 import sql from "mssql";
-import { verifyAddressWithGeoapify, getAddressSuggestionsFromGeoapify } from "../services/geoapifyService.js";
+import { verifyDeliveryAddress, getAddressSuggestionsFromGeoapify } from "../services/addressVerificationService.js";
 
 export async function getAccount(req, res) {
   const pool = getPool();
@@ -21,12 +21,29 @@ export async function getAddressSuggestions(req, res) {
   }
 }
 
+export async function verifyAddress(req, res) {
+  const text = String(req.body.address || "").trim();
+  if (!text) {
+    return res.status(400).json({ success: false, error: "Vui lòng nhập địa chỉ cần kiểm tra." });
+  }
+  try {
+    const verified = await verifyDeliveryAddress(text, { country: req.body.country || "VN" });
+    return res.json({ success: true, verifiedAddress: verified });
+  } catch (err) {
+    return res.status(err.status || 422).json({
+      success: false,
+      error: err.message || "Chưa đủ thông tin để xác minh địa chỉ giao hàng.",
+      code: err.code || "ADDRESS_VERIFICATION_FAILED",
+    });
+  }
+}
+
 export async function addAddress(req, res) {
   const text = String(req.body.address || "").trim();
   if (!text) return res.status(400).json({ success: false, error: "Please enter a delivery address." });
   let verified;
   try {
-    verified = await verifyAddressWithGeoapify(text, { country: req.body.country || "VN" });
+    verified = await verifyDeliveryAddress(text, { country: req.body.country || "VN" });
   } catch (error) {
     return res.status(error.status || 422).json({ success: false, error: error.message });
   }
@@ -50,7 +67,7 @@ export async function updateAddress(req, res) {
   if (!id || !text) return res.status(400).json({ success: false, error: "Please enter a valid delivery address." });
   let verified;
   try {
-    verified = await verifyAddressWithGeoapify(text, { country: req.body.country || "VN" });
+    verified = await verifyDeliveryAddress(text, { country: req.body.country || "VN" });
   } catch (error) {
     return res.status(error.status || 422).json({ success: false, error: error.message });
   }

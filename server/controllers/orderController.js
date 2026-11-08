@@ -1,6 +1,6 @@
 import { db } from "../config/db.js";
 import { calculatePromotions } from "../services/promotionService.js";
-import { verifyAddressWithGeoapify } from "../services/geoapifyService.js";
+import { verifyDeliveryAddress } from "../services/addressVerificationService.js";
 
 export async function getAllOrders(req, res) {
   try {
@@ -50,14 +50,15 @@ export async function createOrder(req, res) {
       return res.status(400).json({ success: false, error: "Vui lòng nhập đầy đủ thông tin giao nhận." });
     }
 
-    // Geoapify Delivery Address Verification (Server-Side Enforcement)
+    // Geoapify Map Data + OpenAI Evidence Delivery Address Verification (Server-Side Enforcement)
     let verifiedAddress;
     try {
-      verifiedAddress = await verifyAddressWithGeoapify(address);
+      verifiedAddress = await verifyDeliveryAddress(address);
     } catch (addrErr) {
       return res.status(addrErr.status || 422).json({
         success: false,
-        error: addrErr.message || "Địa chỉ giao hàng không hợp lệ trên bản đồ Geoapify. Vui lòng kiểm tra lại số nhà, tên đường.",
+        error: addrErr.message || "Chưa đủ thông tin để xác minh địa chỉ giao hàng. Vui lòng kiểm tra lại số nhà, tên đường.",
+        code: addrErr.code || "ADDRESS_VERIFICATION_FAILED",
       });
     }
 
