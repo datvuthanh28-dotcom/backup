@@ -539,6 +539,25 @@
       ]
     }
   },
+  "148": {
+    "colorImages": {
+      "Brown": [
+        "image/catalog/clothing/cashmere-crewneck-sweater/women-raw-v1/brown-front.webp",
+        "image/catalog/clothing/cashmere-crewneck-sweater/women-raw-v1/brown-back.webp",
+        "image/catalog/clothing/cashmere-crewneck-sweater/women-raw-v1/brown-model-detail.webp",
+        "image/catalog/clothing/cashmere-crewneck-sweater/women-raw-v1/brown-model-outfit.webp",
+        "image/catalog/clothing/cashmere-crewneck-sweater/women-raw-v1/brown-logo-tag.webp"
+      ],
+      "Beige": [
+        "image/catalog/clothing/cashmere-crewneck-sweater/women-raw-v1/beige-front.webp",
+        "image/catalog/clothing/cashmere-crewneck-sweater/women-raw-v1/beige-back.webp"
+      ],
+      "Black": [
+        "image/catalog/clothing/cashmere-crewneck-sweater/women-raw-v1/black-front.webp",
+        "image/catalog/clothing/cashmere-crewneck-sweater/women-raw-v1/black-back.webp"
+      ]
+    }
+  },
   "149": {
     "colorImages": {
       "Brown": [
@@ -558,6 +577,122 @@
       ]
     }
   },
+  "150": {
+    "colorImages": {
+      "Beige": [
+        "image/catalog/clothing/baby-cashmere-cardigan/women-raw-v1/beige-front.webp",
+        "image/catalog/clothing/baby-cashmere-cardigan/women-raw-v1/beige-back.webp",
+        "image/catalog/clothing/baby-cashmere-cardigan/women-raw-v1/beige-model-detail.webp",
+        "image/catalog/clothing/baby-cashmere-cardigan/women-raw-v1/beige-model-outfit.webp",
+        "image/catalog/clothing/baby-cashmere-cardigan/women-raw-v1/beige-logo-tag.webp"
+      ],
+      "Black": [
+        "image/catalog/clothing/baby-cashmere-cardigan/women-raw-v1/black-front.webp",
+        "image/catalog/clothing/baby-cashmere-cardigan/women-raw-v1/black-back.webp"
+      ]
+    }
+  },
+  "151": {
+    "colorImages": {
+      "Brown": [
+        "image/catalog/clothing/cashmere-v-neck-sweater/women-raw-v1/brown-front.webp",
+        "image/catalog/clothing/cashmere-v-neck-sweater/women-raw-v1/brown-back.webp",
+        "image/catalog/clothing/cashmere-v-neck-sweater/women-raw-v1/brown-model-detail.webp",
+        "image/catalog/clothing/cashmere-v-neck-sweater/women-raw-v1/brown-model-outfit.webp",
+        "image/catalog/clothing/cashmere-v-neck-sweater/women-raw-v1/brown-logo-tag.webp"
+      ],
+      "White": [
+        "image/catalog/clothing/cashmere-v-neck-sweater/women-raw-v1/white-front.webp",
+        "image/catalog/clothing/cashmere-v-neck-sweater/women-raw-v1/white-back.webp"
+      ]
+    }
+  },
+  "152": {
+    "colorImages": {
+      "Black": [
+        "image/catalog/clothing/wool-cashmere-sleeveless-knit-top/women-raw-v1/black-front.webp",
+        "image/catalog/clothing/wool-cashmere-sleeveless-knit-top/women-raw-v1/black-back.webp",
+        "image/catalog/clothing/wool-cashmere-sleeveless-knit-top/women-raw-v1/black-model-detail.webp",
+        "image/catalog/clothing/wool-cashmere-sleeveless-knit-top/women-raw-v1/black-model-outfit.webp",
+        "image/catalog/clothing/wool-cashmere-sleeveless-knit-top/women-raw-v1/black-logo-tag.webp"
+      ],
+      "Beige": [
+        "image/catalog/clothing/wool-cashmere-sleeveless-knit-top/women-raw-v1/beige-front.webp",
+        "image/catalog/clothing/wool-cashmere-sleeveless-knit-top/women-raw-v1/beige-back.webp"
+      ]
+    }
+  },
+  "153": {
+    "colorImages": {
+      "White": [
+        "image/catalog/clothing/cotton-poplin-classic-shirt/women-raw-v1/white-front.webp",
+        "image/catalog/clothing/cotton-poplin-classic-shirt/women-raw-v1/white-back.webp",
+        "image/catalog/clothing/cotton-poplin-classic-shirt/women-raw-v1/white-model-detail.webp",
+        "image/catalog/clothing/cotton-poplin-classic-shirt/women-raw-v1/white-model-outfit.webp",
+        "image/catalog/clothing/cotton-poplin-classic-shirt/women-raw-v1/white-logo-tag.webp"
+      ],
+      "Blue": [
+        "image/catalog/clothing/cotton-poplin-classic-shirt/women-raw-v1/blue-front.webp",
+        "image/catalog/clothing/cotton-poplin-classic-shirt/women-raw-v1/blue-back.webp"
+      ]
+    }
+  },
+  "154": {
+    "colorImages": {
+      "Ivory": [
+        "image/catalog/clothing/silk-blend-button-down-shirt/women-raw-v1/ivory-front.webp",
+        "image/catalog/clothing/silk-blend-button-down-shirt/women-raw-v1/ivory-back.webp",
+        "image/catalog/clothing/silk-blend-button-down-shirt/women-raw-v1/ivory-model-detail.webp",
+        "image/catalog/clothing/silk-blend-button-down-shirt/women-raw-v1/ivory-model-outfit.webp",
+        "image/catalog/clothing/silk-blend-button-down-shirt/women-raw-v1/ivory-logo-tag.webp"
+      ],
+      "Black": [
+        "image/catalog/clothing/silk-blend-button-down-shirt/women-raw-v1/black-front.webp",
+        "image/catalog/clothing/silk-blend-button-down-shirt/women-raw-v1/black-back.webp"
+      ]
+    }
+  },
+  "155": {
+    "colorImages": {
+      "Beige": [
+        "image/catalog/clothing/linen-relaxed-fit-shirt/women-raw-v1/beige-front.webp",
+        "image/catalog/clothing/linen-relaxed-fit-shirt/women-raw-v1/beige-back.webp",
+        "image/catalog/clothing/linen-relaxed-fit-shirt/women-raw-v1/beige-model-detail.webp",
+        "image/catalog/clothing/linen-relaxed-fit-shirt/women-raw-v1/beige-model-outfit.webp",
+        "image/catalog/clothing/linen-relaxed-fit-shirt/women-raw-v1/beige-logo-tag.webp"
+      ],
+      "White": [
+        "image/catalog/clothing/linen-relaxed-fit-shirt/women-raw-v1/white-front.webp",
+        "image/catalog/clothing/linen-relaxed-fit-shirt/women-raw-v1/white-back.webp"
+      ]
+    }
+  },
+  "156": {
+    "colorImages": {
+      "White": [
+        "image/catalog/clothing/cotton-ribbed-tank-top/women-raw-v1/white-front.webp",
+        "image/catalog/clothing/cotton-ribbed-tank-top/women-raw-v1/white-back.webp",
+        "image/catalog/clothing/cotton-ribbed-tank-top/women-raw-v1/white-model-detail.webp",
+        "image/catalog/clothing/cotton-ribbed-tank-top/women-raw-v1/white-model-outfit.webp",
+        "image/catalog/clothing/cotton-ribbed-tank-top/women-raw-v1/white-logo-tag.webp"
+      ],
+      "Black": [
+        "image/catalog/clothing/cotton-ribbed-tank-top/women-raw-v1/black-front.webp",
+        "image/catalog/clothing/cotton-ribbed-tank-top/women-raw-v1/black-back.webp"
+      ]
+    }
+  },
+  "157": {
+    "colorImages": {
+      "Champagne": [
+        "image/catalog/clothing/silk-sleeveless-blouse/women-raw-v1/champagne-front.webp",
+        "image/catalog/clothing/silk-sleeveless-blouse/women-raw-v1/champagne-back.webp",
+        "image/catalog/clothing/silk-sleeveless-blouse/women-raw-v1/champagne-model-detail.webp",
+        "image/catalog/clothing/silk-sleeveless-blouse/women-raw-v1/champagne-model-outfit.webp",
+        "image/catalog/clothing/silk-sleeveless-blouse/women-raw-v1/champagne-logo-tag.webp"
+      ]
+    }
+  },
   "158": {
     "colorImages": {
       "Beige": [
@@ -573,6 +708,132 @@
       ]
     }
   },
+  "159": {
+    "colorImages": {
+      "Black": [
+        "image/catalog/clothing/high-waisted-wool-trousers/women-raw-v1/black-front.webp",
+        "image/catalog/clothing/high-waisted-wool-trousers/women-raw-v1/black-back.webp",
+        "image/catalog/clothing/high-waisted-wool-trousers/women-raw-v1/black-model-detail.webp",
+        "image/catalog/clothing/high-waisted-wool-trousers/women-raw-v1/black-model-outfit.webp",
+        "image/catalog/clothing/high-waisted-wool-trousers/women-raw-v1/black-logo-tag.webp"
+      ],
+      "Charcoal": [
+        "image/catalog/clothing/high-waisted-wool-trousers/women-raw-v1/charcoal-front.webp",
+        "image/catalog/clothing/high-waisted-wool-trousers/women-raw-v1/charcoal-back.webp"
+      ]
+    }
+  },
+  "160": {
+    "colorImages": {
+      "Beige": [
+        "image/catalog/clothing/cotton-twill-straight-leg-pants/women-raw-v1/beige-front.webp",
+        "image/catalog/clothing/cotton-twill-straight-leg-pants/women-raw-v1/beige-back.webp",
+        "image/catalog/clothing/cotton-twill-straight-leg-pants/women-raw-v1/beige-model-detail.webp",
+        "image/catalog/clothing/cotton-twill-straight-leg-pants/women-raw-v1/beige-model-outfit.webp",
+        "image/catalog/clothing/cotton-twill-straight-leg-pants/women-raw-v1/beige-logo-tag.webp"
+      ],
+      "Black": [
+        "image/catalog/clothing/cotton-twill-straight-leg-pants/women-raw-v1/black-front.webp",
+        "image/catalog/clothing/cotton-twill-straight-leg-pants/women-raw-v1/black-back.webp"
+      ]
+    }
+  },
+  "161": {
+    "colorImages": {
+      "Beige": [
+        "image/catalog/clothing/linen-midi-skirt/women-raw-v1/beige-front.webp",
+        "image/catalog/clothing/linen-midi-skirt/women-raw-v1/beige-back.webp",
+        "image/catalog/clothing/linen-midi-skirt/women-raw-v1/beige-model-detail.webp",
+        "image/catalog/clothing/linen-midi-skirt/women-raw-v1/beige-model-outfit.webp",
+        "image/catalog/clothing/linen-midi-skirt/women-raw-v1/beige-logo-tag.webp"
+      ]
+    }
+  },
+  "162": {
+    "colorImages": {
+      "White": [
+        "image/catalog/clothing/tailored-bermuda-shorts/women-raw-v1/white-front.webp",
+        "image/catalog/clothing/tailored-bermuda-shorts/women-raw-v1/white-back.webp",
+        "image/catalog/clothing/tailored-bermuda-shorts/women-raw-v1/white-model-detail.webp",
+        "image/catalog/clothing/tailored-bermuda-shorts/women-raw-v1/white-model-outfit.webp",
+        "image/catalog/clothing/tailored-bermuda-shorts/women-raw-v1/white-logo-tag.webp"
+      ]
+    }
+  },
+  "163": {
+    "colorImages": {
+      "Champagne": [
+        "image/catalog/clothing/silk-slip-dress/women-raw-v1/champagne-front.webp",
+        "image/catalog/clothing/silk-slip-dress/women-raw-v1/champagne-back.webp",
+        "image/catalog/clothing/silk-slip-dress/women-raw-v1/champagne-model-detail.webp",
+        "image/catalog/clothing/silk-slip-dress/women-raw-v1/champagne-model-outfit.webp",
+        "image/catalog/clothing/silk-slip-dress/women-raw-v1/champagne-logo-tag.webp"
+      ],
+      "Black": [
+        "image/catalog/clothing/silk-slip-dress/women-raw-v1/black-front.webp",
+        "image/catalog/clothing/silk-slip-dress/women-raw-v1/black-back.webp"
+      ]
+    }
+  },
+  "164": {
+    "colorImages": {
+      "Beige": [
+        "image/catalog/clothing/linen-midi-dress/women-raw-v1/beige-front.webp",
+        "image/catalog/clothing/linen-midi-dress/women-raw-v1/beige-back.webp",
+        "image/catalog/clothing/linen-midi-dress/women-raw-v1/beige-model-detail.webp",
+        "image/catalog/clothing/linen-midi-dress/women-raw-v1/beige-model-outfit.webp",
+        "image/catalog/clothing/linen-midi-dress/women-raw-v1/beige-logo-tag.webp"
+      ],
+      "White": [
+        "image/catalog/clothing/linen-midi-dress/women-raw-v1/white-front.webp",
+        "image/catalog/clothing/linen-midi-dress/women-raw-v1/white-back.webp"
+      ]
+    }
+  },
+  "165": {
+    "colorImages": {
+      "White": [
+        "image/catalog/clothing/cotton-poplin-shirt-dress/women-raw-v1/white-front.webp",
+        "image/catalog/clothing/cotton-poplin-shirt-dress/women-raw-v1/white-back.webp",
+        "image/catalog/clothing/cotton-poplin-shirt-dress/women-raw-v1/white-model-detail.webp",
+        "image/catalog/clothing/cotton-poplin-shirt-dress/women-raw-v1/white-model-outfit.webp",
+        "image/catalog/clothing/cotton-poplin-shirt-dress/women-raw-v1/white-logo-tag.webp"
+      ]
+    }
+  },
+  "166": {
+    "colorImages": {
+      "Charcoal": [
+        "image/catalog/clothing/cashmere-knit-dress/women-raw-v1/charcoal-front.webp",
+        "image/catalog/clothing/cashmere-knit-dress/women-raw-v1/charcoal-back.webp",
+        "image/catalog/clothing/cashmere-knit-dress/women-raw-v1/charcoal-model-detail.webp",
+        "image/catalog/clothing/cashmere-knit-dress/women-raw-v1/charcoal-model-outfit.webp",
+        "image/catalog/clothing/cashmere-knit-dress/women-raw-v1/charcoal-logo-tag.webp"
+      ]
+    }
+  },
+  "167": {
+    "colorImages": {
+      "Camel": [
+        "image/catalog/clothing/baby-cashmere-long-coat/women-raw-v1/camel-front.webp",
+        "image/catalog/clothing/baby-cashmere-long-coat/women-raw-v1/camel-back.webp",
+        "image/catalog/clothing/baby-cashmere-long-coat/women-raw-v1/camel-model-detail.webp",
+        "image/catalog/clothing/baby-cashmere-long-coat/women-raw-v1/camel-model-outfit.webp",
+        "image/catalog/clothing/baby-cashmere-long-coat/women-raw-v1/camel-logo-tag.webp"
+      ]
+    }
+  },
+  "168": {
+    "colorImages": {
+      "Charcoal": [
+        "image/catalog/clothing/wool-cashmere-tailored-coat/women-raw-v1/charcoal-front.webp",
+        "image/catalog/clothing/wool-cashmere-tailored-coat/women-raw-v1/charcoal-back.webp",
+        "image/catalog/clothing/wool-cashmere-tailored-coat/women-raw-v1/charcoal-model-detail.webp",
+        "image/catalog/clothing/wool-cashmere-tailored-coat/women-raw-v1/charcoal-model-outfit.webp",
+        "image/catalog/clothing/wool-cashmere-tailored-coat/women-raw-v1/charcoal-logo-tag.webp"
+      ]
+    }
+  },
   "169": {
     "colorImages": {
       "Sand Beige": [
@@ -584,6 +845,17 @@
       ]
     }
   },
+  "170": {
+    "colorImages": {
+      "Dark Brown": [
+        "image/catalog/clothing/suede-cropped-jacket/women-raw-v1/dark-brown-front.webp",
+        "image/catalog/clothing/suede-cropped-jacket/women-raw-v1/dark-brown-back.webp",
+        "image/catalog/clothing/suede-cropped-jacket/women-raw-v1/dark-brown-model-detail.webp",
+        "image/catalog/clothing/suede-cropped-jacket/women-raw-v1/dark-brown-model-outfit.webp",
+        "image/catalog/clothing/suede-cropped-jacket/women-raw-v1/dark-brown-logo-tag.webp"
+      ]
+    }
+  },
   "171": {
     "colorImages": {
       "Stone Beige": [
@@ -592,6 +864,50 @@
         "image/catalog/clothing/cotton-gabardine-trench-coat/women-raw-v1/stone-beige-model-detail.webp",
         "image/catalog/clothing/cotton-gabardine-trench-coat/women-raw-v1/stone-beige-model-outfit.webp",
         "image/catalog/clothing/cotton-gabardine-trench-coat/women-raw-v1/stone-beige-logo-tag.webp"
+      ]
+    }
+  },
+  "172": {
+    "colorImages": {
+      "Dark Brown": [
+        "image/catalog/footwear/suede-pointed-toe-slingback-heels/women-raw-v1/dark-brown-front.webp",
+        "image/catalog/footwear/suede-pointed-toe-slingback-heels/women-raw-v1/dark-brown-back.webp",
+        "image/catalog/footwear/suede-pointed-toe-slingback-heels/women-raw-v1/dark-brown-model-detail.webp",
+        "image/catalog/footwear/suede-pointed-toe-slingback-heels/women-raw-v1/dark-brown-model-outfit.webp",
+        "image/catalog/footwear/suede-pointed-toe-slingback-heels/women-raw-v1/dark-brown-logo-tag.webp"
+      ]
+    }
+  },
+  "173": {
+    "colorImages": {
+      "Black": [
+        "image/catalog/footwear/calfskin-leather-ballet-flats/women-raw-v1/black-front.webp",
+        "image/catalog/footwear/calfskin-leather-ballet-flats/women-raw-v1/black-back.webp",
+        "image/catalog/footwear/calfskin-leather-ballet-flats/women-raw-v1/black-model-detail.webp",
+        "image/catalog/footwear/calfskin-leather-ballet-flats/women-raw-v1/black-model-outfit.webp",
+        "image/catalog/footwear/calfskin-leather-ballet-flats/women-raw-v1/black-logo-tag.webp"
+      ]
+    }
+  },
+  "174": {
+    "colorImages": {
+      "Dark Brown": [
+        "image/catalog/footwear/leather-minimalist-loafers/women-raw-v1/dark-brown-front.webp",
+        "image/catalog/footwear/leather-minimalist-loafers/women-raw-v1/dark-brown-back.webp",
+        "image/catalog/footwear/leather-minimalist-loafers/women-raw-v1/dark-brown-model-detail.webp",
+        "image/catalog/footwear/leather-minimalist-loafers/women-raw-v1/dark-brown-model-outfit.webp",
+        "image/catalog/footwear/leather-minimalist-loafers/women-raw-v1/dark-brown-logo-tag.webp"
+      ]
+    }
+  },
+  "175": {
+    "colorImages": {
+      "Dark Brown": [
+        "image/catalog/footwear/suede-ankle-boots/women-raw-v1/dark-brown-front.webp",
+        "image/catalog/footwear/suede-ankle-boots/women-raw-v1/dark-brown-back.webp",
+        "image/catalog/footwear/suede-ankle-boots/women-raw-v1/dark-brown-model-detail.webp",
+        "image/catalog/footwear/suede-ankle-boots/women-raw-v1/dark-brown-model-outfit.webp",
+        "image/catalog/footwear/suede-ankle-boots/women-raw-v1/dark-brown-logo-tag.webp"
       ]
     }
   },
@@ -650,6 +966,28 @@
       ]
     }
   },
+  "181": {
+    "colorImages": {
+      "Black": [
+        "image/catalog/accessories/smooth-calfskin-bifold-wallet/raw-v1/black-front.webp",
+        "image/catalog/accessories/smooth-calfskin-bifold-wallet/raw-v1/black-back.webp",
+        "image/catalog/accessories/smooth-calfskin-bifold-wallet/raw-v1/black-model-detail.webp",
+        "image/catalog/accessories/smooth-calfskin-bifold-wallet/raw-v1/black-model-outfit.webp",
+        "image/catalog/accessories/smooth-calfskin-bifold-wallet/raw-v1/black-logo-tag.webp"
+      ]
+    }
+  },
+  "182": {
+    "colorImages": {
+      "Dark Brown": [
+        "image/catalog/accessories/grained-calfskin-card-holder/raw-v1/dark-brown-front.webp",
+        "image/catalog/accessories/grained-calfskin-card-holder/raw-v1/dark-brown-back.webp",
+        "image/catalog/accessories/grained-calfskin-card-holder/raw-v1/dark-brown-model-detail.webp",
+        "image/catalog/accessories/grained-calfskin-card-holder/raw-v1/dark-brown-model-outfit.webp",
+        "image/catalog/accessories/grained-calfskin-card-holder/raw-v1/dark-brown-logo-tag.webp"
+      ]
+    }
+  },
   "183": {
     "colorImages": {
       "Dark Brown": [
@@ -658,6 +996,192 @@
         "image/catalog/accessories/smooth-calfskin-leather-belt-183/raw-v1/dark-brown-model-detail.webp",
         "image/catalog/accessories/smooth-calfskin-leather-belt-183/raw-v1/dark-brown-model-outfit.webp",
         "image/catalog/accessories/smooth-calfskin-leather-belt-183/raw-v1/dark-brown-logo-tag.webp"
+      ]
+    }
+  },
+  "184": {
+    "colorImages": {
+      "Taupe": [
+        "image/catalog/accessories/suede-leather-belt-184/raw-v1/taupe-front.webp"
+      ]
+    }
+  },
+  "185": {
+    "colorImages": {
+      "Beige": [
+        "image/catalog/accessories/cotton-twill-baseball-cap-185/raw-v1/beige-front.webp"
+      ]
+    }
+  },
+  "186": {
+    "colorImages": {
+      "Charcoal": [
+        "image/catalog/accessories/cashmere-ribbed-beanie-186/raw-v1/charcoal-front.webp"
+      ]
+    }
+  },
+  "187": {
+    "colorImages": {
+      "Dark Havana": [
+        "image/catalog/accessories/acetate-cat-eye-sunglasses-187/raw-v1/dark-havana-front.webp"
+      ]
+    }
+  },
+  "188": {
+    "colorImages": {
+      "Black": [
+        "image/catalog/accessories/acetate-oval-sunglasses-188/raw-v1/black-front.webp"
+      ]
+    }
+  },
+  "189": {
+    "colorImages": {
+      "Brushed Gold": [
+        "image/catalog/accessories/titanium-minimalist-sunglasses-189/raw-v1/brushed-gold-front.webp"
+      ]
+    }
+  },
+  "190": {
+    "colorImages": {
+      "Ivory": [
+        "image/catalog/clothing/organic-cotton-baby-bodysuit-190/raw-v1/ivory-front.webp"
+      ]
+    }
+  },
+  "191": {
+    "colorImages": {
+      "Beige": [
+        "image/catalog/clothing/cotton-footed-sleepsuit-191/raw-v1/beige-front.webp"
+      ]
+    }
+  },
+  "192": {
+    "colorImages": {
+      "Oatmeal": [
+        "image/catalog/clothing/cashmere-cotton-baby-cardigan-192/raw-v1/oatmeal-front.webp"
+      ]
+    }
+  },
+  "193": {
+    "colorImages": {
+      "Soft Beige": [
+        "image/catalog/clothing/organic-cotton-baby-romper-193/raw-v1/soft-beige-front.webp"
+      ]
+    }
+  },
+  "194": {
+    "colorImages": {
+      "Navy": [
+        "image/catalog/clothing/cotton-pique-polo-shirt-194/raw-v1/navy-front.webp"
+      ]
+    }
+  },
+  "195": {
+    "colorImages": {
+      "Beige": [
+        "image/catalog/clothing/linen-cotton-easy-trousers-195/raw-v1/beige-front.webp"
+      ]
+    }
+  },
+  "196": {
+    "colorImages": {
+      "Camel": [
+        "image/catalog/clothing/merino-cotton-knitted-cardigan-196/raw-v1/camel-front.webp"
+      ]
+    }
+  },
+  "197": {
+    "colorImages": {
+      "White": [
+        "image/catalog/clothing/premium-cotton-essential-t-shirt-197/raw-v1/white-front.webp"
+      ]
+    }
+  },
+  "198": {
+    "colorImages": {
+      "Ivory": [
+        "image/catalog/clothing/cotton-poplin-dress-198/raw-v1/ivory-front.webp"
+      ]
+    }
+  },
+  "199": {
+    "colorImages": {
+      "Beige": [
+        "image/catalog/clothing/cashmere-cotton-knitted-cardigan-199/raw-v1/beige-front.webp"
+      ]
+    }
+  },
+  "200": {
+    "colorImages": {
+      "Soft Brown": [
+        "image/catalog/clothing/cotton-jersey-leggings-200/raw-v1/soft-brown-front.webp"
+      ]
+    }
+  },
+  "201": {
+    "colorImages": {
+      "Natural Ecru": [
+        "image/catalog/clothing/linen-relaxed-shorts-201/raw-v1/natural-ecru-front.webp"
+      ]
+    }
+  },
+  "202": {
+    "colorImages": {
+      "Cream": [
+        "image/catalog/clothing/soft-leather-baby-shoes-202/raw-v1/cream-front.webp"
+      ]
+    }
+  },
+  "203": {
+    "colorImages": {
+      "Dark Brown": [
+        "image/catalog/footwear/suede-kids-penny-loafers-203/raw-v1/dark-brown-front.webp"
+      ]
+    }
+  },
+  "204": {
+    "colorImages": {
+      "Natural Ecru": [
+        "image/catalog/accessories/mini-canvas-leather-backpack-204/raw-v1/natural-ecru-front.webp"
+      ],
+      "Beige": [
+        "image/catalog/accessories/mini-canvas-leather-backpack-204/raw-v1/beige-front.webp"
+      ]
+    }
+  },
+  "205": {
+    "colorImages": {
+      "Dark Brown": [
+        "image/catalog/accessories/mini-grained-calfskin-crossbody-bag-205/raw-v1/dark-brown-front.webp"
+      ],
+      "Taupe": [
+        "image/catalog/accessories/mini-grained-calfskin-crossbody-bag-205/raw-v1/taupe-front.webp"
+      ]
+    }
+  },
+  "207": {
+    "colorImages": {
+      "Beige": [
+        "image/catalog/accessories/signature-cashmere-touch-teddy-bear-207/raw-v1/beige-front.webp"
+      ],
+      "Brown": [
+        "image/catalog/accessories/signature-cashmere-touch-teddy-bear-207/raw-v1/brown-front.webp"
+      ],
+      "Cream": [
+        "image/catalog/accessories/signature-cashmere-touch-teddy-bear-207/raw-v1/cream-front.webp"
+      ]
+    }
+  },
+  "208": {
+    "colorImages": {
+      "Oatmeal": [
+        "image/catalog/accessories/mini-plush-teddy-bear-208/raw-v1/oatmeal-front.webp"
+      ],
+      "Taupe": [
+        "image/catalog/accessories/mini-plush-teddy-bear-208/raw-v1/taupe-front.webp"
+      ],
+      "Ivory": [
+        "image/catalog/accessories/mini-plush-teddy-bear-208/raw-v1/ivory-front.webp"
       ]
     }
   }

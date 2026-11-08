@@ -11,12 +11,6 @@ const slugify = (value) => value.toLowerCase()
   .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
   .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-const duplicateNames = new Set(
-  assortment
-    .map((item) => item.name)
-    .filter((name, index, names) => names.indexOf(name) !== index)
-);
-
 const manifest = {};
 for (const product of assortment) {
   const baseName = slugify(product.name);
@@ -24,9 +18,7 @@ for (const product of assortment) {
   const idSpecificFolder = path.join(ROOT, product.productType.toLowerCase(), `${baseName}-${product.id}`, "raw-v1");
   const audienceFolder = path.join(productRoot, `${product.audience}-raw-v1`);
   const standardFolder = path.join(productRoot, "raw-v1");
-  const folder = duplicateNames.has(product.name)
-    ? [idSpecificFolder, audienceFolder, standardFolder].find((candidate) => fs.existsSync(candidate))
-    : standardFolder;
+  const folder = [idSpecificFolder, audienceFolder, standardFolder].find((candidate) => fs.existsSync(candidate) && fs.readdirSync(candidate).some((name) => name.endsWith('.webp')));
   if (!folder || !fs.existsSync(folder)) continue;
 
   const colorImages = {};
