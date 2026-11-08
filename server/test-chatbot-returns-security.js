@@ -78,9 +78,13 @@ async function runTests() {
     // ----------------------------------------------------
     console.log("\n--- 1. Testing Chatbot Access Control & Role Gating ---");
 
-    // Anonymous request (no token/cookie)
-    const anonChat = await makeRequest("POST", "/api/chat", { message: "Xin chào" });
-    assert(anonChat.status === 401, "Anonymous user rejected with HTTP 401 Unauthorized");
+    // Anonymous request (supports public advisory, gates private features)
+    const anonChat = await makeRequest("POST", "/api/chat", { message: "Tư vấn cho nam" });
+    assert(anonChat.status === 200, "Anonymous user allowed public advisory with HTTP 200");
+    assert(anonChat.body.success === true, "Anonymous user receives success: true");
+
+    const anonOrderChat = await makeRequest("POST", "/api/chat", { message: "Xem đơn hàng của tôi" });
+    assert(anonOrderChat.body.action === "AUTH_REQUIRED", "Anonymous request for private order gated with AUTH_REQUIRED");
 
     // Staff user login
     const staffLogin = await makeRequest("POST", "/api/auth/staff/login", {
@@ -91,8 +95,8 @@ async function runTests() {
     const staffCookie = staffLogin.cookie;
 
     // Staff attempting to access customer chatbot
-    const staffChat = await makeRequest("POST", "/api/chat", { message: "Xin chào" }, staffCookie);
-    assert(staffChat.status === 403, "Staff user rejected from customer chatbot with HTTP 403 Forbidden");
+    const staffChat = await makeRequest("POST", "/api/chat", { message: "Xem đơn hàng của tôi" }, staffCookie);
+    assert(/STAFF|quản trị|Portal/i.test(staffChat.body.message), "Staff prevented from accessing customer private features via chatbot");
 
     // Admin user login
     const adminLogin = await makeRequest("POST", "/api/auth/admin/login", {
@@ -103,8 +107,8 @@ async function runTests() {
     const adminCookie = adminLogin.cookie;
 
     // Admin attempting to access customer chatbot
-    const adminChat = await makeRequest("POST", "/api/chat", { message: "Xin chào" }, adminCookie);
-    assert(adminChat.status === 403, "Admin user rejected from customer chatbot with HTTP 403 Forbidden");
+    const adminChat = await makeRequest("POST", "/api/chat", { message: "Xem đơn hàng của tôi" }, adminCookie);
+    assert(/ADMIN|quản trị|Portal/i.test(adminChat.body.message), "Admin prevented from accessing customer private features via chatbot");
 
     // Customer user login
     const custLogin = await makeRequest("POST", "/api/auth/customer/login", {

@@ -1,11 +1,13 @@
 import { Router } from "express";
-import { authenticateToken, requireRole } from "../middleware/auth.js";
-import { handleCustomerChat } from "../controllers/chatController.js";
+import { optionalAuthenticateToken } from "../middleware/auth.js";
+import { handleChat } from "../controllers/chatController.js";
 
 const router = Router();
 
-// Only logged-in, active accounts with role === 'customer' can access the chatbot API
-router.post("/", authenticateToken, requireRole("customer"), handleCustomerChat);
+// Public chat endpoint with optional authentication:
+// - Supports public advisory for guests (Men, Women, Kids, Sizing, Materials, Prices)
+// - Supports authenticated customer features (own orders, return navigation)
+// - Rate limited and protected against prompt injection
+router.post("/", optionalAuthenticateToken, handleChat);
 
 export default router;
-
