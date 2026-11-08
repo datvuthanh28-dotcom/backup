@@ -34,7 +34,7 @@ const DEFAULT_USERS = [
   {
     id: "usr_staff_inactive",
     name: "Phạm Thu Trang (Tạm Khóa)",
-    email: "staff.inactive@maisonrue.com",
+    email: "phamthutrang.maisonrue@gmail.com",
     rawPassword: "staff123",
     role: "staff",
     phone: "0934567890",
