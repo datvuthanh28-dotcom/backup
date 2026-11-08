@@ -258,30 +258,54 @@ export default function CustomerLogin() {
           {/* Quick Demo Customer Account */}
           <div style={{ marginTop: "30px", paddingTop: "20px", borderTop: "1px dashed #D8CEC1" }}>
             <div style={{ fontSize: "12px", color: "#8A7350", marginBottom: "10px", fontWeight: "600", textTransform: "uppercase" }}>
-              Demo client account:
+              Tài khoản khách hàng:
             </div>
-            <button
-              type="button"
-              onClick={() => quickFill("customer@gmail.com", "customer123")}
-              style={{
-                width: "100%",
-                padding: "10px 14px",
-                backgroundColor: "#FAF6F0",
-                border: "1px solid #D8CEC1",
-                borderRadius: "5px",
-                cursor: "pointer",
-                textAlign: "left",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <div>
-                <strong style={{ color: "#2B211C", fontSize: "13px" }}>🛍️ Alex Morgan</strong>
-                <div style={{ fontSize: "11.5px", color: "#6B5A4B" }}>customer@gmail.com (pass: customer123)</div>
-              </div>
-              <span style={{ fontSize: "12px", color: "#B89B5E", fontWeight: "600" }}>Fill in details</span>
-            </button>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <button
+                type="button"
+                onClick={() => quickFill("vudat9532@gmail.com", "customer123")}
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  backgroundColor: "#FAF6F0",
+                  border: "1px solid #D8CEC1",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <div>
+                  <strong style={{ color: "#2B211C", fontSize: "13px" }}>🛍️ Vũ Thành Đạt (Email thật nhận thư)</strong>
+                  <div style={{ fontSize: "11.5px", color: "#6B5A4B" }}>vudat9532@gmail.com (pass: customer123)</div>
+                </div>
+                <span style={{ fontSize: "12px", color: "#B89B5E", fontWeight: "600" }}>Điền thông tin</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => quickFill("customer@gmail.com", "customer123")}
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  backgroundColor: "#FAF6F0",
+                  border: "1px solid #D8CEC1",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <div>
+                  <strong style={{ color: "#2B211C", fontSize: "13px" }}>🛍️ Alex Morgan (Tài khoản demo)</strong>
+                  <div style={{ fontSize: "11.5px", color: "#6B5A4B" }}>customer@gmail.com (pass: customer123)</div>
+                </div>
+                <span style={{ fontSize: "12px", color: "#B89B5E", fontWeight: "600" }}>Điền thông tin</span>
+              </button>
+            </div>
           </div>
 
           {/* Cross portal links for testing role rejection */}
