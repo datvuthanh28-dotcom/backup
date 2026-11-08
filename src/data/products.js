@@ -134,7 +134,8 @@ const productMediaById = {
 };
 
 const resolveProductMedia = (item) => {
-  const configured = productMediaById[item.id] || generatedCatalogMedia[item.id] || {};
+  // Complete, colour-specific catalogue galleries supersede legacy single-image mappings.
+  const configured = generatedCatalogMedia[item.id] || productMediaById[item.id] || {};
   const configuredColorImages = configured.colorImages || {};
   const configuredImages = configured.images || Object.values(configuredColorImages).flat();
   const images = configuredImages.length > 0

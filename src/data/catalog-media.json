@@ -872,9 +872,9 @@
       "Dark Brown": [
         "image/catalog/footwear/suede-pointed-toe-slingback-heels/women-raw-v1/dark-brown-front.webp",
         "image/catalog/footwear/suede-pointed-toe-slingback-heels/women-raw-v1/dark-brown-back.webp",
-        "image/catalog/footwear/suede-pointed-toe-slingback-heels/women-raw-v1/dark-brown-logo-tag.webp",
         "image/catalog/footwear/suede-pointed-toe-slingback-heels/women-raw-v1/dark-brown-model-detail.webp",
-        "image/catalog/footwear/suede-pointed-toe-slingback-heels/women-raw-v1/dark-brown-model-outfit.webp"
+        "image/catalog/footwear/suede-pointed-toe-slingback-heels/women-raw-v1/dark-brown-model-outfit.webp",
+        "image/catalog/footwear/suede-pointed-toe-slingback-heels/women-raw-v1/dark-brown-logo-tag.webp"
       ]
     }
   },
@@ -1002,169 +1002,153 @@
   "184": {
     "colorImages": {
       "Taupe": [
-        "image/catalog/accessories/suede-leather-belt/men-raw-v1/taupe-front.webp",
-        "image/catalog/accessories/suede-leather-belt/men-raw-v1/taupe-back.webp",
-        "image/catalog/accessories/suede-leather-belt/men-raw-v1/taupe-model-detail.webp",
-        "image/catalog/accessories/suede-leather-belt/men-raw-v1/taupe-model-outfit.webp",
-        "image/catalog/accessories/suede-leather-belt/men-raw-v1/taupe-logo-tag.webp"
+        "image/catalog/accessories/suede-leather-belt-184/raw-v1/taupe-front.webp"
       ]
     }
   },
   "185": {
     "colorImages": {
       "Beige": [
-        "image/catalog/accessories/cotton-twill-baseball-cap/men-raw-v1/navy-front.webp",
-        "image/catalog/accessories/cotton-twill-baseball-cap/men-raw-v1/navy-back.webp",
-        "image/catalog/accessories/cotton-twill-baseball-cap/men-raw-v1/navy-model-detail.webp",
-        "image/catalog/accessories/cotton-twill-baseball-cap/men-raw-v1/navy-model-outfit.webp",
-        "image/catalog/accessories/cotton-twill-baseball-cap/men-raw-v1/navy-logo-tag.webp"
+        "image/catalog/accessories/cotton-twill-baseball-cap-185/raw-v1/beige-front.webp"
       ]
     }
   },
   "186": {
     "colorImages": {
       "Charcoal": [
-        "image/catalog/accessories/cashmere-ribbed-beanie/men-raw-v1/charcoal-front.webp",
-        "image/catalog/accessories/cashmere-ribbed-beanie/men-raw-v1/charcoal-back.webp",
-        "image/catalog/accessories/cashmere-ribbed-beanie/men-raw-v1/charcoal-model-detail.webp",
-        "image/catalog/accessories/cashmere-ribbed-beanie/men-raw-v1/charcoal-model-outfit.webp",
-        "image/catalog/accessories/cashmere-ribbed-beanie/men-raw-v1/charcoal-logo-tag.webp"
+        "image/catalog/accessories/cashmere-ribbed-beanie-186/raw-v1/charcoal-front.webp"
       ]
     }
   },
   "187": {
     "colorImages": {
       "Dark Havana": [
-        "image/catalog/accessories/acetate-square-sunglasses/raw-v1/dark-havana-front.webp",
-        "image/catalog/accessories/acetate-square-sunglasses/raw-v1/dark-havana-back.webp",
-        "image/catalog/accessories/acetate-square-sunglasses/raw-v1/dark-havana-model-detail.webp",
-        "image/catalog/accessories/acetate-square-sunglasses/raw-v1/dark-havana-model-outfit.webp",
-        "image/catalog/accessories/acetate-square-sunglasses/raw-v1/dark-havana-logo-tag.webp"
+        "image/catalog/accessories/acetate-cat-eye-sunglasses-187/raw-v1/dark-havana-front.webp"
       ]
     }
   },
   "188": {
     "colorImages": {
       "Black": [
-        "image/catalog/accessories/acetate-round-sunglasses/raw-v1/black-front.webp",
-        "image/catalog/accessories/acetate-round-sunglasses/raw-v1/black-back.webp",
-        "image/catalog/accessories/acetate-round-sunglasses/raw-v1/black-model-detail.webp",
-        "image/catalog/accessories/acetate-round-sunglasses/raw-v1/black-model-outfit.webp",
-        "image/catalog/accessories/acetate-round-sunglasses/raw-v1/black-logo-tag.webp"
+        "image/catalog/accessories/acetate-oval-sunglasses-188/raw-v1/black-front.webp"
       ]
     }
   },
   "189": {
     "colorImages": {
       "Brushed Gold": [
-        "image/catalog/accessories/titanium-aviator-sunglasses/raw-v1/brushed-silver-front.webp",
-        "image/catalog/accessories/titanium-aviator-sunglasses/raw-v1/brushed-silver-back.webp",
-        "image/catalog/accessories/titanium-aviator-sunglasses/raw-v1/brushed-silver-model-detail.webp",
-        "image/catalog/accessories/titanium-aviator-sunglasses/raw-v1/brushed-silver-model-outfit.webp",
-        "image/catalog/accessories/titanium-aviator-sunglasses/raw-v1/brushed-silver-logo-tag.webp"
+        "image/catalog/accessories/titanium-minimalist-sunglasses-189/raw-v1/brushed-gold-front.webp"
       ]
     }
   },
   "190": {
     "colorImages": {
       "Ivory": [
-        "image/our story/cashmere.png"
+        "image/catalog/clothing/organic-cotton-baby-bodysuit-190/raw-v1/ivory-front.webp"
       ]
     }
   },
   "191": {
     "colorImages": {
       "Beige": [
-        "image/our story/cashmere.png"
+        "image/catalog/clothing/cotton-footed-sleepsuit-191/raw-v1/beige-front.webp"
       ]
     }
   },
   "192": {
     "colorImages": {
       "Oatmeal": [
-        "image/Cashmere Cardigan - Women/GRAPEFRUIT SODA/1.png",
-        "image/Cashmere Cardigan - Women/GRAPEFRUIT SODA/2.png"
+        "image/catalog/clothing/cashmere-cotton-baby-cardigan-192/raw-v1/oatmeal-front.webp"
       ]
     }
   },
   "193": {
     "colorImages": {
       "Soft Beige": [
-        "image/our story/cashmere.png"
+        "image/catalog/clothing/organic-cotton-baby-romper-193/raw-v1/soft-beige-front.webp"
       ]
     }
   },
   "194": {
     "colorImages": {
       "Navy": [
-        "image/best sellers/shirt.png"
+        "image/catalog/clothing/cotton-pique-polo-shirt-194/raw-v1/navy-front.webp"
       ]
     }
   },
   "195": {
     "colorImages": {
       "Beige": [
-        "image/best sellers/trousers.png"
+        "image/catalog/clothing/linen-cotton-easy-trousers-195/raw-v1/beige-front.webp"
       ]
     }
   },
   "196": {
     "colorImages": {
       "Camel": [
-        "image/best sellers/cardigan.png"
+        "image/catalog/clothing/merino-cotton-knitted-cardigan-196/raw-v1/camel-front.webp"
       ]
     }
   },
   "197": {
     "colorImages": {
       "White": [
-        "image/best sellers/shirt.png"
+        "image/catalog/clothing/premium-cotton-essential-t-shirt-197/raw-v1/white-front.webp"
       ]
     }
   },
   "199": {
     "colorImages": {
       "Beige": [
-        "image/best sellers/cardigan.png"
+        "image/catalog/clothing/cashmere-cotton-knitted-cardigan-199/raw-v1/beige-front.webp"
       ]
     }
   },
   "200": {
     "colorImages": {
       "Soft Brown": [
-        "image/best sellers/trousers.png"
+        "image/catalog/clothing/cotton-jersey-leggings-200/raw-v1/soft-brown-front.webp"
       ]
     }
   },
   "201": {
     "colorImages": {
       "Natural Ecru": [
-        "image/best sellers/trousers.png"
+        "image/catalog/clothing/linen-relaxed-shorts-201/raw-v1/natural-ecru-front.webp"
       ]
     }
   },
   "202": {
     "colorImages": {
       "Cream": [
-        "image/catalog/footwear/calfskin-leather-ballet-flats/women-raw-v1/black-front.webp"
+        "image/catalog/clothing/soft-leather-baby-shoes-202/raw-v1/cream-front.webp"
       ]
     }
   },
   "203": {
     "colorImages": {
       "Dark Brown": [
-        "image/Suede Loafer - Men/1.png",
-        "image/Suede Loafer - Men/2.png"
+        "image/catalog/footwear/suede-kids-penny-loafers-203/raw-v1/dark-brown-front.webp"
       ]
     }
   },
   "204": {
     "colorImages": {
       "Natural Ecru": [
-        "image/catalog/accessories/canvas-leather-weekend-bag/raw-v1/natural-ecru-front.webp"
+        "image/catalog/accessories/mini-canvas-leather-backpack-204/raw-v1/natural-ecru-front.webp"
       ],
       "Beige": [
-        "image/catalog/accessories/canvas-leather-weekend-bag/raw-v1/natural-ecru-front.webp"
+        "image/catalog/accessories/mini-canvas-leather-backpack-204/raw-v1/beige-front.webp"
+      ]
+    }
+  },
+  "205": {
+    "colorImages": {
+      "Dark Brown": [
+        "image/catalog/accessories/mini-grained-calfskin-crossbody-bag-205/raw-v1/dark-brown-front.webp"
+      ],
+      "Taupe": [
+        "image/catalog/accessories/mini-grained-calfskin-crossbody-bag-205/raw-v1/taupe-front.webp"
       ]
     }
   },
@@ -1181,26 +1165,26 @@
   "207": {
     "colorImages": {
       "Beige": [
-        "image/our story/cashmere.png"
+        "image/catalog/accessories/signature-cashmere-touch-teddy-bear-207/raw-v1/beige-front.webp"
       ],
       "Brown": [
-        "image/our story/cashmere.png"
+        "image/catalog/accessories/signature-cashmere-touch-teddy-bear-207/raw-v1/brown-front.webp"
       ],
       "Cream": [
-        "image/our story/cashmere.png"
+        "image/catalog/accessories/signature-cashmere-touch-teddy-bear-207/raw-v1/cream-front.webp"
       ]
     }
   },
   "208": {
     "colorImages": {
       "Oatmeal": [
-        "image/our story/cashmere.png"
+        "image/catalog/accessories/mini-plush-teddy-bear-208/raw-v1/oatmeal-front.webp"
       ],
       "Taupe": [
-        "image/our story/cashmere.png"
+        "image/catalog/accessories/mini-plush-teddy-bear-208/raw-v1/taupe-front.webp"
       ],
       "Ivory": [
-        "image/our story/cashmere.png"
+        "image/catalog/accessories/mini-plush-teddy-bear-208/raw-v1/ivory-front.webp"
       ]
     }
   }
