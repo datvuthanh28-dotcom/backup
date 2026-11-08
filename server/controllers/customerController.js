@@ -1,21 +1,6 @@
 import { getPool } from "../config/db.js";
 import sql from "mssql";
-
-async function verifyAddressWithGoogle(address) {
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-  if (!apiKey) throw Object.assign(new Error("Address verification is not configured. Please contact support."), { status: 503 });
-  const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
-  url.searchParams.set("address", address);
-  url.searchParams.set("key", apiKey);
-  const response = await fetch(url, { signal: AbortSignal.timeout(7000) });
-  if (!response.ok) throw Object.assign(new Error("Google Maps could not verify the address right now. Please try again."), { status: 502 });
-  const result = await response.json();
-  if (result.status === "ZERO_RESULTS") throw Object.assign(new Error("We could not find this address on Google Maps. Please check and edit it."), { status: 422 });
-  if (result.status !== "OK" || !result.results?.length) throw Object.assign(new Error("Address verification is temporarily unavailable. Please try again."), { status: 502 });
-  const best = result.results[0];
-  if (!best.geometry?.location || best.partial_match) throw Object.assign(new Error("Google Maps found only an approximate match. Please enter a more complete address."), { status: 422 });
-  return { formatted: best.formatted_address, placeId: best.place_id };
-}
+import { verifyDeliveryAddress, getAddressSuggestionsFromGeoapify } from "../services/addressVerificationService.js";
 
 export async function getAccount(req, res) {
   const pool = getPool();
@@ -26,20 +11,30 @@ export async function getAccount(req, res) {
 
 export async function getAddressSuggestions(req, res) {
   const query = String(req.query.input || "").trim();
-  if (query.length < 4) return res.json({ success: true, suggestions: [] });
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-  if (!apiKey) return res.status(503).json({ success: false, error: "Google Maps address suggestions are not configured." });
+  if (query.length < 3) return res.json({ success: true, suggestions: [] });
   try {
-    const url = new URL("https://maps.googleapis.com/maps/api/place/autocomplete/json");
-    url.searchParams.set("input", query); url.searchParams.set("key", apiKey); url.searchParams.set("language", "en");
-    if (req.query.country) url.searchParams.set("components", `country:${String(req.query.country).toLowerCase()}`);
-    const response = await fetch(url, { signal: AbortSignal.timeout(7000) });
-    if (!response.ok) return res.status(502).json({ success: false, error: "Google Maps suggestions are temporarily unavailable." });
-    const data = await response.json();
-    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") return res.status(502).json({ success: false, error: "Google Maps suggestions are temporarily unavailable." });
-    return res.json({ success: true, suggestions: (data.predictions || []).slice(0, 5).map((item) => ({ placeId: item.place_id, description: item.description })) });
-  } catch {
-    return res.status(502).json({ success: false, error: "Google Maps suggestions are temporarily unavailable." });
+    const suggestions = await getAddressSuggestionsFromGeoapify(query, req.query.country || "VN");
+    return res.json({ success: true, suggestions });
+  } catch (err) {
+    console.error("[Customer Address Suggestions]", err.message);
+    return res.status(err.status || 502).json({ success: false, error: err.message || "Geoapify suggestions are temporarily unavailable." });
+  }
+}
+
+export async function verifyAddress(req, res) {
+  const text = String(req.body.address || "").trim();
+  if (!text) {
+    return res.status(400).json({ success: false, error: "Vui lòng nhập địa chỉ cần kiểm tra." });
+  }
+  try {
+    const verified = await verifyDeliveryAddress(text, { country: req.body.country || "VN" });
+    return res.json({ success: true, verifiedAddress: verified });
+  } catch (err) {
+    return res.status(err.status || 422).json({
+      success: false,
+      error: err.message || "Chưa đủ thông tin để xác minh địa chỉ giao hàng.",
+      code: err.code || "ADDRESS_VERIFICATION_FAILED",
+    });
   }
 }
 
@@ -47,8 +42,11 @@ export async function addAddress(req, res) {
   const text = String(req.body.address || "").trim();
   if (!text) return res.status(400).json({ success: false, error: "Please enter a delivery address." });
   let verified;
-  try { verified = await verifyAddressWithGoogle(text); }
-  catch (error) { return res.status(error.status || 502).json({ success: false, error: error.message }); }
+  try {
+    verified = await verifyDeliveryAddress(text, { country: req.body.country || "VN" });
+  } catch (error) {
+    return res.status(error.status || 422).json({ success: false, error: error.message });
+  }
   const pool = getPool(); const transaction = new sql.Transaction(pool);
   try {
     await transaction.begin();
@@ -68,8 +66,11 @@ export async function updateAddress(req, res) {
   const id = Number(req.params.id); const text = String(req.body.address || "").trim();
   if (!id || !text) return res.status(400).json({ success: false, error: "Please enter a valid delivery address." });
   let verified;
-  try { verified = await verifyAddressWithGoogle(text); }
-  catch (error) { return res.status(error.status || 502).json({ success: false, error: error.message }); }
+  try {
+    verified = await verifyDeliveryAddress(text, { country: req.body.country || "VN" });
+  } catch (error) {
+    return res.status(error.status || 422).json({ success: false, error: error.message });
+  }
   const pool = getPool(); const transaction = new sql.Transaction(pool);
   try {
     await transaction.begin();

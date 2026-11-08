@@ -92,7 +92,7 @@ async function runBrowserTests() {
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "01_customer_login.png") });
 
     // Fill customer login
-    await fillReactInput(page, 'input[type="email"]', "customer@gmail.com");
+    await fillReactInput(page, 'input[type="email"]', "vudat9532@gmail.com");
     await fillReactInput(page, 'input[type="password"]', "customer123");
     await page.click('button[type="submit"]');
     await new Promise((r) => setTimeout(r, 1500));
@@ -127,7 +127,7 @@ async function runBrowserTests() {
     // Fill staff credentials using quick demo fill button
     const clickedBtn = await page.evaluate(() => {
       const btns = Array.from(document.querySelectorAll("button"));
-      const staffBtn = btns.find((b) => b.innerText.toLowerCase().includes("staff@maisonrue.com"));
+      const staffBtn = btns.find((b) => b.innerText.toLowerCase().includes("staffmaisonrue@gmail.com"));
       if (staffBtn) {
         staffBtn.click();
         return true;
@@ -183,7 +183,7 @@ async function runBrowserTests() {
     // Fill admin credentials using quick demo fill button
     await page.evaluate(() => {
       const btns = Array.from(document.querySelectorAll("button"));
-      const adminBtn = btns.find((b) => b.innerText.includes("admin@maisonrue.com"));
+      const adminBtn = btns.find((b) => b.innerText.includes("vanhung29993@gmail.com"));
       if (adminBtn) adminBtn.click();
     });
     await new Promise((r) => setTimeout(r, 400));
@@ -205,7 +205,7 @@ async function runBrowserTests() {
     await page.goto("http://localhost:5173/admin/employees", { waitUntil: "networkidle0" });
     await new Promise((r) => setTimeout(r, 1000));
     const empText = await page.evaluate(() => document.body.innerText);
-    assert(empText.includes("NHÂN SỰ") || empText.includes("staff@maisonrue.com"), "Admin Employee Management rendered");
+    assert(empText.includes("NHÂN SỰ") || empText.includes("staffmaisonrue@gmail.com"), "Admin Employee Management rendered");
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "10_admin_employees.png") });
 
     // -----------------------------------------------------------------
@@ -216,7 +216,7 @@ async function runBrowserTests() {
 
     // Admin tries to login on customer page
     await page.goto("http://localhost:5173/login", { waitUntil: "networkidle0" });
-    await fillReactInput(page, 'input[type="email"]', "admin@maisonrue.com");
+    await fillReactInput(page, 'input[type="email"]', "vanhung29993@gmail.com");
     await fillReactInput(page, 'input[type="password"]', "admin123");
     await page.evaluate(() => document.querySelector(".auth-form.active").requestSubmit());
     await new Promise((r) => setTimeout(r, 1500));

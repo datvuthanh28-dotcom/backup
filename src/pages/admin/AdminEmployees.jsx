@@ -478,7 +478,7 @@ export default function AdminEmployees() {
                 <label style={{ fontSize: "13px", fontWeight: "600" }}>Email công việc *</label>
                 <input
                   type="email"
-                  placeholder="tri.hoang@maisonrue.com"
+                  placeholder="staff@gmail.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   disabled={submitting}

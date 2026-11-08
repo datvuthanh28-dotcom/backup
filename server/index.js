@@ -17,6 +17,7 @@ import engagementRoutes from "./routes/engagementRoutes.js";
 import customerRoutes from "./routes/customerRoutes.js";
 import promotionRoutes from "./routes/promotionRoutes.js";
 import returnRoutes from "./routes/returnRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
 
 dotenv.config();
 
@@ -100,6 +101,7 @@ app.use("/api/engagement", engagementRoutes);
 app.use("/api/customer", customerRoutes);
 app.use("/api/promotions", promotionRoutes);
 app.use("/api/returns", returnRoutes);
+app.use("/api/chat", chatRoutes);
 
 // Phục vụ frontend static build (SPA) khi deploy production
 const __filename = fileURLToPath(import.meta.url);

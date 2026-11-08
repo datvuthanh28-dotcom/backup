@@ -7,7 +7,7 @@ const INITIAL_DEMO_RETURNS = [
   {
     id: "RET-784201",
     createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    customerEmail: "customer@gmail.com",
+    customerEmail: "vudat9532@gmail.com",
     customerName: "Vũ Thành Đạt",
     item: "Merino Wool Knitted Polo (MR-106 - Beige / M)",
     reason: "Không vừa size",
@@ -130,7 +130,15 @@ export async function sendReturnApprovalEmail(req) {
     return { success: false, reason: "missing_email_configuration" };
   }
 
-  const subject = `[Maison Rue] Thông báo: Yêu cầu đổi trả #${req.id} đã được DUYỆT`;
+  const customerEmail = req.customerEmail || req.customer_email || "";
+  const customerName = req.customerName || req.customer_name || "Quý khách";
+  const itemDesc = req.item || `${req.product_name || "Sản phẩm"} (${req.selected_color || ""} / ${req.selected_size || ""})`.replace("(/)", "").trim();
+  const reasonText = req.reason || req.reason_code || "Yêu cầu hoàn trả";
+  const detailNote = req.detailNote || req.reason_detail || "Không có";
+  const adminNote = req.adminNote || req.note || "Yêu cầu đã được Ban Quản Trị Maison Rue phê duyệt hoàn tiền.";
+  const refundRef = req.refundReference || req.refund_reference || "";
+
+  const subject = `[Maison Rue] Thông báo: Yêu cầu hoàn tiền #${req.id} đã được DUYỆT`;
 
   // HTML Template sang trọng gửi qua {{{message}}} trong EmailJS
   const messageHtml = `
@@ -144,15 +152,15 @@ export async function sendReturnApprovalEmail(req) {
     </tr>
     <tr>
       <td style="background-color: #edf7ee; padding: 14px 25px; border-bottom: 2px solid #2e7d32; text-align: center;">
-        <span style="font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: #2e7d32; font-weight: 700;">KẾT QUẢ XÉT DUYỆT HOÀN TRẢ</span>
+        <span style="font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: #2e7d32; font-weight: 700;">KẾT QUẢ XÉT DUYỆT HOÀN TIỀN</span>
         <div style="font-size: 18px; font-weight: bold; color: #1b5e20; margin-top: 4px;">ĐÃ ĐƯỢC CHẤP THUẬN (APPROVED)</div>
       </td>
     </tr>
     <tr>
       <td style="padding: 28px 30px;">
-        <p style="font-size: 15px; margin: 0 0 15px;">Kính gửi <strong>${req.customerName || "Quý khách"}</strong>,</p>
+        <p style="font-size: 15px; margin: 0 0 15px;">Kính gửi <strong>${customerName}</strong>,</p>
         <p style="font-size: 14px; color: #554a44; margin: 0 0 20px; line-height: 1.6;">
-          Ban Quản Trị Maison Rue đã xem xét hồ sơ và chính thức <strong>CHẤP THUẬN</strong> yêu cầu đổi/trả sản phẩm của quý khách.
+          Ban Quản Trị Maison Rue xin thông báo: Yêu cầu hoàn tiền cho đơn hàng của quý khách đã được thẩm định và chính thức <strong>CHẤP THUẬN</strong>.
         </p>
 
         <table style="width: 100%; background-color: #faf8f5; border: 1px solid #eee7de; border-radius: 6px; padding: 16px 18px; margin-bottom: 20px;" cellpadding="0" cellspacing="0">
@@ -161,21 +169,26 @@ export async function sendReturnApprovalEmail(req) {
             <td style="padding: 6px 0; font-size: 14px; font-weight: bold; text-align: right; color: #1a1615;">#${req.id}</td>
           </tr>
           <tr>
-            <td style="padding: 6px 0; font-size: 13px; color: #786c64;">Sản phẩm / Đơn hàng:</td>
-            <td style="padding: 6px 0; font-size: 13px; font-weight: 600; text-align: right; color: #2c2523;">${req.item}</td>
+            <td style="padding: 6px 0; font-size: 13px; color: #786c64;">Sản phẩm:</td>
+            <td style="padding: 6px 0; font-size: 13px; font-weight: 600; text-align: right; color: #2c2523;">${itemDesc}</td>
           </tr>
           <tr>
-            <td style="padding: 6px 0; font-size: 13px; color: #786c64;">Lý do hoàn trả:</td>
-            <td style="padding: 6px 0; font-size: 13px; text-align: right; color: #2c2523;">${req.reason}</td>
+            <td style="padding: 6px 0; font-size: 13px; color: #786c64;">Lý do:</td>
+            <td style="padding: 6px 0; font-size: 13px; text-align: right; color: #2c2523;">${reasonText}</td>
           </tr>
+          ${refundRef ? `
+          <tr>
+            <td style="padding: 6px 0; font-size: 13px; color: #786c64;">Mã đối soát hoàn tiền:</td>
+            <td style="padding: 6px 0; font-size: 13px; font-weight: 600; text-align: right; color: #1b5e20;">${refundRef}</td>
+          </tr>` : ""}
           <tr>
             <td style="padding: 6px 0; font-size: 13px; color: #786c64; vertical-align: top;">Ghi chú của quý khách:</td>
-            <td style="padding: 6px 0; font-size: 13px; text-align: right; color: #554a44;">${req.detailNote || "Không có"}</td>
+            <td style="padding: 6px 0; font-size: 13px; text-align: right; color: #554a44;">${detailNote}</td>
           </tr>
           <tr>
-            <td style="padding: 8px 0 0; font-size: 13px; color: #8a5a36; vertical-align: top; font-weight: bold;">Phản hồi từ Admin:</td>
+            <td style="padding: 8px 0 0; font-size: 13px; color: #8a5a36; vertical-align: top; font-weight: bold;">Ghi chú từ Maison Rue:</td>
             <td style="padding: 8px 0 0; font-size: 13px; text-align: right; color: #8a5a36; font-weight: 600;">
-              ${req.adminNote || "Yêu cầu đã được phê duyệt. Đội ngũ Maison Rue sẽ liên hệ thu hồi hàng trong 1-2 ngày tới."}
+              ${adminNote}
             </td>
           </tr>
         </table>
@@ -190,13 +203,13 @@ export async function sendReturnApprovalEmail(req) {
         }
 
         <div style="background-color: #f7f3ed; border-left: 3px solid #b68a3b; padding: 12px 16px; font-size: 12.5px; color: #6b5c50; line-height: 1.6; margin-bottom: 20px;">
-          <strong>Quy trình tiếp theo:</strong><br/>
-          1. Nhân viên vận chuyển của Maison Rue sẽ liên hệ quý khách trước khi đến tiếp nhận sản phẩm.<br/>
-          2. Quý khách vui lòng đóng gói sản phẩm nguyên vẹn (kèm bao bì, phụ kiện nếu có).<br/>
-          3. Tiền hoàn sẽ được giải ngân về phương thức thanh toán gốc của quý khách trong vòng 3–5 ngày làm việc.
+          <strong>Quy trình hoàn tất tài chính:</strong><br/>
+          1. Giao dịch hoàn tiền đã được xử lý trên hệ thống đối soát của Maison Rue.<br/>
+          2. Tiền sẽ được hoàn trả về tài khoản hoặc phương thức thanh toán ban đầu của quý khách trong vòng 3–5 ngày làm việc theo quy định ngân hàng.<br/>
+          3. Nếu cần hỗ trợ thêm, quý khách chỉ cần trả lời trực tiếp email này.
         </div>
 
-        <p style="font-size: 13px; color: #666; margin: 0;">Mọi thắc mắc cần hỗ trợ khẩn cấp, xin vui lòng phản hồi trực tiếp tới email này hoặc liên hệ hotline chăm sóc khách hàng.</p>
+        <p style="font-size: 13px; color: #666; margin: 0;">Maison Rue chân thành cảm ơn sự thông cảm và đồng hành của quý khách.</p>
       </td>
     </tr>
     <tr>
@@ -211,30 +224,31 @@ export async function sendReturnApprovalEmail(req) {
 
   const templateParams = {
     // Thông tin người nhận & tiêu đề
-    to_email: req.customerEmail,
-    email: req.customerEmail,
-    name: req.customerName || "Quý khách",
+    to_email: customerEmail,
+    email: customerEmail,
+    name: customerName,
+    customer_name: customerName,
     subject: subject,
+    title: subject, // Đảm bảo khớp cả khi template dùng {{title}}
 
-    // Reuse the configured order-status template fields.
-    order_id: req.id,
+    // Reuse the configured order-status template fields
+    order_id: req.order_id || req.id,
+    request_id: req.id,
     order_status: "ĐÃ ĐƯỢC DUYỆT HOÀN TIỀN (APPROVED)",
-    customer_name: req.customerName || "Quý khách",
-    message_intro: "Ban Quản Trị Maison Rue đã xem xét và chính thức CHẤP THUẬN yêu cầu đổi/trả sản phẩm của quý khách.",
+    message_intro: "Ban Quản Trị Maison Rue đã xem xét và chính thức CHẤP THUẬN yêu cầu hoàn tiền của quý khách.",
     order_date: new Date().toLocaleString("vi-VN", { hour12: false }),
     payment_method: "Hoàn trả về phương thức thanh toán ban đầu",
-    shipping_address: "Bưu tá sẽ liên hệ tiếp nhận hàng tại địa chỉ của quý khách trong 24–48h tới",
-    order_items: `• Sản phẩm: ${req.item}\n• Lý do: ${req.reason}\n• Chi tiết từ khách: ${req.detailNote || "Không có"}`,
-    total_amount: "XÁC NHẬN HOÀN TIỀN",
-    note: req.adminNote
-      ? `Ghi chú từ Quản trị viên: ${req.adminNote}`
-      : "Quý khách vui lòng chuẩn bị sản phẩm nguyên vẹn, bưu tá sẽ liên hệ trước khi đến nhận lại hàng.",
+    shipping_address: "Đối soát và hoàn tiền qua hệ thống thanh toán",
+    order_items: `• Sản phẩm: ${itemDesc}\n• Lý do: ${reasonText}\n• Chi tiết: ${detailNote}`,
+    total_amount: req.amount ? `${Number(req.amount).toLocaleString("vi-VN")}đ` : "XÁC NHẬN HOÀN TIỀN",
+    note: adminNote,
 
     // Các biến chi tiết nếu dùng template riêng
-    item: req.item,
-    reason: req.reason,
-    detail_note: req.detailNote || "Không có",
-    admin_note: req.adminNote || "Yêu cầu đã được phê duyệt",
+    item: itemDesc,
+    reason: reasonText,
+    detail_note: detailNote,
+    admin_note: adminNote,
+    refund_reference: refundRef,
     proof_image: req.proofImageBase64 || "",
     status_text: "APPROVED",
     message: messageHtml,

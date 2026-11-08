@@ -6,8 +6,8 @@ import { initialVariantStock } from "./catalog-stock-policy.js";
 const DEFAULT_USERS = [
   {
     id: "usr_admin_01",
-    name: "Quản Trị Viên Maison Rue",
-    email: "admin@maisonrue.com",
+    name: "Văn Hưng (Quản Trị Viên)",
+    email: "vanhung29993@gmail.com",
     rawPassword: "admin123",
     role: "admin",
     phone: "0901234567",
@@ -16,7 +16,7 @@ const DEFAULT_USERS = [
   {
     id: "usr_staff_01",
     name: "Lê Hoàng Yến (Vận Hành)",
-    email: "staff@maisonrue.com",
+    email: "staffmaisonrue@gmail.com",
     rawPassword: "staff123",
     role: "staff",
     phone: "0912345678",
@@ -25,7 +25,7 @@ const DEFAULT_USERS = [
   {
     id: "usr_staff_02",
     name: "Trần Minh Khoa (Kho Vận)",
-    email: "staff2@maisonrue.com",
+    email: "maisonruestaff2@gmail.com",
     rawPassword: "staff123",
     role: "staff",
     phone: "0923456789",
@@ -34,7 +34,7 @@ const DEFAULT_USERS = [
   {
     id: "usr_staff_inactive",
     name: "Phạm Thu Trang (Tạm Khóa)",
-    email: "staff.inactive@maisonrue.com",
+    email: "phamthutrang.maisonrue@gmail.com",
     rawPassword: "staff123",
     role: "staff",
     phone: "0934567890",
@@ -42,8 +42,8 @@ const DEFAULT_USERS = [
   },
   {
     id: "usr_cust_01",
-    name: "Nguyễn Văn An",
-    email: "customer@gmail.com",
+    name: "Vũ Thành Đạt",
+    email: "vudat9532@gmail.com",
     rawPassword: "customer123",
     role: "customer",
     phone: "0987654321",
@@ -148,8 +148,8 @@ export async function runSeed() {
       orderData: {
         id: "MR-2024-00101",
         customer_id: "usr_cust_01",
-        customer_name: "Nguyễn Văn An",
-        customer_email: "customer@gmail.com",
+        customer_name: "Vũ Thành Đạt",
+        customer_email: "vudat9532@gmail.com",
         customer_phone: "0987654321",
         shipping_address: "128 Đồng Khởi, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh",
         shipping_fee: 0,
@@ -214,8 +214,8 @@ export async function runSeed() {
       orderData: {
         id: "MR-2024-00102",
         customer_id: "usr_cust_01",
-        customer_name: "Nguyễn Văn An",
-        customer_email: "customer@gmail.com",
+        customer_name: "Vũ Thành Đạt",
+        customer_email: "vudat9532@gmail.com",
         customer_phone: "0987654321",
         shipping_address: "128 Đồng Khởi, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh",
         shipping_fee: 0,
@@ -261,8 +261,8 @@ export async function runSeed() {
       orderData: {
         id: "MR-2024-00105",
         customer_id: "usr_cust_01",
-        customer_name: "Nguyễn Văn An",
-        customer_email: "customer@gmail.com",
+        customer_name: "Vũ Thành Đạt",
+        customer_email: "vudat9532@gmail.com",
         customer_phone: "0987654321",
         shipping_address: "128 Đồng Khởi, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh",
         shipping_fee: 0,

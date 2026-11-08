@@ -195,7 +195,7 @@ export default function CustomerLogin() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. alex@example.com"
+                  placeholder="vudat9532@gmail.com"
                 />
                 {errors.email && <span className="error">{errors.email}</span>}
               </div>
@@ -258,11 +258,11 @@ export default function CustomerLogin() {
           {/* Quick Demo Customer Account */}
           <div style={{ marginTop: "30px", paddingTop: "20px", borderTop: "1px dashed #D8CEC1" }}>
             <div style={{ fontSize: "12px", color: "#8A7350", marginBottom: "10px", fontWeight: "600", textTransform: "uppercase" }}>
-              Demo client account:
+              Tài khoản khách hàng:
             </div>
             <button
               type="button"
-              onClick={() => quickFill("customer@gmail.com", "customer123")}
+              onClick={() => quickFill("vudat9532@gmail.com", "customer123")}
               style={{
                 width: "100%",
                 padding: "10px 14px",
@@ -277,10 +277,10 @@ export default function CustomerLogin() {
               }}
             >
               <div>
-                <strong style={{ color: "#2B211C", fontSize: "13px" }}>🛍️ Alex Morgan</strong>
-                <div style={{ fontSize: "11.5px", color: "#6B5A4B" }}>customer@gmail.com (pass: customer123)</div>
+                <strong style={{ color: "#2B211C", fontSize: "13px" }}>🛍️ Vũ Thành Đạt (Khách Hàng)</strong>
+                <div style={{ fontSize: "11.5px", color: "#6B5A4B" }}>vudat9532@gmail.com (pass: customer123)</div>
               </div>
-              <span style={{ fontSize: "12px", color: "#B89B5E", fontWeight: "600" }}>Fill in details</span>
+              <span style={{ fontSize: "12px", color: "#B89B5E", fontWeight: "600" }}>Điền thông tin</span>
             </button>
           </div>
 

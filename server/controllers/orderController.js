@@ -1,5 +1,6 @@
 import { db } from "../config/db.js";
 import { calculatePromotions } from "../services/promotionService.js";
+import { verifyDeliveryAddress } from "../services/addressVerificationService.js";
 
 export async function getAllOrders(req, res) {
   try {
@@ -49,6 +50,18 @@ export async function createOrder(req, res) {
       return res.status(400).json({ success: false, error: "Vui lòng nhập đầy đủ thông tin giao nhận." });
     }
 
+    // Geoapify Map Data + OpenAI Evidence Delivery Address Verification (Server-Side Enforcement)
+    let verifiedAddress;
+    try {
+      verifiedAddress = await verifyDeliveryAddress(address);
+    } catch (addrErr) {
+      return res.status(addrErr.status || 422).json({
+        success: false,
+        error: addrErr.message || "Chưa đủ thông tin để xác minh địa chỉ giao hàng. Vui lòng kiểm tra lại số nhà, tên đường.",
+        code: addrErr.code || "ADDRESS_VERIFICATION_FAILED",
+      });
+    }
+
     const customerId = req.user ? req.user.id : `usr_guest_${Date.now()}`;
     const orderId = `MR-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
 
@@ -88,7 +101,7 @@ export async function createOrder(req, res) {
       customer_name: name.trim(),
       customer_email: email.trim().toLowerCase(),
       customer_phone: phone.trim(),
-      shipping_address: address.trim(),
+      shipping_address: verifiedAddress ? verifiedAddress.formatted : address.trim(),
       shipping_fee: pricing.shippingFeeOriginal - pricing.shippingDiscountTotal,
       total_amount: pricing.finalTotal,
       original_subtotal: pricing.originalSubtotal,
