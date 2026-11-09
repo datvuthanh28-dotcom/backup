@@ -172,6 +172,26 @@ export default function AdminLayout() {
           </NavLink>
 
           <NavLink
+            to="/admin/products"
+            style={({ isActive }) => ({
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              padding: "12px 16px",
+              borderRadius: "6px",
+              textDecoration: "none",
+              fontSize: "13.5px",
+              fontWeight: isActive ? "600" : "400",
+              backgroundColor: isActive ? "#8A5A36" : "transparent",
+              color: isActive ? "#FFF" : "#D8CEC1",
+              transition: "background 0.2s, color 0.2s",
+            })}
+          >
+            <i className="fas fa-boxes" style={{ width: "18px" }}></i>
+            <span>Sản Phẩm & Kho SKU</span>
+          </NavLink>
+
+          <NavLink
             to="/admin/product-insights"
             style={({ isActive }) => ({
               display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px",

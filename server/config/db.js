@@ -362,6 +362,551 @@ export const db = {
     return { costPrice, floorPrice, sellingPrice };
   },
 
+  async getAllProductsAdmin() {
+    const p = await getActivePool();
+    const res = await p.request().query("SELECT * FROM Products ORDER BY id DESC");
+    const variantRes = await p.request().query("SELECT * FROM ProductVariants ORDER BY product_id, color_name, size_name");
+    return res.recordset.map((r) => {
+      const catalog = catalogProducts.find((product) => product.id === r.id) || {};
+      const variants = variantRes.recordset.filter((variant) => variant.product_id === r.id).map((variant) => ({
+        id: variant.id,
+        sku: variant.sku,
+        color: variant.color_name,
+        size: variant.size_name,
+        price: Number(variant.price),
+        costPrice: Number(variant.cost_price || 0),
+        floorPrice: Number(variant.floor_price || 0),
+        stock: variant.stock_quantity,
+        lowStockThreshold: variant.low_stock_threshold,
+        maxStockThreshold: variant.max_stock_threshold,
+        isActive: Boolean(variant.is_active),
+        individuallyDeactivated: Boolean(variant.individually_deactivated),
+        deactivatedAt: variant.deactivated_at,
+        deactivatedBy: variant.deactivated_by,
+        createdBy: variant.created_by,
+        updatedBy: variant.updated_by,
+        createdAt: variant.created_at,
+        updatedAt: variant.updated_at,
+      }));
+      return {
+        ...catalog,
+        ...r,
+        isActive: Boolean(r.is_active),
+        productCode: r.product_code,
+        collection: r.collection_name || catalog.collection || "",
+        collections: r.collections_json ? JSON.parse(r.collections_json) : (catalog.collections || []),
+        material: r.material || catalog.material || "",
+        totalStock: variants.reduce((sum, v) => sum + v.stock, 0),
+        activeStock: variants.filter((v) => v.isActive).reduce((sum, v) => sum + v.stock, 0),
+        variants,
+        images: r.images_json ? JSON.parse(r.images_json) : (catalog.images || []),
+        colors: r.colors_json ? JSON.parse(r.colors_json) : (catalog.colors || []),
+        colorImages: r.color_images_json ? JSON.parse(r.color_images_json) : (catalog.colorImages || {}),
+      };
+    });
+  },
+
+  async createProductAdmin(data, actor = "Admin") {
+    const p = await getActivePool();
+    const {
+      name, price, category, gender, productCode, description, material,
+      collectionName, collections = [], images = [], colors = [], colorImages = {},
+      minAlert = 5, variants = []
+    } = data;
+
+    if (!name || !price || !category || !gender || !productCode) {
+      throw new Error("Vui lòng cung cấp đầy đủ tên, giá, danh mục, đối tượng và mã sản phẩm (MR-xxx).");
+    }
+
+    const checkCode = await p.request().input("code", sql.NVarChar, productCode.trim().toUpperCase()).query("SELECT id FROM Products WHERE product_code = @code");
+    if (checkCode.recordset.length) {
+      throw new Error(`Mã sản phẩm "${productCode.trim().toUpperCase()}" đã tồn tại trên hệ thống.`);
+    }
+
+    const transaction = new sql.Transaction(p);
+    await transaction.begin();
+    try {
+      const nextIdRes = await transaction.request().query("SELECT COALESCE(MAX(id), 100) + 1 AS next_id FROM Products");
+      const nextId = nextIdRes.recordset[0].next_id;
+
+      const totalStock = variants.reduce((sum, v) => sum + Math.max(0, parseInt(v.stock || 0, 10)), 0);
+
+      await transaction.request()
+        .input("id", sql.Int, nextId)
+        .input("product_code", sql.NVarChar, productCode.trim().toUpperCase())
+        .input("name", sql.NVarChar, name.trim())
+        .input("price", sql.Decimal(18, 0), Number(price))
+        .input("category", sql.NVarChar, category.trim())
+        .input("gender", sql.NVarChar, gender.trim())
+        .input("description", sql.NVarChar, description || "")
+        .input("material", sql.NVarChar, material || "")
+        .input("collection_name", sql.NVarChar, collectionName || null)
+        .input("collections_json", sql.NVarChar, JSON.stringify(collections))
+        .input("images_json", sql.NVarChar, JSON.stringify(images))
+        .input("colors_json", sql.NVarChar, JSON.stringify(colors))
+        .input("color_images_json", sql.NVarChar, JSON.stringify(colorImages))
+        .input("stock", sql.Int, totalStock)
+        .input("min_alert", sql.Int, Math.max(0, parseInt(minAlert, 10)))
+        .input("is_active", sql.Bit, 1)
+        .input("created_by", sql.NVarChar, actor)
+        .query(`
+          INSERT INTO Products (id, product_code, name, price, category, gender, description, material, collection_name, collections_json, images_json, colors_json, color_images_json, stock, min_alert, is_active, created_by, created_at, updated_at)
+          VALUES (@id, @product_code, @name, @price, @category, @gender, @description, @material, @collection_name, @collections_json, @images_json, @colors_json, @color_images_json, @stock, @min_alert, @is_active, @created_by, GETDATE(), GETDATE())
+        `);
+
+      for (let i = 0; i < variants.length; i++) {
+        const v = variants[i];
+        const color = (v.color || "Standard").trim();
+        const size = (v.size || "M").trim();
+        const variantId = v.id || `v-${nextId}-${color.toLowerCase().replace(/[^a-z0-9]/g, "")}-${size.toLowerCase()}`;
+        const sku = v.sku || `${productCode.trim().toUpperCase()}-${color.toUpperCase().replace(/[^A-Z0-9]/g, "")}-${size.toUpperCase()}`;
+        const vStock = Math.max(0, parseInt(v.stock || 0, 10));
+        const vMin = Math.max(0, parseInt(v.minStock || 3, 10));
+        const vMax = Math.max(vMin + 1, parseInt(v.maxStock || 50, 10));
+        const vPrice = Number(v.price || price);
+        const vCost = v.costPrice != null ? Number(v.costPrice) : null;
+        const vFloor = v.floorPrice != null ? Number(v.floorPrice) : null;
+
+        await transaction.request()
+          .input("id", sql.NVarChar, variantId)
+          .input("product_id", sql.Int, nextId)
+          .input("sku", sql.NVarChar, sku)
+          .input("color_name", sql.NVarChar, color)
+          .input("size_name", sql.NVarChar, size)
+          .input("price", sql.Decimal(18, 0), vPrice)
+          .input("cost_price", sql.Decimal(18, 0), vCost)
+          .input("floor_price", sql.Decimal(18, 0), vFloor)
+          .input("stock_quantity", sql.Int, vStock)
+          .input("low_stock_threshold", sql.Int, vMin)
+          .input("max_stock_threshold", sql.Int, vMax)
+          .input("is_active", sql.Bit, 1)
+          .input("created_by", sql.NVarChar, actor)
+          .query(`
+            INSERT INTO ProductVariants (id, product_id, sku, color_name, size_name, price, cost_price, floor_price, stock_quantity, low_stock_threshold, max_stock_threshold, is_active, created_by, created_at, updated_at)
+            VALUES (@id, @product_id, @sku, @color_name, @size_name, @price, @cost_price, @floor_price, @stock_quantity, @low_stock_threshold, @max_stock_threshold, @is_active, @created_by, GETDATE(), GETDATE())
+          `);
+
+        if (vStock > 0) {
+          await transaction.request()
+            .input("product_id", sql.Int, nextId)
+            .input("variant_id", sql.NVarChar, variantId)
+            .input("movement_type", sql.NVarChar, "initial_stock")
+            .input("quantity_change", sql.Int, vStock)
+            .input("resulting_stock", sql.Int, vStock)
+            .input("reference_id", sql.NVarChar, sku)
+            .input("note", sql.NVarChar, `Khởi tạo tồn kho ban đầu cho SKU ${sku}`)
+            .input("performed_by", sql.NVarChar, actor)
+            .query(`
+              INSERT INTO InventoryMovements (product_id, variant_id, movement_type, quantity_change, resulting_stock, reference_id, note, performed_by, created_at)
+              VALUES (@product_id, @variant_id, @movement_type, @quantity_change, @resulting_stock, @reference_id, @note, @performed_by, GETDATE())
+            `);
+        }
+      }
+
+      await transaction.commit();
+      return { success: true, id: nextId, productCode: productCode.trim().toUpperCase() };
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
+    }
+  },
+
+  async updateProductAdmin(id, data, actor = "Admin") {
+    const p = await getActivePool();
+    const numId = Number(id);
+    const existing = await p.request().input("id", sql.Int, numId).query("SELECT * FROM Products WHERE id = @id");
+    if (!existing.recordset.length) throw new Error("Không tìm thấy sản phẩm cần cập nhật.");
+
+    const r = existing.recordset[0];
+    const name = data.name !== undefined ? data.name.trim() : r.name;
+    const price = data.price !== undefined ? Number(data.price) : Number(r.price);
+    const category = data.category !== undefined ? data.category.trim() : r.category;
+    const gender = data.gender !== undefined ? data.gender.trim() : r.gender;
+    const description = data.description !== undefined ? data.description : r.description;
+    const material = data.material !== undefined ? data.material : r.material;
+    const collectionName = data.collectionName !== undefined ? data.collectionName : r.collection_name;
+    const collectionsJson = data.collections !== undefined ? JSON.stringify(data.collections) : r.collections_json;
+    const imagesJson = data.images !== undefined ? JSON.stringify(data.images) : r.images_json;
+    const colorsJson = data.colors !== undefined ? JSON.stringify(data.colors) : r.colors_json;
+    const colorImagesJson = data.colorImages !== undefined ? JSON.stringify(data.colorImages) : r.color_images_json;
+    const minAlert = data.minAlert !== undefined ? Math.max(0, parseInt(data.minAlert, 10)) : r.min_alert;
+
+    await p.request()
+      .input("id", sql.Int, numId)
+      .input("name", sql.NVarChar, name)
+      .input("price", sql.Decimal(18, 0), price)
+      .input("category", sql.NVarChar, category)
+      .input("gender", sql.NVarChar, gender)
+      .input("description", sql.NVarChar, description)
+      .input("material", sql.NVarChar, material)
+      .input("collection_name", sql.NVarChar, collectionName)
+      .input("collections_json", sql.NVarChar, collectionsJson)
+      .input("images_json", sql.NVarChar, imagesJson)
+      .input("colors_json", sql.NVarChar, colorsJson)
+      .input("color_images_json", sql.NVarChar, colorImagesJson)
+      .input("min_alert", sql.Int, minAlert)
+      .input("updated_by", sql.NVarChar, actor)
+      .query(`
+        UPDATE Products
+        SET name = @name, price = @price, category = @category, gender = @gender,
+            description = @description, material = @material, collection_name = @collection_name,
+            collections_json = @collections_json, images_json = @images_json, colors_json = @colors_json,
+            color_images_json = @color_images_json, min_alert = @min_alert,
+            updated_by = @updated_by, updated_at = GETDATE()
+        WHERE id = @id
+      `);
+
+    return { success: true, id: numId };
+  },
+
+  async softDeleteProductAdmin(id, actor = "Admin", reason = "Tạm ngừng kinh doanh") {
+    const p = await getActivePool();
+    const numId = Number(id);
+    const existing = await p.request().input("id", sql.Int, numId).query("SELECT id, product_code, name, is_active FROM Products WHERE id = @id");
+    if (!existing.recordset.length) throw new Error("Không tìm thấy sản phẩm.");
+    if (!existing.recordset[0].is_active) throw new Error("Sản phẩm đã ở trạng thái ngừng kinh doanh.");
+
+    const transaction = new sql.Transaction(p);
+    await transaction.begin();
+    try {
+      await transaction.request()
+        .input("id", sql.Int, numId)
+        .input("actor", sql.NVarChar, actor)
+        .query(`
+          UPDATE Products
+          SET is_active = 0, deactivated_at = GETDATE(), deactivated_by = @actor, updated_by = @actor, updated_at = GETDATE()
+          WHERE id = @id
+        `);
+
+      // Deactivate variants that were not already individually deactivated
+      await transaction.request()
+        .input("product_id", sql.Int, numId)
+        .input("actor", sql.NVarChar, actor)
+        .query(`
+          UPDATE ProductVariants
+          SET is_active = 0, deactivated_at = GETDATE(), deactivated_by = @actor, updated_by = @actor, updated_at = GETDATE()
+          WHERE product_id = @product_id AND is_active = 1 AND individually_deactivated = 0
+        `);
+
+      await transaction.request()
+        .input("product_id", sql.Int, numId)
+        .input("movement_type", sql.NVarChar, "product_deactivated")
+        .input("quantity_change", sql.Int, 0)
+        .input("resulting_stock", sql.Int, 0)
+        .input("reference_id", sql.NVarChar, existing.recordset[0].product_code)
+        .input("note", sql.NVarChar, `Xóa mềm sản phẩm: ${reason}`)
+        .input("performed_by", sql.NVarChar, actor)
+        .query(`
+          INSERT INTO InventoryMovements (product_id, movement_type, quantity_change, resulting_stock, reference_id, note, performed_by, created_at)
+          VALUES (@product_id, @movement_type, @quantity_change, @resulting_stock, @reference_id, @note, @performed_by, GETDATE())
+        `);
+
+      await transaction.commit();
+      return { success: true, id: numId, isActive: false };
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
+    }
+  },
+
+  async restoreProductAdmin(id, actor = "Admin") {
+    const p = await getActivePool();
+    const numId = Number(id);
+    const existing = await p.request().input("id", sql.Int, numId).query("SELECT id, product_code, name, is_active FROM Products WHERE id = @id");
+    if (!existing.recordset.length) throw new Error("Không tìm thấy sản phẩm.");
+    if (existing.recordset[0].is_active) throw new Error("Sản phẩm đang hoạt động, không cần khôi phục.");
+
+    const transaction = new sql.Transaction(p);
+    await transaction.begin();
+    try {
+      await transaction.request()
+        .input("id", sql.Int, numId)
+        .input("actor", sql.NVarChar, actor)
+        .query(`
+          UPDATE Products
+          SET is_active = 1, deactivated_at = NULL, deactivated_by = NULL, updated_by = @actor, updated_at = GETDATE()
+          WHERE id = @id
+        `);
+
+      // Critical requirement: Do NOT reactivate variants that were individually deactivated!
+      await transaction.request()
+        .input("product_id", sql.Int, numId)
+        .input("actor", sql.NVarChar, actor)
+        .query(`
+          UPDATE ProductVariants
+          SET is_active = 1, deactivated_at = NULL, deactivated_by = NULL, updated_by = @actor, updated_at = GETDATE()
+          WHERE product_id = @product_id AND individually_deactivated = 0
+        `);
+
+      // Recalculate active stock
+      await transaction.request()
+        .input("product_id", sql.Int, numId)
+        .query(`
+          UPDATE Products
+          SET stock = (SELECT COALESCE(SUM(stock_quantity), 0) FROM ProductVariants WHERE product_id = @product_id AND is_active = 1)
+          WHERE id = @product_id
+        `);
+
+      await transaction.request()
+        .input("product_id", sql.Int, numId)
+        .input("movement_type", sql.NVarChar, "product_restored")
+        .input("quantity_change", sql.Int, 0)
+        .input("resulting_stock", sql.Int, 0)
+        .input("reference_id", sql.NVarChar, existing.recordset[0].product_code)
+        .input("note", sql.NVarChar, "Khôi phục kinh doanh sản phẩm (bảo lưu các SKU đã ngừng bán riêng)")
+        .input("performed_by", sql.NVarChar, actor)
+        .query(`
+          INSERT INTO InventoryMovements (product_id, movement_type, quantity_change, resulting_stock, reference_id, note, performed_by, created_at)
+          VALUES (@product_id, @movement_type, @quantity_change, @resulting_stock, @reference_id, @note, @performed_by, GETDATE())
+        `);
+
+      await transaction.commit();
+      return { success: true, id: numId, isActive: true };
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
+    }
+  },
+
+  async createVariantAdmin(productId, data, actor = "Admin") {
+    const p = await getActivePool();
+    const numProductId = Number(productId);
+    const prodRes = await p.request().input("id", sql.Int, numProductId).query("SELECT id, product_code, price FROM Products WHERE id = @id");
+    if (!prodRes.recordset.length) throw new Error("Không tìm thấy sản phẩm.");
+    const prod = prodRes.recordset[0];
+
+    const color = String(data.color || "Standard").trim();
+    const size = String(data.size || "M").trim();
+    const variantId = data.id || `v-${numProductId}-${color.toLowerCase().replace(/[^a-z0-9]/g, "")}-${size.toLowerCase()}`;
+    const sku = data.sku || `${prod.product_code}-${color.toUpperCase().replace(/[^A-Z0-9]/g, "")}-${size.toUpperCase()}`;
+
+    const checkSku = await p.request().input("sku", sql.NVarChar, sku).query("SELECT id FROM ProductVariants WHERE sku = @sku");
+    if (checkSku.recordset.length) throw new Error(`SKU "${sku}" đã tồn tại trên hệ thống.`);
+
+    const stock = Math.max(0, parseInt(data.stock || 0, 10));
+    const minStock = Math.max(0, parseInt(data.minStock || 3, 10));
+    const maxStock = Math.max(minStock + 1, parseInt(data.maxStock || 50, 10));
+    const price = Number(data.price || prod.price);
+    const costPrice = data.costPrice != null ? Number(data.costPrice) : null;
+    const floorPrice = data.floorPrice != null ? Number(data.floorPrice) : null;
+
+    if (costPrice != null && floorPrice != null) {
+      if (costPrice < 0 || floorPrice < costPrice || floorPrice > price) {
+        throw new Error("Giá phải thỏa mãn: 0 ≤ giá vốn ≤ giá sàn ≤ giá bán.");
+      }
+    }
+
+    const transaction = new sql.Transaction(p);
+    await transaction.begin();
+    try {
+      await transaction.request()
+        .input("id", sql.NVarChar, variantId)
+        .input("product_id", sql.Int, numProductId)
+        .input("sku", sql.NVarChar, sku)
+        .input("color_name", sql.NVarChar, color)
+        .input("size_name", sql.NVarChar, size)
+        .input("price", sql.Decimal(18, 0), price)
+        .input("cost_price", sql.Decimal(18, 0), costPrice)
+        .input("floor_price", sql.Decimal(18, 0), floorPrice)
+        .input("stock_quantity", sql.Int, stock)
+        .input("low_stock_threshold", sql.Int, minStock)
+        .input("max_stock_threshold", sql.Int, maxStock)
+        .input("is_active", sql.Bit, 1)
+        .input("created_by", sql.NVarChar, actor)
+        .query(`
+          INSERT INTO ProductVariants (id, product_id, sku, color_name, size_name, price, cost_price, floor_price, stock_quantity, low_stock_threshold, max_stock_threshold, is_active, individually_deactivated, created_by, created_at, updated_at)
+          VALUES (@id, @product_id, @sku, @color_name, @size_name, @price, @cost_price, @floor_price, @stock_quantity, @low_stock_threshold, @max_stock_threshold, @is_active, 0, @created_by, GETDATE(), GETDATE())
+        `);
+
+      await transaction.request()
+        .input("product_id", sql.Int, numProductId)
+        .query(`
+          UPDATE Products
+          SET stock = (SELECT COALESCE(SUM(stock_quantity), 0) FROM ProductVariants WHERE product_id = @product_id AND is_active = 1)
+          WHERE id = @product_id
+        `);
+
+      if (stock > 0) {
+        await transaction.request()
+          .input("product_id", sql.Int, numProductId)
+          .input("variant_id", sql.NVarChar, variantId)
+          .input("movement_type", sql.NVarChar, "initial_stock")
+          .input("quantity_change", sql.Int, stock)
+          .input("resulting_stock", sql.Int, stock)
+          .input("reference_id", sql.NVarChar, sku)
+          .input("note", sql.NVarChar, `Tạo biến thể mới SKU ${sku} với tồn kho ${stock}`)
+          .input("performed_by", sql.NVarChar, actor)
+          .query(`
+            INSERT INTO InventoryMovements (product_id, variant_id, movement_type, quantity_change, resulting_stock, reference_id, note, performed_by, created_at)
+            VALUES (@product_id, @variant_id, @movement_type, @quantity_change, @resulting_stock, @reference_id, @note, @performed_by, GETDATE())
+          `);
+      }
+
+      await transaction.commit();
+      return { success: true, variantId, sku };
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
+    }
+  },
+
+  async updateVariantAdmin(productId, variantId, data, actor = "Admin") {
+    const p = await getActivePool();
+    const numProductId = Number(productId);
+    const existing = await p.request()
+      .input("product_id", sql.Int, numProductId)
+      .input("id", sql.NVarChar, variantId)
+      .query("SELECT * FROM ProductVariants WHERE id = @id AND product_id = @product_id");
+    if (!existing.recordset.length) throw new Error("Không tìm thấy biến thể SKU.");
+
+    const r = existing.recordset[0];
+    const color = data.color !== undefined ? String(data.color).trim() : r.color_name;
+    const size = data.size !== undefined ? String(data.size).trim() : r.size_name;
+    const price = data.price !== undefined ? Number(data.price) : Number(r.price);
+    const costPrice = data.costPrice !== undefined ? (data.costPrice != null ? Number(data.costPrice) : null) : (r.cost_price != null ? Number(r.cost_price) : null);
+    const floorPrice = data.floorPrice !== undefined ? (data.floorPrice != null ? Number(data.floorPrice) : null) : (r.floor_price != null ? Number(r.floor_price) : null);
+    const minStock = data.minStock !== undefined ? Math.max(0, parseInt(data.minStock, 10)) : r.low_stock_threshold;
+    const maxStock = data.maxStock !== undefined ? Math.max(minStock + 1, parseInt(data.maxStock, 10)) : r.max_stock_threshold;
+
+    if (costPrice != null && floorPrice != null) {
+      if (costPrice < 0 || floorPrice < costPrice || floorPrice > price) {
+        throw new Error("Giá phải thỏa mãn: 0 ≤ giá vốn ≤ giá sàn ≤ giá bán.");
+      }
+    }
+
+    await p.request()
+      .input("product_id", sql.Int, numProductId)
+      .input("id", sql.NVarChar, variantId)
+      .input("color_name", sql.NVarChar, color)
+      .input("size_name", sql.NVarChar, size)
+      .input("price", sql.Decimal(18, 0), price)
+      .input("cost_price", sql.Decimal(18, 0), costPrice)
+      .input("floor_price", sql.Decimal(18, 0), floorPrice)
+      .input("low_stock_threshold", sql.Int, minStock)
+      .input("max_stock_threshold", sql.Int, maxStock)
+      .input("updated_by", sql.NVarChar, actor)
+      .query(`
+        UPDATE ProductVariants
+        SET color_name = @color_name, size_name = @size_name, price = @price,
+            cost_price = @cost_price, floor_price = @floor_price,
+            low_stock_threshold = @low_stock_threshold, max_stock_threshold = @max_stock_threshold,
+            updated_by = @updated_by, updated_at = GETDATE()
+        WHERE id = @id AND product_id = @product_id
+      `);
+
+    return { success: true, variantId };
+  },
+
+  async softDeleteVariantAdmin(productId, variantId, actor = "Admin", reason = "Ngừng bán biến thể") {
+    const p = await getActivePool();
+    const numProductId = Number(productId);
+    const existing = await p.request()
+      .input("product_id", sql.Int, numProductId)
+      .input("id", sql.NVarChar, variantId)
+      .query("SELECT id, sku, is_active, stock_quantity FROM ProductVariants WHERE id = @id AND product_id = @product_id");
+    if (!existing.recordset.length) throw new Error("Không tìm thấy biến thể SKU.");
+    if (!existing.recordset[0].is_active) throw new Error("Biến thể này đã ngừng kinh doanh.");
+
+    const transaction = new sql.Transaction(p);
+    await transaction.begin();
+    try {
+      await transaction.request()
+        .input("product_id", sql.Int, numProductId)
+        .input("id", sql.NVarChar, variantId)
+        .input("actor", sql.NVarChar, actor)
+        .query(`
+          UPDATE ProductVariants
+          SET is_active = 0, individually_deactivated = 1,
+              deactivated_at = GETDATE(), deactivated_by = @actor,
+              updated_by = @actor, updated_at = GETDATE()
+          WHERE id = @id AND product_id = @product_id
+        `);
+
+      await transaction.request()
+        .input("product_id", sql.Int, numProductId)
+        .query(`
+          UPDATE Products
+          SET stock = (SELECT COALESCE(SUM(stock_quantity), 0) FROM ProductVariants WHERE product_id = @product_id AND is_active = 1)
+          WHERE id = @product_id
+        `);
+
+      await transaction.request()
+        .input("product_id", sql.Int, numProductId)
+        .input("variant_id", sql.NVarChar, variantId)
+        .input("movement_type", sql.NVarChar, "sku_deactivated")
+        .input("quantity_change", sql.Int, 0)
+        .input("resulting_stock", sql.Int, existing.recordset[0].stock_quantity)
+        .input("reference_id", sql.NVarChar, existing.recordset[0].sku)
+        .input("note", sql.NVarChar, `Ngừng kinh doanh SKU ${existing.recordset[0].sku}: ${reason}`)
+        .input("performed_by", sql.NVarChar, actor)
+        .query(`
+          INSERT INTO InventoryMovements (product_id, variant_id, movement_type, quantity_change, resulting_stock, reference_id, note, performed_by, created_at)
+          VALUES (@product_id, @variant_id, @movement_type, @quantity_change, @resulting_stock, @reference_id, @note, @performed_by, GETDATE())
+        `);
+
+      await transaction.commit();
+      return { success: true, variantId, isActive: false };
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
+    }
+  },
+
+  async restoreVariantAdmin(productId, variantId, actor = "Admin") {
+    const p = await getActivePool();
+    const numProductId = Number(productId);
+    const existing = await p.request()
+      .input("product_id", sql.Int, numProductId)
+      .input("id", sql.NVarChar, variantId)
+      .query("SELECT id, sku, is_active, stock_quantity FROM ProductVariants WHERE id = @id AND product_id = @product_id");
+    if (!existing.recordset.length) throw new Error("Không tìm thấy biến thể SKU.");
+    if (existing.recordset[0].is_active) throw new Error("Biến thể này đang hoạt động bình thường.");
+
+    const transaction = new sql.Transaction(p);
+    await transaction.begin();
+    try {
+      await transaction.request()
+        .input("product_id", sql.Int, numProductId)
+        .input("id", sql.NVarChar, variantId)
+        .input("actor", sql.NVarChar, actor)
+        .query(`
+          UPDATE ProductVariants
+          SET is_active = 1, individually_deactivated = 0,
+              deactivated_at = NULL, deactivated_by = NULL,
+              updated_by = @actor, updated_at = GETDATE()
+          WHERE id = @id AND product_id = @product_id
+        `);
+
+      await transaction.request()
+        .input("product_id", sql.Int, numProductId)
+        .query(`
+          UPDATE Products
+          SET stock = (SELECT COALESCE(SUM(stock_quantity), 0) FROM ProductVariants WHERE product_id = @product_id AND is_active = 1)
+          WHERE id = @product_id
+        `);
+
+      await transaction.request()
+        .input("product_id", sql.Int, numProductId)
+        .input("variant_id", sql.NVarChar, variantId)
+        .input("movement_type", sql.NVarChar, "sku_restored")
+        .input("quantity_change", sql.Int, 0)
+        .input("resulting_stock", sql.Int, existing.recordset[0].stock_quantity)
+        .input("reference_id", sql.NVarChar, existing.recordset[0].sku)
+        .input("note", sql.NVarChar, `Khôi phục kinh doanh SKU ${existing.recordset[0].sku}`)
+        .input("performed_by", sql.NVarChar, actor)
+        .query(`
+          INSERT INTO InventoryMovements (product_id, variant_id, movement_type, quantity_change, resulting_stock, reference_id, note, performed_by, created_at)
+          VALUES (@product_id, @variant_id, @movement_type, @quantity_change, @resulting_stock, @reference_id, @note, @performed_by, GETDATE())
+        `);
+
+      await transaction.commit();
+      return { success: true, variantId, isActive: true };
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
+    }
+  },
+
   // ==========================================
   // ORDERS TABLE & ACID TRANSACTIONS
   // ==========================================

@@ -52,12 +52,15 @@ export default function ProductCard({ product }) {
   const coverImage = selectedImages.find((image) => image.toLowerCase().includes("front"))
     || selectedImages[0]
     || product.images?.[0];
-  const hoverImage = selectedImages.find((image) => image.toLowerCase().includes("model-outfit"))
-    || selectedImages.find((image) => image.toLowerCase().includes("model-detail"))
-    || null;
+  const isPrimaryColor = selectedColor === firstColor;
+  const hoverImage = isPrimaryColor
+    ? selectedImages.find((image) => image.toLowerCase().includes("model-outfit"))
+      || selectedImages.find((image) => image.toLowerCase().includes("model-detail"))
+      || null
+    : null;
 
 return (
-  <article className="product-card">
+  <article className={`product-card${hoverImage ? " has-hover-image" : ""}`}>
     <button className="product-card-favorite" type="button" aria-label={isFavorite(product.id) ? "Remove from wishlist" : "Add to wishlist"} aria-pressed={isFavorite(product.id)} onClick={async () => { const result = await toggleFavorite(product.id); if (result?.requiresLogin) navigate(`/login?returnTo=${encodeURIComponent(location.pathname)}`); }}>
       <HeartIcon filled={isFavorite(product.id)} />
     </button>

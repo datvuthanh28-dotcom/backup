@@ -6,17 +6,43 @@ import {
   updateVariantStock,
   updateVariantPricing,
   getInventoryMovements,
+  getAllProductsAdmin,
+  createProductAdmin,
+  updateProductAdmin,
+  softDeleteProductAdmin,
+  restoreProductAdmin,
+  createVariantAdmin,
+  updateVariantAdmin,
+  softDeleteVariantAdmin,
+  restoreVariantAdmin,
 } from "../controllers/productController.js";
-import { authenticateToken, requireRole } from "../middleware/auth.js";
+import { authenticateToken, optionalAuthenticateToken, requireRole } from "../middleware/auth.js";
 
 const router = Router();
 
-router.get("/", getAllProducts);
+// Public / Authenticated Product Browsing
+router.get("/", optionalAuthenticateToken, getAllProducts);
 router.get("/inventory/movements", authenticateToken, requireRole("staff", "admin"), getInventoryMovements);
-router.get("/:id", getProductById);
+
+// ==========================================
+// Admin Product & SKU Management Endpoints
+// (Must be defined BEFORE /:id parameterized routes)
+// ==========================================
+router.get("/admin/all", authenticateToken, requireRole("admin"), getAllProductsAdmin);
+router.post("/admin", authenticateToken, requireRole("admin"), createProductAdmin);
+router.put("/admin/:id", authenticateToken, requireRole("admin"), updateProductAdmin);
+router.delete("/admin/:id", authenticateToken, requireRole("admin"), softDeleteProductAdmin);
+router.post("/admin/:id/restore", authenticateToken, requireRole("admin"), restoreProductAdmin);
+
+router.post("/admin/:id/variants", authenticateToken, requireRole("admin"), createVariantAdmin);
+router.put("/admin/:id/variants/:variantId", authenticateToken, requireRole("admin"), updateVariantAdmin);
+router.delete("/admin/:id/variants/:variantId", authenticateToken, requireRole("admin"), softDeleteVariantAdmin);
+router.post("/admin/:id/variants/:variantId/restore", authenticateToken, requireRole("admin"), restoreVariantAdmin);
+
+// Product Detail & Operational Stock
+router.get("/:id", optionalAuthenticateToken, getProductById);
 router.patch("/:id/stock", authenticateToken, requireRole("staff", "admin"), updateStock);
 router.patch("/:id/variants/:variantId/stock", authenticateToken, requireRole("staff", "admin"), updateVariantStock);
 router.patch("/:id/variants/:variantId/pricing", authenticateToken, requireRole("admin"), updateVariantPricing);
 
 export default router;
-

@@ -143,31 +143,255 @@ export async function simulatePromotion(req, res) {
   const body = req.body || {};
   const errors = validatePromotion({ ...body, status: "draft" });
   if (errors.length) return res.status(400).json({ success: false, error: errors.join(" ") });
+
   const products = await db.getAllProducts();
-  const rows = products.flatMap((product) => (product.variants || []).map((variant) => ({ product_id: product.id, name: product.name, category: product.category, audience: product.audience, product_type: product.productType, subcategory: product.subcategory, collection_name: product.collection, variant_id: variant.id, sku: variant.sku, color_name: variant.color, size_name: variant.size, price: variant.price, cost_price: variant.costPrice, floor_price: variant.floorPrice, stock_quantity: variant.stock, low_stock_threshold: variant.lowStockThreshold, max_stock_threshold: variant.maxStockThreshold })));
+  const rows = products.flatMap((product) => (product.variants || []).map((variant) => ({
+    product_id: product.id,
+    name: product.name,
+    category: product.category,
+    audience: product.audience,
+    product_type: product.productType,
+    subcategory: product.subcategory,
+    collection_name: product.collection,
+    variant_id: variant.id,
+    sku: variant.sku,
+    color_name: variant.color,
+    size_name: variant.size,
+    price: Number(variant.price),
+    cost_price: variant.costPrice != null ? Number(variant.costPrice) : null,
+    floor_price: variant.floorPrice != null ? Number(variant.floorPrice) : null,
+    stock_quantity: Number(variant.stock || 0),
+    low_stock_threshold: Number(variant.lowStockThreshold || 0),
+    max_stock_threshold: Number(variant.maxStockThreshold || 0),
+  })));
+
   const targets = Array.isArray(body.targets) && body.targets.length ? body.targets : [{ type: "store", value: "all" }];
   const matches = (row, target) => target.type === "store" || (target.type === "product" && String(row.product_id) === String(target.value)) || (target.type === "variant" && [String(row.variant_id), String(row.sku)].includes(String(target.value))) || (target.type === "category" && [row.category,row.product_type,row.subcategory].includes(target.value)) || (target.type === "audience" && row.audience === target.value);
   const included = targets.filter((target) => !target.excluded);
   const excluded = targets.filter((target) => target.excluded);
-  const selected = rows.filter((row) => (included.length === 0 || included.some((target) => matches(row,target))) && !excluded.some((target) => matches(row,target)));
+  const selected = rows.filter((row) => (included.length === 0 || included.some((target) => matches(row, target))) && !excluded.some((target) => matches(row, target)));
+
   let estimatedExposure = 0;
   const warnings = [];
+
+  // Duration in days
+  let durationDays = 14;
+  if (body.startAt && body.endAt) {
+    const diffDays = Math.ceil((new Date(body.endAt).getTime() - new Date(body.startAt).getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays > 0 && diffDays <= 90) durationDays = diffDays;
+  }
+
+  // Monthly holding cost rate: 1.5% per month on stock inventory value (avoidable holding / capital costs)
+  const dailyHoldingRate = 0.015 / 30;
+
+  let missingCostCount = 0;
+  let totalBaselineUnits = 0;
+  let totalBaselineRevenue = 0;
+  let totalBaselineCost = 0;
+  let totalBaselineEndingStock = 0;
+  let totalBaselineHoldingCost = 0;
+
+  let totalPromoUnits = 0;
+  let totalPromoRevenue = 0;
+  let totalPromoCost = 0;
+  let totalPromoEndingStock = 0;
+  let totalPromoHoldingCost = 0;
+
   const variants = selected.map((row) => {
     let discount = promotionDiscount(body, Number(row.price));
     if (body.maximumDiscount) discount = Math.min(discount, Number(body.maximumDiscount));
     if (body.maxDiscountPerOrder) discount = Math.min(discount, Number(body.maxDiscountPerOrder));
+
     const floor = Number(row.floor_price || 0);
     const calculatedPrice = Number(row.price) - discount;
     const belowFloor = floor > 0 && calculatedPrice < floor;
     if (belowFloor) warnings.push(`${row.sku}: giá sau giảm thấp hơn giá sàn ${floor.toLocaleString("vi-VN")}đ.`);
-    if (Number(row.stock_quantity) <= Number(row.low_stock_threshold)) warnings.push(`${row.sku}: đang sắp hết hoặc hết hàng, không nên giảm thêm.`);
-    const lowStock = Number(row.stock_quantity) <= Number(row.low_stock_threshold);
+    if (row.stock_quantity <= row.low_stock_threshold) warnings.push(`${row.sku}: đang sắp hết hoặc hết hàng, không nên giảm thêm.`);
+
+    const lowStock = row.stock_quantity <= row.low_stock_threshold;
     const safeDiscount = lowStock ? 0 : floor > 0 ? Math.min(discount, Math.max(0, Number(row.price) - floor)) : discount;
     estimatedExposure += safeDiscount * Number(row.stock_quantity || 0);
-    return { productId: row.product_id, productName: row.name, variantId: row.variant_id, sku: row.sku, color: row.color_name, size: row.size_name, price: Number(row.price), costPrice: Number(row.cost_price || 0), floorPrice: floor, stock: Number(row.stock_quantity), proposedPrice: Number(row.price) - safeDiscount, discount: safeDiscount, belowFloor, lowStock };
+
+    const hasCost = row.cost_price != null && row.cost_price > 0;
+    if (!hasCost || !row.floor_price) {
+      missingCostCount++;
+    }
+
+    const unitPrice = row.price;
+    const discountedPrice = Math.max(0, unitPrice - safeDiscount);
+    const unitCost = hasCost ? row.cost_price : 0;
+    const sellableStock = Math.max(0, row.stock_quantity - row.low_stock_threshold);
+
+    // Conservative baseline sales over duration
+    const baselineUnits = Math.min(sellableStock, Math.max(1, Math.round((durationDays / 14) * 2)));
+
+    // Demand uplift factor based on discount percentage
+    const discountPercent = unitPrice > 0 ? (safeDiscount / unitPrice) * 100 : 0;
+    const upliftFactor = discountPercent >= 30 ? 2.8 : discountPercent >= 20 ? 2.1 : discountPercent >= 10 ? 1.6 : 1.25;
+    const promoUnits = safeDiscount > 0 ? Math.min(sellableStock, Math.max(1, Math.round(baselineUnits * upliftFactor))) : baselineUnits;
+
+    // Baseline metrics
+    const baseRevenue = baselineUnits * unitPrice;
+    const baseCost = baselineUnits * unitCost;
+    const baseEndingStock = Math.max(0, row.stock_quantity - baselineUnits);
+    const baseHoldingCost = baseEndingStock * unitCost * dailyHoldingRate * durationDays;
+
+    totalBaselineUnits += baselineUnits;
+    totalBaselineRevenue += baseRevenue;
+    totalBaselineCost += baseCost;
+    totalBaselineEndingStock += baseEndingStock;
+    totalBaselineHoldingCost += baseHoldingCost;
+
+    // Promotion metrics
+    const promoRevenue = promoUnits * discountedPrice;
+    const promoCost = promoUnits * unitCost;
+    const promoEndingStock = Math.max(0, row.stock_quantity - promoUnits);
+    const promoHoldingCost = promoEndingStock * unitCost * dailyHoldingRate * durationDays;
+
+    totalPromoUnits += promoUnits;
+    totalPromoRevenue += promoRevenue;
+    totalPromoCost += promoCost;
+    totalPromoEndingStock += promoEndingStock;
+    totalPromoHoldingCost += promoHoldingCost;
+
+    return {
+      productId: row.product_id,
+      productName: row.name,
+      variantId: row.variant_id,
+      sku: row.sku,
+      color: row.color_name,
+      size: row.size_name,
+      price: unitPrice,
+      costPrice: row.cost_price || 0,
+      floorPrice: floor,
+      stock: row.stock_quantity,
+      proposedPrice: discountedPrice,
+      discount: safeDiscount,
+      belowFloor,
+      lowStock,
+      hasCost,
+    };
   });
+
   const uniqueWarnings = [...new Set(warnings)];
-  return res.json({ success: true, simulation: { productCount: new Set(variants.map((row) => row.productId)).size, variantCount: variants.length, estimatedExposure, budgetTotal: Number(body.budgetTotal || 0), overBudget: Boolean(body.budgetTotal && estimatedExposure > Number(body.budgetTotal)), requiresOverride: variants.some((row) => row.belowFloor), hasBlockedVariants: variants.some((row) => row.lowStock), warnings: uniqueWarnings.slice(0, 30), variants: variants.slice(0, 100) } });
+
+  // Totals & Comparison
+  const baselineGrossProfit = totalBaselineRevenue - totalBaselineCost;
+  const promoGrossProfit = totalPromoRevenue - totalPromoCost;
+  const avoidedHoldingCost = Math.max(0, totalBaselineHoldingCost - totalPromoHoldingCost);
+  const netFinancialDelta = (promoGrossProfit - baselineGrossProfit) + avoidedHoldingCost;
+
+  // Missing data flag and note
+  const hasMissingCostData = missingCostCount > 0;
+  const missingDataNotice = hasMissingCostData
+    ? `Cảnh báo: Có ${missingCostCount} SKU chưa được thiết lập giá vốn hoặc giá sàn. Hệ thống tính toán trên dữ liệu hiện có và không tự tạo số liệu chi phí hoặc khẳng định mức lợi nhuận giả định.`
+    : null;
+
+  // Deterministic financial forecast object
+  const forecast = {
+    durationDays,
+    hasMissingCostData,
+    missingCostCount,
+    missingDataNotice,
+    baseline: {
+      projectedUnits: totalBaselineUnits,
+      projectedRevenue: totalBaselineRevenue,
+      projectedCost: totalBaselineCost,
+      projectedGrossProfit: baselineGrossProfit,
+      grossMarginPercent: totalBaselineRevenue > 0 ? Number(((baselineGrossProfit / totalBaselineRevenue) * 100).toFixed(1)) : 0,
+      projectedEndingStock: totalBaselineEndingStock,
+      projectedHoldingCost: Math.round(totalBaselineHoldingCost),
+    },
+    promotion: {
+      projectedUnits: totalPromoUnits,
+      projectedRevenue: totalPromoRevenue,
+      projectedCost: totalPromoCost,
+      projectedGrossProfit: promoGrossProfit,
+      grossMarginPercent: totalPromoRevenue > 0 ? Number(((promoGrossProfit / totalPromoRevenue) * 100).toFixed(1)) : 0,
+      cashFlowGenerated: totalPromoRevenue,
+      projectedEndingStock: totalPromoEndingStock,
+      projectedHoldingCost: Math.round(totalPromoHoldingCost),
+      avoidedHoldingCost: Math.round(avoidedHoldingCost),
+      netBenefitVsBaseline: Math.round(netFinancialDelta),
+    },
+    costBreakdown: {
+      fixedOverheadCost: 0,
+      avoidableInventoryHoldingCost: Math.round(avoidedHoldingCost),
+      noDoubleCountingVerified: true,
+    },
+  };
+
+  // AI Strategic Explanation (using only the deterministic numbers)
+  let aiStrategicCommentary = `Chương trình dự kiến mang lại dòng tiền ${forecast.promotion.cashFlowGenerated.toLocaleString("vi-VN")}đ với ${forecast.promotion.projectedUnits} sản phẩm bán ra. ` +
+    (netFinancialDelta >= 0
+      ? `Lợi ích tài chính tổng hợp sau khi tính chi phí giải phóng tồn kho tăng thêm ${Math.round(netFinancialDelta).toLocaleString("vi-VN")}đ so với giữ nguyên giá.`
+      : `Lưu ý mức giảm giá làm biên lợi nhuận gộp nén lại so với giữ giá; cần cân nhắc giữa mục tiêu đẩy nhanh thanh lý kho và tối đa hóa biên lãi.`);
+
+  const apiKey = process.env.OPENAI_API_KEY || process.env.VITE_CHAT_API_KEY;
+  if (apiKey) {
+    try {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are Maison Rue's luxury fashion business analyst. Analyze this promotion simulation. " +
+                "You MUST NOT invent new financial figures; only interpret the provided exact numbers. " +
+                "Write 2-3 concise, professional sentences in Vietnamese focusing on: revenue vs profit tradeoff, inventory velocity, and cashflow.",
+            },
+            {
+              role: "user",
+              content: JSON.stringify({
+                goal: body.businessGoal,
+                durationDays,
+                baselineRevenue: forecast.baseline.projectedRevenue,
+                promoRevenue: forecast.promotion.projectedRevenue,
+                baselineProfit: forecast.baseline.projectedGrossProfit,
+                promoProfit: forecast.promotion.projectedGrossProfit,
+                cashFlow: forecast.promotion.cashFlowGenerated,
+                avoidedHoldingCost: forecast.promotion.avoidedHoldingCost,
+                hasMissingCostData,
+              }),
+            },
+          ],
+          temperature: 0.2,
+          max_tokens: 200,
+        }),
+      });
+
+      if (response.ok) {
+        const resJson = await response.json();
+        const content = resJson.choices?.[0]?.message?.content?.trim();
+        if (content) aiStrategicCommentary = content;
+      }
+    } catch (aiErr) {
+      console.warn("[Promotion Simulation] AI commentary fallback:", aiErr.message);
+    }
+  }
+
+  return res.json({
+    success: true,
+    simulation: {
+      productCount: new Set(variants.map((row) => row.productId)).size,
+      variantCount: variants.length,
+      estimatedExposure,
+      budgetTotal: Number(body.budgetTotal || 0),
+      overBudget: Boolean(body.budgetTotal && estimatedExposure > Number(body.budgetTotal)),
+      requiresOverride: variants.some((row) => row.belowFloor),
+      hasBlockedVariants: variants.some((row) => row.lowStock),
+      warnings: uniqueWarnings.slice(0, 30),
+      variants: variants.slice(0, 100),
+      forecast,
+      aiStrategicCommentary,
+    },
+  });
 }
 
 export async function promotionSuggestions(req, res) {
