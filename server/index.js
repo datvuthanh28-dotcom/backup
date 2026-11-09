@@ -18,6 +18,7 @@ import customerRoutes from "./routes/customerRoutes.js";
 import promotionRoutes from "./routes/promotionRoutes.js";
 import returnRoutes from "./routes/returnRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
+import { initReviewAuditScheduler } from "./services/reviewAuditService.js";
 
 dotenv.config();
 
@@ -134,6 +135,9 @@ async function startServer() {
 
   // Connect to Microsoft SQL Server exclusively
   await connectDB();
+
+  // Initialize background Weekly Review Audit Scheduler (Monday 08:00 ICT)
+  initReviewAuditScheduler();
 
   const server = app.listen(PORT, () => {
     console.log(`[Server] Express API listening on http://localhost:${PORT}`);

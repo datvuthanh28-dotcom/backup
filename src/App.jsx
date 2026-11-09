@@ -42,6 +42,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminEmployees from "./pages/admin/AdminEmployees";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminOrders from "./pages/admin/AdminOrders";
+import AdminProducts from "./pages/admin/AdminProducts";
 import AdminProductInsights from "./pages/admin/AdminProductInsights";
 import AdminPromotions from "./pages/admin/AdminPromotions";
 import AdminReturns from "./pages/admin/AdminReturns";
@@ -126,6 +127,7 @@ function App() {
                 <Route path="employees" element={<AdminEmployees />} />
                 <Route path="reports" element={<AdminReports />} />
                 <Route path="orders" element={<AdminOrders />} />
+                <Route path="products" element={<AdminProducts />} />
                 <Route path="product-insights" element={<AdminProductInsights />} />
                 <Route path="promotions" element={<AdminPromotions />} />
                 <Route path="returns" element={<AdminReturns />} />

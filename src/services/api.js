@@ -91,6 +91,17 @@ export const promotionAPI = {
 export const productsAPI = {
   getAll: () => request("/products"),
   getById: (id) => request(`/products/${id}`),
+  getAllAdmin: () => request("/products/admin/all"),
+  createProductAdmin: (payload) => request("/products/admin", { method: "POST", body: JSON.stringify(payload) }),
+  updateProductAdmin: (id, payload) => request(`/products/admin/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
+  softDeleteProductAdmin: (id, reason) => request(`/products/admin/${id}`, { method: "DELETE", body: JSON.stringify({ reason }) }),
+  restoreProductAdmin: (id) => request(`/products/admin/${id}/restore`, { method: "POST" }),
+
+  createVariantAdmin: (productId, payload) => request(`/products/admin/${productId}/variants`, { method: "POST", body: JSON.stringify(payload) }),
+  updateVariantAdmin: (productId, variantId, payload) => request(`/products/admin/${productId}/variants/${encodeURIComponent(variantId)}`, { method: "PUT", body: JSON.stringify(payload) }),
+  softDeleteVariantAdmin: (productId, variantId, reason) => request(`/products/admin/${productId}/variants/${encodeURIComponent(variantId)}`, { method: "DELETE", body: JSON.stringify({ reason }) }),
+  restoreVariantAdmin: (productId, variantId) => request(`/products/admin/${productId}/variants/${encodeURIComponent(variantId)}/restore`, { method: "POST" }),
+
   updateStock: (id, stock, note) =>
     request(`/products/${id}/stock`, {
       method: "PATCH",
@@ -175,7 +186,14 @@ export const reportAPI = {
     return request(`/admin/reports/revenue${params.size ? `?${params.toString()}` : ""}`);
   },
   getProductInsights: () => request("/admin/reports/product-insights"),
+  getWishlistAnalytics: () => request("/admin/reports/wishlist"),
   getReviews: () => request("/admin/reports/reviews"),
+  auditReviewsNow: () => request("/admin/reports/reviews/audit-now", { method: "POST" }),
+  getReviewAuditRuns: () => request("/admin/reports/reviews/audit-runs"),
+  getReviewAuditRunById: (runId) => request(`/admin/reports/reviews/audit-runs/${runId}`),
+  decideReview: (id, payload) => request(`/admin/reports/reviews/${id}/decision`, { method: "PATCH", body: JSON.stringify(payload) }),
+  bulkDecideReviews: (payload) => request("/admin/reports/reviews/bulk-decision", { method: "POST", body: JSON.stringify(payload) }),
+  getReviewHistory: (reviewId) => request(`/admin/reports/reviews/history${reviewId ? `?reviewId=${reviewId}` : ""}`),
   moderateReview: (id, payload) => request(`/admin/reports/reviews/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
 };
 
