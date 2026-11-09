@@ -1368,13 +1368,13 @@ header nav a {
     transition: opacity .48s ease, transform .65s cubic-bezier(.2,.65,.25,1), filter .45s ease !important;
 }
 
-.product-card:hover .product-image-hover,
-.product-card:focus-within .product-image-hover {
+.product-card.has-hover-image:hover .product-image-hover,
+.product-card.has-hover-image:focus-within .product-image-hover {
     opacity: 1;
 }
 
-.product-card:hover .product-image-primary,
-.product-card:focus-within .product-image-primary {
+.product-card.has-hover-image:hover .product-image-primary,
+.product-card.has-hover-image:focus-within .product-image-primary {
     opacity: 0;
 }
 
