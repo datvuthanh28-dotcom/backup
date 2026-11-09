@@ -5,6 +5,10 @@ import { pathToFileURL } from "node:url";
 
 const generatedRoot = "/Users/htmt1810/.codex/generated_images/01a1ab88-11ad-7d90-8865-73a5a759b72e";
 const cutoffSeconds = 1794165757;
+const excludedFiles = new Set([
+  "exec-d24c3328-0b5a-4038-9998-53383cef64c1.png",
+  "exec-00360f67-4840-4b37-a14e-78ce8aa3c1b7.png"
+]);
 const views = ["back", "model-outfit", "model-detail", "logo-tag"];
 const products = [
   [193, "clothing", "organic-cotton-baby-romper", "soft-beige"],
@@ -26,7 +30,7 @@ const products = [
 const expected = products.length * views.length;
 
 async function newImages() {
-  const names = (await fs.readdir(generatedRoot)).filter((name) => name.endsWith(".png"));
+  const names = (await fs.readdir(generatedRoot)).filter((name) => name.endsWith(".png") && !excludedFiles.has(name));
   const rows = await Promise.all(names.map(async (name) => {
     const file = path.join(generatedRoot, name);
     const stat = await fs.stat(file);
