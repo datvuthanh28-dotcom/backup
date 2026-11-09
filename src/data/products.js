@@ -51,9 +51,7 @@ const productMediaById = {
       ]
     }
   },
-  107: {
-    images: ["image/Heritage Cashmere Crewneck/navy.png"]
-  },
+
   109: {
     colorImages: {
       Beige: [1, 2, 3, 4].map((number) => `image/Cashmere Cardigan - Men/BEIGE/${number}.png`),
@@ -99,9 +97,7 @@ const productMediaById = {
       ]
     }
   },
-  148: {
-    images: ["image/Heritage Cashmere Crewneck/navy.png"]
-  },
+
   150: {
     colorImages: {
       Beige: [
@@ -138,7 +134,8 @@ const productMediaById = {
 };
 
 const resolveProductMedia = (item) => {
-  const configured = productMediaById[item.id] || generatedCatalogMedia[item.id] || {};
+  // Complete, colour-specific catalogue galleries supersede legacy single-image mappings.
+  const configured = generatedCatalogMedia[item.id] || productMediaById[item.id] || {};
   const configuredColorImages = configured.colorImages || {};
   const configuredImages = configured.images || Object.values(configuredColorImages).flat();
   const images = configuredImages.length > 0
