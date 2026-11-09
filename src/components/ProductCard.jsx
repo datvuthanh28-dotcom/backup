@@ -49,10 +49,12 @@ export default function ProductCard({ product }) {
   const selectedImages = product.colorImages?.[selectedColor]?.length
     ? product.colorImages[selectedColor]
     : product.images || [];
-  const modelImage = selectedImages.find((image) => image.toLowerCase().includes("model"));
-  // Curate model covers for roughly one third of cards so the catalog keeps visual rhythm.
-const coverImage = modelImage && product.id % 3 === 0 ? modelImage : selectedImages[0] || product.images?.[0];
-const hoverImage = selectedImages[1] && selectedImages[1] !== coverImage ? selectedImages[1] : null;
+  const coverImage = selectedImages.find((image) => image.toLowerCase().includes("front"))
+    || selectedImages[0]
+    || product.images?.[0];
+  const hoverImage = selectedImages.find((image) => image.toLowerCase().includes("model-outfit"))
+    || selectedImages.find((image) => image.toLowerCase().includes("model-detail"))
+    || null;
 
 return (
   <article className="product-card">
