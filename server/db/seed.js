@@ -16,7 +16,7 @@ const DEFAULT_USERS = [
   {
     id: "usr_staff_01",
     name: "Lê Hoàng Yến (Vận Hành)",
-    email: "staffmaisonrue@gmail.com",
+    email: "staff@maisonrue.com",
     rawPassword: "staff123",
     role: "staff",
     phone: "0912345678",
@@ -25,7 +25,7 @@ const DEFAULT_USERS = [
   {
     id: "usr_staff_02",
     name: "Trần Minh Khoa (Kho Vận)",
-    email: "maisonruestaff2@gmail.com",
+    email: "staff2@maisonrue.com",
     rawPassword: "staff123",
     role: "staff",
     phone: "0923456789",

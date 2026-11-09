@@ -202,7 +202,7 @@ export default function StaffLogin() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="staffmaisonrue@gmail.com"
+                placeholder="staff@maisonrue.com"
                 style={{
                   width: "100%",
                   padding: "12px 14px",
@@ -282,7 +282,7 @@ export default function StaffLogin() {
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               <button
                 type="button"
-                onClick={() => quickFill("staffmaisonrue@gmail.com", "staff123")}
+                onClick={() => quickFill("staff@maisonrue.com", "staff123")}
                 style={{
                   padding: "8px 12px",
                   backgroundColor: "#1C1512",
@@ -297,12 +297,12 @@ export default function StaffLogin() {
                 }}
               >
                 <span>Lê Hoàng Yến (Vận Hành)</span>
-                <span style={{ color: "#B89B5E" }}>staffmaisonrue@gmail.com</span>
+                <span style={{ color: "#B89B5E" }}>staff@maisonrue.com</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => quickFill("maisonruestaff2@gmail.com", "staff123")}
+                onClick={() => quickFill("staff2@maisonrue.com", "staff123")}
                 style={{
                   padding: "8px 12px",
                   backgroundColor: "#1C1512",
@@ -317,7 +317,7 @@ export default function StaffLogin() {
                 }}
               >
                 <span>Trần Minh Khoa (Kho Vận)</span>
-                <span style={{ color: "#B89B5E" }}>maisonruestaff2@gmail.com</span>
+                <span style={{ color: "#B89B5E" }}>staff2@maisonrue.com</span>
               </button>
             </div>
           </div>

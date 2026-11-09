@@ -111,8 +111,50 @@ export async function verifyDeliveryAddress(address, options = {}) {
     throw err;
   }
 
-  // 1. Call Geoapify (Map Data Source & Evidence)
-  const geoResult = await verifyAddressWithGeoapify(raw, options);
+  // 1. Call Geoapify (Map Data Source & Evidence). A map-provider outage must
+  // not stop sales: accept a sufficiently specific address for staff review,
+  // while never claiming that it was verified by Geoapify.
+  let geoResult;
+  try {
+    geoResult = await verifyAddressWithGeoapify(raw, options);
+  } catch (error) {
+    const providerUnavailable =
+      error.code === "ADDRESS_PROVIDER_NOT_CONFIGURED" ||
+      error.code === "ADDRESS_PROVIDER_UNAVAILABLE" ||
+      error.status === 502 ||
+      error.status === 503;
+
+    if (!providerUnavailable) throw error;
+
+    const hasHouseNumber = /(^|[\s,])\d+[\w/-]*/u.test(raw);
+    const addressWords = raw.match(/[A-Za-zÀ-ỹĐđ]{2,}/gu) || [];
+    if (!hasHouseNumber || addressWords.length < 2 || raw.length < 10) {
+      const fallbackError = new Error(
+        "Địa chỉ chưa đủ chi tiết để nhân viên đối soát. Vui lòng bổ sung số nhà và tên đường."
+      );
+      fallbackError.status = 422;
+      fallbackError.code = "NEEDS_CORRECTION";
+      throw fallbackError;
+    }
+
+    return {
+      success: true,
+      status: "PENDING_MANUAL_REVIEW",
+      verificationMode: "manual_review",
+      explanation: "Đã ghi nhận địa chỉ. Nhân viên sẽ đối soát trước khi giao hàng.",
+      formatted: raw,
+      placeId: null,
+      resultType: "manual_review",
+      street: "",
+      housenumber: "",
+      city: "",
+      district: "",
+      country: options.country || "VN",
+      confidence: null,
+      lat: null,
+      lon: null,
+    };
+  }
 
   // 2. Call OpenAI to audit evidence (Privacy-safe: minimal address fields only)
   let aiAudit = null;

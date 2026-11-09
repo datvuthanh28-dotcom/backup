@@ -111,7 +111,12 @@ export async function createOrder(req, res) {
       shipping_discount_total: pricing.shippingDiscountTotal,
       promotion_code: pricing.code,
       promotion_snapshot_json: JSON.stringify({ code: pricing.code, automaticPromotions: pricing.automaticPromotions.map((promotion) => ({ id: promotion.id, name: promotion.name, type: promotion.discount_type, value: promotion.discount_value })), codePromotion: pricing.codePromotion ? { id: pricing.codePromotion.id, name: pricing.codePromotion.name, type: pricing.codePromotion.discount_type, value: pricing.codePromotion.discount_value } : null }),
-      notes: (notes || "").trim(),
+      notes: [
+        (notes || "").trim(),
+        verifiedAddress?.status === "PENDING_MANUAL_REVIEW"
+          ? "[Địa chỉ chờ nhân viên đối soát trước khi giao]"
+          : "",
+      ].filter(Boolean).join(" "),
     };
 
     const newOrder = await db.createOrderWithTransaction({

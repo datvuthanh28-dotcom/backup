@@ -263,7 +263,7 @@ async function runDeepSecurityAudit() {
 
     // Staff user login
     const staffLogin = await makeRequest("POST", "/api/auth/staff/login", {
-      email: "staffmaisonrue@gmail.com",
+      email: "staff@maisonrue.com",
       password: "staff123",
     });
     assert(staffLogin.status === 200, "Staff logged in successfully");
