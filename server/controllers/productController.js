@@ -1,9 +1,24 @@
 import { db } from "../config/db.js";
 
+// Helper to sanitize costPrice for public/customer viewers
+function sanitizeForViewer(product, isStaffOrAdmin) {
+  if (isStaffOrAdmin || !product) return product;
+  const sanitizedVariants = product.variants?.map((v) => {
+    const { costPrice, cost_price, ...rest } = v;
+    return rest;
+  });
+  return {
+    ...product,
+    variants: sanitizedVariants,
+  };
+}
+
 export async function getAllProducts(req, res) {
   try {
+    const isStaffOrAdmin = req.user && (req.user.role === "admin" || req.user.role === "staff");
     const products = await db.getAllProducts();
-    return res.json({ success: true, products });
+    const sanitized = products.map((p) => sanitizeForViewer(p, isStaffOrAdmin));
+    return res.json({ success: true, products: sanitized });
   } catch (err) {
     console.error("[Products] Error:", err);
     return res.status(500).json({ success: false, error: "Không thể lấy danh sách sản phẩm." });
@@ -12,11 +27,12 @@ export async function getAllProducts(req, res) {
 
 export async function getProductById(req, res) {
   try {
+    const isStaffOrAdmin = req.user && (req.user.role === "admin" || req.user.role === "staff");
     const product = await db.getProductById(req.params.id);
     if (!product) {
       return res.status(404).json({ success: false, error: "Không tìm thấy sản phẩm." });
     }
-    return res.json({ success: true, product });
+    return res.json({ success: true, product: sanitizeForViewer(product, isStaffOrAdmin) });
   } catch (err) {
     console.error("[Product Detail] Error:", err);
     return res.status(500).json({ success: false, error: "Lỗi khi lấy thông tin sản phẩm." });
@@ -96,3 +112,106 @@ export async function getInventoryMovements(req, res) {
   }
 }
 
+// ====================================================
+// ADMIN PRODUCT & SKU MANAGEMENT HANDLERS
+// ====================================================
+
+export async function getAllProductsAdmin(req, res) {
+  try {
+    const products = await db.getAllProductsAdmin();
+    return res.json({ success: true, products });
+  } catch (err) {
+    console.error("[Admin Products] Error:", err);
+    return res.status(500).json({ success: false, error: err.message || "Lỗi khi lấy danh sách sản phẩm quản trị." });
+  }
+}
+
+export async function createProductAdmin(req, res) {
+  try {
+    const actor = `${req.user.name} (${req.user.role.toUpperCase()})`;
+    const result = await db.createProductAdmin(req.body, actor);
+    return res.status(201).json({ success: true, message: "Đã tạo sản phẩm thành công.", ...result });
+  } catch (err) {
+    console.error("[Create Product Admin] Error:", err);
+    return res.status(400).json({ success: false, error: err.message || "Lỗi khi tạo sản phẩm mới." });
+  }
+}
+
+export async function updateProductAdmin(req, res) {
+  try {
+    const actor = `${req.user.name} (${req.user.role.toUpperCase()})`;
+    const result = await db.updateProductAdmin(req.params.id, req.body, actor);
+    return res.json({ success: true, message: "Cập nhật sản phẩm thành công.", ...result });
+  } catch (err) {
+    console.error("[Update Product Admin] Error:", err);
+    return res.status(400).json({ success: false, error: err.message || "Lỗi khi cập nhật sản phẩm." });
+  }
+}
+
+export async function softDeleteProductAdmin(req, res) {
+  try {
+    const actor = `${req.user.name} (${req.user.role.toUpperCase()})`;
+    const reason = req.body?.reason || "Admin tạm ngừng kinh doanh sản phẩm";
+    const result = await db.softDeleteProductAdmin(req.params.id, actor, reason);
+    return res.json({ success: true, message: "Đã tạm ngừng kinh doanh sản phẩm (xóa mềm).", ...result });
+  } catch (err) {
+    console.error("[Soft Delete Product Admin] Error:", err);
+    return res.status(400).json({ success: false, error: err.message || "Lỗi khi ngừng kinh doanh sản phẩm." });
+  }
+}
+
+export async function restoreProductAdmin(req, res) {
+  try {
+    const actor = `${req.user.name} (${req.user.role.toUpperCase()})`;
+    const result = await db.restoreProductAdmin(req.params.id, actor);
+    return res.json({ success: true, message: "Đã khôi phục kinh doanh sản phẩm thành công.", ...result });
+  } catch (err) {
+    console.error("[Restore Product Admin] Error:", err);
+    return res.status(400).json({ success: false, error: err.message || "Lỗi khi khôi phục sản phẩm." });
+  }
+}
+
+export async function createVariantAdmin(req, res) {
+  try {
+    const actor = `${req.user.name} (${req.user.role.toUpperCase()})`;
+    const result = await db.createVariantAdmin(req.params.id, req.body, actor);
+    return res.status(201).json({ success: true, message: "Đã tạo SKU biến thể mới thành công.", ...result });
+  } catch (err) {
+    console.error("[Create Variant Admin] Error:", err);
+    return res.status(400).json({ success: false, error: err.message || "Lỗi khi tạo SKU biến thể." });
+  }
+}
+
+export async function updateVariantAdmin(req, res) {
+  try {
+    const actor = `${req.user.name} (${req.user.role.toUpperCase()})`;
+    const result = await db.updateVariantAdmin(req.params.id, req.params.variantId, req.body, actor);
+    return res.json({ success: true, message: "Cập nhật SKU biến thể thành công.", ...result });
+  } catch (err) {
+    console.error("[Update Variant Admin] Error:", err);
+    return res.status(400).json({ success: false, error: err.message || "Lỗi khi cập nhật SKU biến thể." });
+  }
+}
+
+export async function softDeleteVariantAdmin(req, res) {
+  try {
+    const actor = `${req.user.name} (${req.user.role.toUpperCase()})`;
+    const reason = req.body?.reason || "Admin tạm ngừng kinh doanh SKU";
+    const result = await db.softDeleteVariantAdmin(req.params.id, req.params.variantId, actor, reason);
+    return res.json({ success: true, message: "Đã tạm ngừng kinh doanh SKU biến thể.", ...result });
+  } catch (err) {
+    console.error("[Soft Delete Variant Admin] Error:", err);
+    return res.status(400).json({ success: false, error: err.message || "Lỗi khi ngừng kinh doanh SKU." });
+  }
+}
+
+export async function restoreVariantAdmin(req, res) {
+  try {
+    const actor = `${req.user.name} (${req.user.role.toUpperCase()})`;
+    const result = await db.restoreVariantAdmin(req.params.id, req.params.variantId, actor);
+    return res.json({ success: true, message: "Đã khôi phục kinh doanh SKU biến thể thành công.", ...result });
+  } catch (err) {
+    console.error("[Restore Variant Admin] Error:", err);
+    return res.status(400).json({ success: false, error: err.message || "Lỗi khi khôi phục SKU." });
+  }
+}
