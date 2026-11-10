@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
 import { useAuth } from "../context/AuthContext";
@@ -45,29 +45,44 @@ function AudienceDropdown({ audience }) {
   const basePath = `/${audience}`;
   const productTypePath = (type) => `${basePath}?type=${encodeURIComponent(type)}`;
   const subcategoryPath = (subcategory) => `${basePath}?type=Clothing&subcategory=${encodeURIComponent(subcategory)}`;
+  const [dismissed, setDismissed] = useState(false);
+  const closeDropdown = (event) => {
+    setDismissed(true);
+    event.currentTarget.blur();
+  };
 
   return (
-    <div className="nav-dropdown audience-dropdown">
-      <Link to={basePath} className="nav-main">{menu.label}</Link>
+    <div
+      className={`nav-dropdown audience-dropdown${dismissed ? " is-dismissed" : ""}`}
+      onMouseLeave={() => setDismissed(false)}
+      onFocusCapture={() => setDismissed(false)}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          setDismissed(true);
+          event.currentTarget.querySelector(":focus")?.blur();
+        }
+      }}
+    >
+      <Link to={basePath} className="nav-main" onClick={closeDropdown}>{menu.label}</Link>
       <div className="dropdown-menu dropdown-categories">
-        <Link to={basePath}>ALL PRODUCTS</Link>
+        <Link to={basePath} onClick={closeDropdown}>ALL PRODUCTS</Link>
         <div className="category-dropdown">
-          <Link to={productTypePath("Clothing")}>CLOTHING <span>›</span></Link>
+          <Link to={productTypePath("Clothing")} onClick={closeDropdown}>CLOTHING <span>›</span></Link>
           <div className="category-submenu">
-            <Link to={productTypePath("Clothing")}>ALL CLOTHING</Link>
-            {menu.clothing.map((subcategory) => <Link key={subcategory} to={subcategoryPath(subcategory)}>{subcategory.toUpperCase()}</Link>)}
+            <Link to={productTypePath("Clothing")} onClick={closeDropdown}>ALL CLOTHING</Link>
+            {menu.clothing.map((subcategory) => <Link key={subcategory} to={subcategoryPath(subcategory)} onClick={closeDropdown}>{subcategory.toUpperCase()}</Link>)}
           </div>
         </div>
-        <Link to={productTypePath("Footwear")}>SHOES</Link>
+        <Link to={productTypePath("Footwear")} onClick={closeDropdown}>SHOES</Link>
         {menu.accessories ? (
           <div className="category-dropdown">
-            <Link to={productTypePath("Accessories")}>ACCESSORIES <span>›</span></Link>
+            <Link to={productTypePath("Accessories")} onClick={closeDropdown}>ACCESSORIES <span>›</span></Link>
             <div className="category-submenu">
-              <Link to={productTypePath("Accessories")}>ALL ACCESSORIES</Link>
-              {menu.accessories.map((subcategory) => <Link key={subcategory} to={`${basePath}?type=Accessories&subcategory=${encodeURIComponent(subcategory)}`}>{subcategory.toUpperCase()}</Link>)}
+              <Link to={productTypePath("Accessories")} onClick={closeDropdown}>ALL ACCESSORIES</Link>
+              {menu.accessories.map((subcategory) => <Link key={subcategory} to={`${basePath}?type=Accessories&subcategory=${encodeURIComponent(subcategory)}`} onClick={closeDropdown}>{subcategory.toUpperCase()}</Link>)}
             </div>
           </div>
-        ) : <Link to={productTypePath("Accessories")}>ACCESSORIES</Link>}
+        ) : <Link to={productTypePath("Accessories")} onClick={closeDropdown}>ACCESSORIES</Link>}
       </div>
     </div>
   );
@@ -80,9 +95,25 @@ export default function Header() {
   const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [highlightedSearchIndex, setHighlightedSearchIndex] = useState(-1);
+  const [recentSearches, setRecentSearches] = useState([]);
+  const [recentProductIds, setRecentProductIds] = useState([]);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [headerHidden, setHeaderHidden] = useState(false);
   const lastScrollY = useRef(0);
+  const recentSearchStorageKey = `maison-rue-recent-searches:${currentUser?.id || currentUser?.email || "guest"}`;
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(recentSearchStorageKey) || "[]");
+      setRecentSearches(Array.isArray(saved) ? saved.filter(Boolean).slice(0, 6) : []);
+      const savedProducts = JSON.parse(window.localStorage.getItem(`${recentSearchStorageKey}:products`) || "[]");
+      setRecentProductIds(Array.isArray(savedProducts) ? savedProducts.map(Number).filter(Number.isFinite).slice(0, 4) : []);
+    } catch {
+      setRecentSearches([]);
+      setRecentProductIds([]);
+    }
+  }, [recentSearchStorageKey]);
 
   useEffect(() => {
     lastScrollY.current = window.scrollY;
@@ -98,13 +129,69 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    if (!searchOpen) {
+      document.body.style.overflow = "";
+      return undefined;
+    }
+    document.body.style.overflow = "hidden";
+    setHeaderHidden(false);
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [searchOpen]);
+
   const handleSearch = (event) => {
     event?.preventDefault();
     const term = query.trim();
     if (!term) return;
+    rememberSearch(term);
     setSearchOpen(false);
     setQuery("");
     navigate(`/search?q=${encodeURIComponent(term)}`);
+  };
+
+  const clearRecentSearches = () => {
+    setRecentSearches([]);
+    setRecentProductIds([]);
+    window.localStorage.removeItem(recentSearchStorageKey);
+    window.localStorage.removeItem(`${recentSearchStorageKey}:products`);
+  };
+
+  const rememberRecentProduct = (productId) => {
+    const nextIds = [Number(productId), ...recentProductIds.filter((id) => Number(id) !== Number(productId))].slice(0, 4);
+    setRecentProductIds(nextIds);
+    window.localStorage.setItem(`${recentSearchStorageKey}:products`, JSON.stringify(nextIds));
+  };
+
+  const rememberSearch = (term) => {
+    const normalizedTerm = term.trim();
+    if (!normalizedTerm) return;
+    const nextRecentSearches = [normalizedTerm, ...recentSearches.filter((item) => item.toLowerCase() !== normalizedTerm.toLowerCase())].slice(0, 6);
+    setRecentSearches(nextRecentSearches);
+    window.localStorage.setItem(recentSearchStorageKey, JSON.stringify(nextRecentSearches));
+  };
+
+  const handleSearchKeyDown = (event) => {
+    if (event.key === "ArrowDown" && searchResults.length) {
+      event.preventDefault();
+      setHighlightedSearchIndex((index) => Math.min(index + 1, searchResults.length - 1));
+    } else if (event.key === "ArrowUp" && searchResults.length) {
+      event.preventDefault();
+      setHighlightedSearchIndex((index) => Math.max(index - 1, 0));
+    } else if (event.key === "Enter" && highlightedSearchIndex >= 0 && searchResults[highlightedSearchIndex]) {
+      event.preventDefault();
+      const product = searchResults[highlightedSearchIndex];
+      rememberSearch(query);
+      rememberRecentProduct(product.id);
+      setSearchOpen(false);
+      setQuery("");
+      navigate(`/product/${product.id}`);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      setSearchOpen(false);
+      setHighlightedSearchIndex(-1);
+    }
   };
 
   const results = query.trim()
@@ -112,6 +199,17 @@ export default function Header() {
         p.name.toLowerCase().includes(query.trim().toLowerCase())
       )
     : [];
+  const searchResults = results.slice(0, 6);
+  const discoveryProducts = useMemo(() => {
+    const fallbackSalesOrder = [106, 107, 148, 149];
+    const salesValue = (product) => Number(product.total_revenue ?? product.totalRevenue ?? product.units_sold ?? product.unitsSold ?? product.sales ?? 0);
+    const topForAudience = (audience) => products
+      .filter((product) => product.audience === audience)
+      .sort((a, b) => salesValue(b) - salesValue(a) || ((fallbackSalesOrder.indexOf(a.id) < 0 ? 999 : fallbackSalesOrder.indexOf(a.id)) - (fallbackSalesOrder.indexOf(b.id) < 0 ? 999 : fallbackSalesOrder.indexOf(b.id))) || a.id - b.id)
+      .slice(0, 2);
+    return [...topForAudience("men"), ...topForAudience("women")];
+  }, [products]);
+  const recentProducts = useMemo(() => recentProductIds.map((id) => products.find((product) => Number(product.id) === Number(id))).filter(Boolean), [products, recentProductIds]);
 
   const handleLogout = () => {
     logout();
@@ -139,7 +237,7 @@ export default function Header() {
       </nav>
 
       <nav className="head-right">
-        <a href="#" id="searchBtn" onClick={(e) => { e.preventDefault(); setSearchOpen(true); }}>
+        <a href="#" id="searchBtn" onClick={(e) => { e.preventDefault(); setHighlightedSearchIndex(-1); setHeaderHidden(false); setSearchOpen(true); }}>
           SEARCH <SearchIcon />
         </a>
 
@@ -270,7 +368,7 @@ export default function Header() {
       </nav>
 
       {searchOpen && (
-        <div className="search-box" id="searchBox" style={{ display: "flex" }}>
+        <div className="search-box" id="searchBox" style={{ display: "flex" }} onMouseDown={(event) => event.target === event.currentTarget && setSearchOpen(false)}>
           <div className="search-content">
             <button id="closeSearch" type="button" onClick={() => setSearchOpen(false)}>×</button>
             <form className="search-form" onSubmit={handleSearch}>
@@ -280,25 +378,38 @@ export default function Header() {
               placeholder="Search Maison Rue..."
               autoFocus
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => { setQuery(e.target.value); setHighlightedSearchIndex(-1); }}
+              onKeyDown={handleSearchKeyDown}
             />
             {query && <button type="button" className="search-clear" onClick={() => setQuery("")} aria-label="Clear search">Clear</button>}
             <button type="submit" className="search-submit">Search</button>
             </form>
             <div id="searchResults">
-              {query.trim() && results.length === 0 && <p className="search-empty">No products found. Try another keyword.</p>}
-              {results.slice(0, 6).map((p) => (
+              {!query.trim() ? (
+                <div className="search-discovery">
+                  <div className="search-discovery-categories"><p className="search-section-label">Popular categories</p><div>{[["Women", "/women"], ["Men", "/men"], ["Kids", "/kids"], ["Cashmere", "/collections/heritage-cashmere"], ["Knitwear", "/women?type=Clothing&subcategory=Knitwear"]].map(([label, path]) => <Link key={label} to={path} onClick={() => setSearchOpen(false)}>{label}</Link>)}</div></div>
+                  {recentProducts.length > 0 && <div className="search-recent-products"><div className="search-recent-heading"><p className="search-section-label">Your recent searches</p><button type="button" onClick={clearRecentSearches}>Clear</button></div><div className="search-discovery-grid">{recentProducts.map((p) => <Link key={p.id} to={`/product/${p.id}`} onClick={() => setSearchOpen(false)}><img src={`/${p.images[0]}`} alt="" /><span><strong>{p.name}</strong><small>{p.collection || p.productType}</small></span></Link>)}</div></div>}
+                  <div className="search-discovery-products"><p className="search-section-label">Curated pieces</p><div className="search-discovery-grid">{discoveryProducts.map((p) => <Link key={p.id} to={`/product/${p.id}`} onClick={() => setSearchOpen(false)}><img src={`/${p.images[0]}`} alt="" /><span><strong>{p.name}</strong><small>{p.collection || p.productType}</small></span></Link>)}</div></div>
+                </div>
+              ) : (
+                <>
+                  {results.length === 0 && <p className="search-empty">No products found. Try another keyword.</p>}
+                  {searchResults.map((p, index) => (
                 <Link
                   key={p.id}
-                  className="search-result-item"
+                  className={`search-result-item${highlightedSearchIndex === index ? " is-keyboard-active" : ""}`}
                   to={`/product/${p.id}`}
-                  onClick={() => { setSearchOpen(false); setQuery(""); }}
+                  aria-current={highlightedSearchIndex === index ? "true" : undefined}
+                  onMouseEnter={() => setHighlightedSearchIndex(index)}
+                  onClick={() => { rememberSearch(query); rememberRecentProduct(p.id); setSearchOpen(false); setQuery(""); }}
                 >
                   <img src={`/${p.images[0]}`} alt="" />
                   <span><strong>{p.name}</strong><small>{p.collection || p.productType} · {p.price.toLocaleString("vi-VN")}đ</small></span>
                 </Link>
-              ))}
-              {results.length > 6 && <button className="search-view-all" onClick={handleSearch}>View all {results.length} results →</button>}
+                  ))}
+                  {results.length > 6 && <button className="search-view-all" onClick={handleSearch}>View all {results.length} results →</button>}
+                </>
+              )}
             </div>
           </div>
         </div>

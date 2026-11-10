@@ -5,7 +5,6 @@ import { useSearchParams } from "react-router-dom";
 import { useStore } from "../hooks/useStore";
 
 export default function ProductListPage({ gender, audience, collection, productType, title, eyebrow = "Maison Rue Collection", intro = "Considered materials, enduring silhouettes and understated detail." }) {
-  useDocumentTitle(title);
   const { products } = useStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const [type, setType] = useState("all");
@@ -33,6 +32,11 @@ export default function ProductListPage({ gender, audience, collection, productT
   const requestedProductType = productType || searchParams.get("type");
   const normalizedProductType = requestedProductType?.trim().toLowerCase();
   const requestedSubcategory = searchParams.get("subcategory");
+  const selectedSectionLabel = requestedSubcategory
+    || (normalizedProductType === "footwear" ? "Shoes" : requestedProductType)
+    || "";
+  const displayTitle = selectedSectionLabel ? `${title} ${selectedSectionLabel}` : title;
+  useDocumentTitle(displayTitle);
   const matchesAudience = (product) => {
     if (audience) return product.audience === audience;
     if (gender === "unisex") return product.gender === "unisex";
@@ -85,7 +89,7 @@ export default function ProductListPage({ gender, audience, collection, productT
 
   return (
     <main className="collection-page">
-      <div className="collection-hero"><p className="eyebrow">{eyebrow}</p><h1 className="page-title">{title}</h1><p>{intro}</p></div>
+      <div className="collection-hero"><p className="eyebrow">{eyebrow}</p><h1 className="page-title">{displayTitle}</h1><p>{intro}</p></div>
       <div className={`catalog-toolbar${isAudienceCollection ? " cashmere-toolbar" : ""}`}>
         {isAudienceCollection ? (
           <div className={`cashmere-audience-tabs${audienceTabs.length === 2 ? " is-two-tabs" : ""}`} aria-label="Collection audience">
