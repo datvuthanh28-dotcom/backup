@@ -751,7 +751,7 @@ header nav a {
 .search-empty { color: #8A7350; padding: 14px 0; }
 .search-no-results { padding: 70px 20px; text-align: center; border-top: 1px solid #D8CEC1; }
 .search-box { top: 178px; height: calc(100vh - 178px); padding: 0; align-items: flex-start; background: rgba(43,33,28,.3); backdrop-filter: blur(2px); animation: search-backdrop-in .48s cubic-bezier(.2,.7,.2,1) both; }
-.search-content { width: 100%; max-width: none; max-height: min(620px, calc(100vh - 178px)); box-sizing: border-box; padding: 34px 7% 42px; border-radius: 0 0 18px 18px; box-shadow: 0 20px 45px rgba(43,33,28,.16); animation: search-panel-drop .56s cubic-bezier(.16,.78,.2,1) both; will-change: transform, opacity; overflow-y: auto; }
+.search-content { width: 100%; height: calc(100vh - 178px); max-width: none; max-height: calc(100vh - 178px); box-sizing: border-box; padding: 34px 7% 42px; border-radius: 0 0 18px 18px; box-shadow: 0 20px 45px rgba(43,33,28,.16); animation: search-panel-drop .56s cubic-bezier(.16,.78,.2,1) both; will-change: transform, opacity; overflow-y: auto; }
 .search-form { max-width: 1120px; margin: 0 auto; padding-bottom: 13px; border-bottom: 1px solid #b9a995; gap: 14px; }
 .search-form input { min-width: 0; padding: 10px 0; border: 0; outline: 0; background: transparent; color: #2b211c; font: 400 clamp(27px, 3vw, 43px)/1.1 'Cormorant Garamond',Georgia,serif; }
 #searchInput { border-bottom: 0 !important; }
@@ -785,6 +785,7 @@ header nav a {
 @keyframes search-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
 @media (max-width: 600px) { .search-box { padding: 55px 14px 20px; } .search-content { width: 100%; max-width: 540px; padding: 28px 20px 20px; } .search-form { flex-wrap: wrap; } .search-form input { min-width: 100%; order: -1; } .search-submit, .search-clear { flex: 0 0 auto; } .search-submit { margin-left: auto; } }
 @media (max-width: 700px) { .search-box { top: 136px; height: calc(100vh - 136px); padding: 0; } .search-content { width: 100%; max-width: none; max-height: calc(100vh - 136px); padding: 25px 20px 30px; border-radius: 0 0 14px 14px; } .search-discovery { grid-template-columns: 1fr; gap: 28px; } .search-discovery-categories,.search-recent-products,.search-discovery-products { grid-column: auto; grid-row: auto; } .search-recent-products { margin-top: 0; padding-bottom: 24px; } .search-discovery-products { margin-top: 0; padding-bottom: 18px; } .search-discovery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .search-form input { min-width: 0; order: initial; font-size: 31px; } }
+@media (max-width: 700px) { .search-box { top: 136px; height: calc(100vh - 136px); padding: 0; } .search-content { width: 100%; height: calc(100vh - 136px); max-width: none; max-height: calc(100vh - 136px); padding: 25px 20px 30px; border-radius: 0 0 14px 14px; } .search-discovery { grid-template-columns: 1fr; gap: 28px; } .search-discovery-categories,.search-recent-products,.search-discovery-products { grid-column: auto; grid-row: auto; } .search-recent-products { margin-top: 0; padding-bottom: 24px; } .search-discovery-products { margin-top: 0; padding-bottom: 18px; } .search-discovery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .search-form input { min-width: 0; order: initial; font-size: 31px; } }
 
 #closeSearch {
     position: absolute;
