@@ -127,7 +127,7 @@ async function runBrowserTests() {
     // Fill staff credentials using quick demo fill button
     const clickedBtn = await page.evaluate(() => {
       const btns = Array.from(document.querySelectorAll("button"));
-      const staffBtn = btns.find((b) => b.innerText.toLowerCase().includes("staffmaisonrue@gmail.com"));
+      const staffBtn = btns.find((b) => b.innerText.toLowerCase().includes("staff@maisonrue.com"));
       if (staffBtn) {
         staffBtn.click();
         return true;
@@ -205,7 +205,7 @@ async function runBrowserTests() {
     await page.goto("http://localhost:5173/admin/employees", { waitUntil: "networkidle0" });
     await new Promise((r) => setTimeout(r, 1000));
     const empText = await page.evaluate(() => document.body.innerText);
-    assert(empText.includes("NHÂN SỰ") || empText.includes("staffmaisonrue@gmail.com"), "Admin Employee Management rendered");
+    assert(empText.includes("NHÂN SỰ") || empText.includes("staff@maisonrue.com"), "Admin Employee Management rendered");
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "10_admin_employees.png") });
 
     // -----------------------------------------------------------------

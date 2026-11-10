@@ -154,7 +154,7 @@ async function runAllTests() {
 
     // 2.3 Staff user blocked from using chatbot as customer
     console.log("[HTTP] POST /api/auth/staff/login");
-    const staffLogin = await makeRequest("POST", "/api/auth/staff/login", { email: "staffmaisonrue@gmail.com", password: "staff123" });
+    const staffLogin = await makeRequest("POST", "/api/auth/staff/login", { email: "staff@maisonrue.com", password: "staff123" });
     const staffCookie = staffLogin.cookie;
 
     console.log("[HTTP] POST /api/chat");

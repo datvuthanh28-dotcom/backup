@@ -44,6 +44,7 @@ export default function Checkout() {
   const [addressConfirmed, setAddressConfirmed] = useState(false);
   const [verifyingAddress, setVerifyingAddress] = useState(false);
   const [verifiedExplanation, setVerifiedExplanation] = useState("");
+  const [addressVerificationStatus, setAddressVerificationStatus] = useState("");
 
   useEffect(() => {
     if (currentUser?.role !== "customer") return;
@@ -55,6 +56,7 @@ export default function Checkout() {
         setSelectedAddressId(String(preferred.id));
         setFormData((previous) => ({ ...previous, address: preferred.address_text }));
         setAddressConfirmed(true);
+        setAddressVerificationStatus("SAVED_ADDRESS");
       }
     }).catch(() => setSavedAddresses([]));
   }, [currentUser?.id, currentUser?.role]);
@@ -124,6 +126,7 @@ export default function Checkout() {
       if (res.success && res.verifiedAddress) {
         setFormData((prev) => ({ ...prev, address: res.verifiedAddress.formatted || text }));
         setAddressConfirmed(true);
+        setAddressVerificationStatus(res.verifiedAddress.status || "MATCHED");
         setVerifiedExplanation(res.verifiedAddress.explanation || "Địa chỉ phù hợp với dữ liệu bản đồ.");
         return true;
       } else {
@@ -133,6 +136,7 @@ export default function Checkout() {
       }
     } catch (err) {
       setAddressConfirmed(false);
+      setAddressVerificationStatus("");
       setErrors((prev) => ({ ...prev, address: err.message || "Chưa đủ thông tin để xác minh địa chỉ này." }));
       return false;
     } finally {
@@ -145,6 +149,7 @@ export default function Checkout() {
     if (e.target.name === "address") {
       setSelectedAddressId("");
       setAddressConfirmed(false);
+      setAddressVerificationStatus("");
       setVerifiedExplanation("");
       setErrors((prev) => ({ ...prev, address: "" }));
     }
@@ -470,7 +475,9 @@ export default function Checkout() {
                     onClick={() => handleVerifyAddress(formData.address)}
                     style={{
                       padding: "6px 14px",
-                      backgroundColor: addressConfirmed ? "#2e7d32" : "#1a1615",
+                      backgroundColor: addressConfirmed
+                        ? addressVerificationStatus === "PENDING_MANUAL_REVIEW" ? "#9a6700" : "#2e7d32"
+                        : "#1a1615",
                       color: "#fff",
                       border: "none",
                       borderRadius: "4px",
@@ -479,10 +486,14 @@ export default function Checkout() {
                       transition: "background-color 0.2s ease",
                     }}
                   >
-                    {verifyingAddress ? "Đang thẩm định địa chỉ…" : addressConfirmed ? "✓ Đã xác nhận" : "Xác nhận địa chỉ"}
+                    {verifyingAddress
+                      ? "Đang thẩm định địa chỉ…"
+                      : addressConfirmed
+                        ? addressVerificationStatus === "PENDING_MANUAL_REVIEW" ? "✓ Đã ghi nhận" : "✓ Đã xác nhận"
+                        : "Xác nhận địa chỉ"}
                   </button>
                   {addressConfirmed && (
-                    <small style={{ color: "#2e7d32", fontWeight: "600", fontSize: "12px" }}>
+                    <small style={{ color: addressVerificationStatus === "PENDING_MANUAL_REVIEW" ? "#9a6700" : "#2e7d32", fontWeight: "600", fontSize: "12px" }}>
                       ✓ {verifiedExplanation || "Địa chỉ phù hợp với dữ liệu bản đồ."}
                     </small>
                   )}

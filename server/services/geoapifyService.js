@@ -46,6 +46,7 @@ export async function verifyAddressWithGeoapify(address, options = {}) {
   if (!apiKey) {
     const err = new Error("Hệ thống xác thực địa chỉ Geoapify chưa được cấu hình. Vui lòng liên hệ bộ phận hỗ trợ Maison Rue.");
     err.status = 503;
+    err.code = "ADDRESS_PROVIDER_NOT_CONFIGURED";
     throw err;
   }
 
@@ -76,6 +77,7 @@ export async function verifyAddressWithGeoapify(address, options = {}) {
     console.error("[Geoapify] Connection error / timeout:", netErr.message);
     const err = new Error("Không thể kết nối đến hệ thống xác thực địa chỉ Geoapify lúc này. Vui lòng thử lại sau giây lát.");
     err.status = 502;
+    err.code = "ADDRESS_PROVIDER_UNAVAILABLE";
     throw err;
   }
 
@@ -83,6 +85,9 @@ export async function verifyAddressWithGeoapify(address, options = {}) {
     console.error(`[Geoapify] HTTP error response: ${response.status}`);
     const err = new Error("Hệ thống xác thực địa chỉ Geoapify đang bận hoặc tạm thời gián đoạn. Vui lòng thử lại sau.");
     err.status = response.status === 401 || response.status === 403 ? 503 : 502;
+    err.code = response.status === 401 || response.status === 403
+      ? "ADDRESS_PROVIDER_NOT_CONFIGURED"
+      : "ADDRESS_PROVIDER_UNAVAILABLE";
     throw err;
   }
 

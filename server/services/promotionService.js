@@ -37,7 +37,7 @@ export async function loadPromotion(poolOrTransaction, normalizedCode = "") {
   const result = await request.query(`
     SELECT DISTINCT p.*,pc.id promotion_code_id,pc.code,pc.usage_limit code_usage_limit,pc.used_count code_used_count,pc.is_active code_is_active,pc.distribution_type
     FROM Promotions p LEFT JOIN PromotionCodes pc ON pc.promotion_id=p.id AND pc.normalized_code=@code
-    WHERE p.is_archived=0 AND p.status='active' AND p.approval_status='approved' AND p.start_at<=GETDATE() AND (p.end_at IS NULL OR p.end_at>GETDATE())
+    WHERE p.is_archived=0 AND p.status='active' AND p.approval_status='approved' AND p.start_at<=SYSUTCDATETIME() AND (p.end_at IS NULL OR p.end_at>SYSUTCDATETIME())
       AND (p.usage_limit_total IS NULL OR p.used_count<p.usage_limit_total)
       AND (p.budget_total IS NULL OR p.budget_reserved+p.budget_spent<p.budget_total)
       AND (p.is_automatic=1 OR pc.id IS NOT NULL)`);

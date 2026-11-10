@@ -77,7 +77,6 @@ export async function handleChat(req, res) {
       user,
       message: text,
       conversationHistory: Array.isArray(history) ? history : [],
-      clientIp,
     });
 
     return res.json({

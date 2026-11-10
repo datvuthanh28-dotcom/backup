@@ -123,7 +123,7 @@ async function runTests() {
 
     // Staff trying /api/auth/admin/login
     const staffAsAdmin = await makeRequest("POST", "/api/auth/admin/login", {
-      email: "staffmaisonrue@gmail.com",
+      email: "staff@maisonrue.com",
       password: "staff123",
     });
     assert(staffAsAdmin.status === 403, "Staff login via admin endpoint rejected (HTTP 403)");
@@ -155,7 +155,7 @@ async function runTests() {
     assert(!!custCookie, "Customer received HttpOnly auth token cookie");
 
     const staffLogin = await makeRequest("POST", "/api/auth/staff/login", {
-      email: "staffmaisonrue@gmail.com",
+      email: "staff@maisonrue.com",
       password: "staff123",
     });
     assert(staffLogin.status === 200 && staffLogin.body.user.role === "staff", "Staff login succeeds with role staff");

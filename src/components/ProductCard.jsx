@@ -44,6 +44,12 @@ export default function ProductCard({ product }) {
   const location = useLocation();
   const stock = getProductStock(product.id);
   const isOutOfStock = stock === 0;
+  const originalPrice = Number(product.price || 0);
+  const promotionPrice = Number(product.promotionPrice || originalPrice);
+  const hasPromotion = Number(product.promotionDiscount || 0) > 0 && promotionPrice < originalPrice;
+  const promotionPercent = hasPromotion && originalPrice > 0
+    ? Math.round((1 - promotionPrice / originalPrice) * 100)
+    : 0;
   const firstColor = product.colors?.[0] || product.colorOptions?.[0]?.name || "";
   const [selectedColor, setSelectedColor] = useState(firstColor);
   const selectedImages = product.colorImages?.[selectedColor]?.length
@@ -67,6 +73,7 @@ return (
     <Link to={`/product/${product.id}`} className="product-card-link">
       <div className="product-image">
         {isOutOfStock && <span className="product-card-sold-out">Sold out</span>}
+        {!isOutOfStock && hasPromotion && <span className="product-card-sale-badge">Giảm {promotionPercent}%</span>}
         <img className="product-image-primary" src={`/${coverImage}`} alt={product.name} />
         {hoverImage && <img className="product-image-hover" src={`/${hoverImage}`} alt="" aria-hidden="true" />}
       </div>
@@ -74,13 +81,13 @@ return (
         <div className="product-card-meta">{materialLabel(product)}</div>
         <h3>{product.name}</h3>
         <p className="product-card-fit">{product.subcategory}</p>
-        {product.promotionDiscount > 0 ? (
+        {hasPromotion ? (
           <div className="product-price-sale">
-            <span>{product.price.toLocaleString("vi-VN")}đ</span>
-            <strong>{Number(product.promotionPrice).toLocaleString("vi-VN")}đ</strong>
+            <span>{originalPrice.toLocaleString("vi-VN")}đ</span>
+            <strong>{promotionPrice.toLocaleString("vi-VN")}đ</strong>
           </div>
         ) : (
-          <p className="product-price">{product.price.toLocaleString("vi-VN")}đ</p>
+          <p className="product-price">{originalPrice.toLocaleString("vi-VN")}đ</p>
         )}
       </div>
     </Link>
