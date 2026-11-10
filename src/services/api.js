@@ -15,6 +15,7 @@ async function request(endpoint, options = {}) {
   const response = await fetch(url, {
     ...options,
     headers,
+    cache: options.cache || "no-store",
     credentials: "include", // Ensures HttpOnly cookie is attached
   });
 

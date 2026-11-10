@@ -1337,6 +1337,25 @@ header nav a {
     text-transform: uppercase;
 }
 
+.product-card-sale-badge,
+.product-detail-sale-badge {
+    position: absolute;
+    z-index: 3;
+    top: 14px;
+    left: 14px;
+    padding: 7px 11px;
+    border: 1px solid rgba(255, 255, 255, .28);
+    background: #5b3529;
+    color: #fffaf4;
+    font: 700 10px/1.2 'Inter', Arial, sans-serif;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    box-shadow: 0 3px 12px rgba(43, 33, 28, .14);
+}
+
+.product-gallery { position: relative; }
+.product-detail-sale-badge { top: 16px; left: 16px; }
+
 .product-card-copy {
     min-width: 0;
     transition: transform .38s cubic-bezier(.2,.65,.25,1);
@@ -2872,6 +2891,12 @@ header.store-header.is-hidden{transform:translateY(-100%)}
 .checkout-promotion { margin:16px 0; padding:15px; border:1px solid #e2d8cc; border-radius:7px; background:#faf7f3; }.checkout-promotion > label { display:block; margin-bottom:8px; font-size:12px; font-weight:600; color:#59463b; }.checkout-promotion > div { display:flex; gap:8px; }.checkout-promotion input { flex:1; min-width:0; padding:10px 12px; border:1px solid #d8cec1; border-radius:5px; text-transform:uppercase; }.checkout-promotion button { padding:0 13px; border:1px solid #4e342e; border-radius:5px; background:#4e342e; color:#fff; cursor:pointer; }.checkout-promotion p { margin:8px 0 0; font-size:12px; }.checkout-promotion .success,.promotion-saving { color:#287a4b; }.checkout-promotion .error { color:#b33434; }
 @media(max-width:1000px){.promotion-metrics{grid-template-columns:repeat(2,1fr)}.promotion-suggestion-list{grid-template-columns:1fr 1fr}}@media(max-width:800px){.promotion-metrics,.promotion-form-grid,.promotion-suggestion-list{grid-template-columns:1fr}.promotion-form-grid .full{grid-column:auto}.promotion-admin>header,.promotion-suggestions__heading{align-items:flex-start;flex-direction:column}.promotion-suggestions__heading>div:last-child{text-align:left}}
 
+/* Admin promotion decision workspace */
+.promotion-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}.promotion-header-actions button,.promotion-view-tabs button,.promotion-section-heading button{min-height:40px;padding:9px 15px;border:1px solid #ccbba9;border-radius:7px;background:#fff;color:#34251e;font-weight:650;cursor:pointer}.promotion-header-actions .btn-primary,.promotion-section-heading .btn-primary{border-color:#3d2b23;background:#3d2b23;color:#fff}.promotion-view-tabs{display:flex;gap:6px;margin:0 0 18px;padding:5px;border:1px solid #ded3c7;border-radius:9px;background:#f8f4ef;width:max-content;max-width:100%}.promotion-view-tabs button{min-height:36px;border-color:transparent;background:transparent}.promotion-view-tabs button.active{border-color:#4a342a;background:#4a342a;color:#fff}.promotion-suggestions{padding:22px}.promotion-suggestions__heading{padding-bottom:18px;border-bottom:1px solid #eadfd4}.promotion-suggestions__heading h2{margin-bottom:5px}.promotion-suggestions__heading p:not(.eyebrow){margin:0;color:#765f50;font-size:13px}.promotion-decision-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:18px}.promotion-decision-card{display:flex;flex-direction:column;gap:14px;padding:18px;border:1px solid #ded2c5;border-radius:10px;background:#fff;box-shadow:0 4px 16px rgba(66,45,33,.045)}.promotion-decision-card__top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}.promotion-decision-card__top h3{margin:8px 0 2px;font:600 23px/1.05 "Cormorant Garamond",serif;color:#2d211b}.promotion-decision-card__top p{margin:0;color:#826d5d;font-size:12px}.promotion-recommendation{display:inline-flex;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:750}.promotion-recommendation--positive{background:#e8f5eb;color:#267044}.promotion-recommendation--caution{background:#fff3db;color:#8a5d12}.promotion-proposed-price{display:grid;justify-items:end;min-width:150px;text-align:right}.promotion-proposed-price small,.promotion-proposed-price span{color:#806a5a;font-size:11px}.promotion-proposed-price strong{color:#a77b31;font-size:20px}.promotion-reason-block{padding:12px 14px;border-radius:7px;background:#faf7f2}.promotion-reason-block>strong{font-size:12px}.promotion-reason-block ul{display:grid;gap:4px;margin:7px 0 0;padding-left:17px;color:#6e594b;font-size:12px}.promotion-decision-summary{display:grid;grid-template-columns:1fr 1fr;gap:9px}.promotion-decision-summary>div{display:grid;gap:3px;padding:10px;border:1px solid #eadfd4;border-radius:7px}.promotion-decision-summary span{color:#806b5c;font-size:11px}.promotion-decision-summary strong{color:#2e221c;font-size:13px}.promotion-ai-summary{margin:0!important;padding:11px 13px;border-left:3px solid #ad8c62;border-radius:0 6px 6px 0;background:#f7f2eb;color:#4a392f!important;font-size:12px!important;line-height:1.55}.promotion-financial-details{display:grid;gap:12px;padding-top:14px;border-top:1px solid #e5d9cd}.promotion-scenario-comparison{display:grid;grid-template-columns:1fr 1fr;gap:10px}.promotion-scenario-comparison>section{padding:13px;border:1px solid #ded3c7;border-radius:8px;background:#faf8f5}.promotion-scenario-comparison>section:last-child{background:#f3f8f3;border-color:#c8dccd}.promotion-scenario-comparison h4,.promotion-cost-breakdown h4{margin:0 0 9px;color:#3d2c24;font-size:13px}.promotion-scenario-comparison p,.promotion-cost-breakdown p{display:flex;justify-content:space-between;gap:10px;margin:6px 0;color:#765f50;font-size:11px}.promotion-scenario-comparison strong,.promotion-cost-breakdown strong{color:#2d211b;text-align:right}.promotion-cost-breakdown{padding:13px;border:1px solid #e1d6ca;border-radius:8px}.promotion-cost-breakdown .total{margin-top:9px;padding-top:9px;border-top:1px solid #e1d6ca;font-weight:700}.promotion-decision-notes{padding:12px 14px;border-radius:7px;background:#f8f5f0}.promotion-decision-notes p{margin:5px 0;color:#49372e;font-size:12px}.promotion-decision-notes small{display:block;margin-top:8px;color:#826e60;line-height:1.5}.promotion-card-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:auto}.promotion-card-actions button{min-height:36px;padding:7px 11px;border:1px solid #cdbdaa;border-radius:6px;background:#fff;color:#382820;font-weight:650;cursor:pointer}.promotion-card-actions .btn-primary{border-color:#3d2b23;background:#3d2b23;color:#fff}.promotion-empty,.promotion-table-empty{padding:24px!important;text-align:center;color:#766254}.promotion-management-section{padding:20px;border:1px solid #ded3c7;border-radius:9px;background:#fff}.promotion-section-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:16px}.promotion-section-heading h2{margin:2px 0 0;font:600 28px/1.1 "Cormorant Garamond",serif}.promotion-section-heading p:not(.eyebrow){margin:5px 0 0;color:#745f51;font-size:12px}.promotion-simulation-summary{display:flex!important;gap:14px;flex-wrap:wrap}.promotion-simulation-scenarios{display:grid!important;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.promotion-simulation-scenarios section{display:grid;gap:5px;padding:12px;border-radius:6px;background:rgba(255,255,255,.7);font-size:12px}.promotion-simulation-scenarios strong{margin-bottom:3px}.promotion-simulation-scenarios span{font-weight:500}.promotion-actions .btn-primary{border-color:#3d2b23;background:#3d2b23;color:#fff}
+
+@media(max-width:1100px){.promotion-decision-list{grid-template-columns:1fr}}
+@media(max-width:760px){.promotion-header-actions,.promotion-section-heading{align-items:stretch;flex-direction:column}.promotion-header-actions button,.promotion-section-heading button{width:100%}.promotion-view-tabs{width:100%;overflow-x:auto}.promotion-view-tabs button{white-space:nowrap;flex:1}.promotion-decision-card__top{flex-direction:column}.promotion-proposed-price{justify-items:start;text-align:left}.promotion-decision-summary,.promotion-scenario-comparison,.promotion-simulation-scenarios{grid-template-columns:1fr}.promotion-card-actions button{width:100%}}
+
 /* Unified responsive guardrails */
 img { max-width: 100%; }
 button, input, select, textarea { max-width: 100%; }
@@ -2916,7 +2941,7 @@ button, input, select, textarea { max-width: 100%; }
   .service-notes { font-size: 9px; }
   .account-logout-row > * { width: 100%; text-align: center; }
 }
-.product-price-sale { display:flex; align-items:baseline; gap:9px; margin:8px 0; }.product-price-sale span,.detail-promotion-price>span { color:#8c7b6d; font-size:12px; text-decoration:line-through; }.product-price-sale strong,.detail-promotion-price>strong { color:#a07832; font-weight:600; }
+.product-price-sale { display:flex; align-items:baseline; gap:10px; margin:8px 0; }.product-price-sale span,.detail-promotion-price>span { color:#8c7b6d; font-size:13px; text-decoration:line-through; text-decoration-thickness:1px; }.product-price-sale strong,.detail-promotion-price>strong { color:#9a5d3d; font-weight:600; }
 .detail-promotion-price { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin:17px 0 24px; }.detail-promotion-price strong { font-size:27px; }.detail-promotion-price small { flex-basis:100%; color:#6f7d5f; letter-spacing:.04em; }
 .order-promotion-breakdown { display:grid; gap:5px; margin-top:9px; padding:10px 12px; border-left:3px solid #b89b5e; background:#faf6f0; color:#5f4d40; }
 /* Admin revenue workspace: one isolated system to avoid page-level style collisions. */

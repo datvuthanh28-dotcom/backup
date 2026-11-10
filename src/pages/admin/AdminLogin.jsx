@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
@@ -12,6 +12,12 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (currentUser && role === "admin") {
+      navigate("/admin", { replace: true });
+    }
+  }, [currentUser, role, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();

@@ -229,28 +229,44 @@ export async function deleteReview(req, res) {
 // ==========================================
 
 export async function getAdminReviews(req, res) {
-  const pool = getPool();
-  const result = await pool.request().query(`
-    SELECT r.id, r.product_id, r.user_id, r.order_id, r.order_item_id, r.rating,
-           r.title, r.content, r.selected_color, r.selected_size, r.is_verified_purchase,
-           r.status, r.version, r.is_hidden_by_admin, r.audit_status, r.ai_analysis_json,
-           r.ai_version_analyzed, r.ai_error, r.ai_audit_run_id, r.moderation_note,
-           r.moderated_by, r.moderated_at, r.created_at, r.updated_at,
-           p.product_code, p.name AS product_name,
-           u.name AS customer_name, u.email AS customer_email
-    FROM ProductReviews r
-    JOIN Products p ON p.id = r.product_id
-    JOIN Users u ON u.id = r.user_id
-    WHERE r.status <> 'deleted'
-    ORDER BY r.created_at DESC
-  `);
+  try {
+    const pool = getPool();
+    const result = await pool.request().query(`
+      SELECT r.id, r.product_id, r.user_id, r.order_id, r.order_item_id, r.rating,
+             r.title, r.content, r.selected_color, r.selected_size, r.is_verified_purchase,
+             r.status, r.version, r.is_hidden_by_admin, r.audit_status, r.ai_analysis_json,
+             r.ai_version_analyzed, r.ai_error, r.ai_audit_run_id, r.moderation_note,
+             r.moderated_by, r.moderated_at, r.created_at, r.updated_at,
+             p.product_code, p.name AS product_name,
+             u.name AS customer_name, u.email AS customer_email
+      FROM ProductReviews r
+      JOIN Products p ON p.id = r.product_id
+      JOIN Users u ON u.id = r.user_id
+      WHERE r.status <> 'deleted'
+      ORDER BY r.created_at DESC
+    `);
 
-  const reviews = result.recordset.map((row) => ({
-    ...row,
-    aiAnalysis: row.ai_analysis_json ? JSON.parse(row.ai_analysis_json) : null,
-  }));
+    const reviews = result.recordset.map((row) => {
+      let aiAnalysis = null;
+      if (row.ai_analysis_json) {
+        try {
+          aiAnalysis = JSON.parse(row.ai_analysis_json);
+        } catch {
+          // Preserve availability even if an old audit row contains invalid JSON.
+          aiAnalysis = null;
+        }
+      }
+      return { ...row, aiAnalysis };
+    });
 
-  return res.json({ success: true, reviews });
+    return res.json({ success: true, reviews });
+  } catch (err) {
+    console.error("[Get Admin Reviews] Error:", err);
+    return res.status(500).json({
+      success: false,
+      error: "Không thể tải dữ liệu đánh giá. Vui lòng kiểm tra cấu trúc cơ sở dữ liệu.",
+    });
+  }
 }
 
 export async function auditReviewsNow(req, res) {

@@ -55,7 +55,7 @@ export async function myPromotionOffers(req, res) {
     FROM PromotionCodes pc JOIN Promotions p ON p.id=pc.promotion_id
     LEFT JOIN PromotionCodeAssignments a ON a.promotion_code_id=pc.id AND a.user_id=@user_id
     WHERE pc.is_active=1 AND p.is_archived=0 AND p.status='active' AND p.approval_status='approved'
-      AND p.start_at<=GETDATE() AND (p.end_at IS NULL OR p.end_at>GETDATE())
+      AND p.start_at<=SYSUTCDATETIME() AND (p.end_at IS NULL OR p.end_at>SYSUTCDATETIME())
       AND (p.usage_limit_total IS NULL OR p.used_count<p.usage_limit_total)
       AND (pc.usage_limit IS NULL OR pc.used_count<pc.usage_limit)
       AND (pc.distribution_type='public' OR (pc.distribution_type='targeted' AND a.status IN ('available','used')))
@@ -399,7 +399,9 @@ export async function promotionSuggestions(req, res) {
     SELECT p.id product_id,p.name,p.category,v.id variant_id,v.sku,v.color_name,v.size_name,
       v.price,v.cost_price,v.floor_price,v.stock_quantity,v.low_stock_threshold,v.max_stock_threshold,
       COALESCE(f.favorite_count,0) favorite_count,COALESCE(fb.favorite_buyers,0) favorite_buyers,
-      COALESCE(s.sold_60d,0) sold_60d,COALESCE(prev.sold_previous_60d,0) sold_previous_60d,
+      COALESCE(s.sold_60d,0) sold_60d,COALESCE(s.actual_sold_60d,0) actual_sold_60d,
+      COALESCE(s.simulated_sold_60d,0) simulated_sold_60d,
+      COALESCE(prev.sold_previous_60d,0) sold_previous_60d,
       COALESCE(cancelled.cancelled_60d,0) cancelled_60d,
       movement.oldest_stock_at,last_promo.last_promotion_at,
       CASE WHEN active_promo.promotion_id IS NULL THEN 0 ELSE 1 END has_active_promotion
@@ -418,7 +420,10 @@ export async function promotionSuggestions(req, res) {
       )
     ) fb
     OUTER APPLY (
-      SELECT SUM(oi.quantity) sold_60d FROM OrderItems oi JOIN Orders o ON o.id=oi.order_id
+      SELECT SUM(oi.quantity) sold_60d,
+        SUM(CASE WHEN COALESCE(o.data_origin,'actual')='actual' THEN oi.quantity ELSE 0 END) actual_sold_60d,
+        SUM(CASE WHEN o.data_origin='simulated' THEN oi.quantity ELSE 0 END) simulated_sold_60d
+      FROM OrderItems oi JOIN Orders o ON o.id=oi.order_id
       WHERE oi.variant_id=v.id AND o.recognized_at>=DATEADD(day,-60,GETDATE())
     ) s
     OUTER APPLY (
@@ -440,7 +445,7 @@ export async function promotionSuggestions(req, res) {
     OUTER APPLY (
       SELECT TOP 1 pr.id promotion_id FROM Promotions pr
       WHERE pr.is_archived=0 AND pr.status='active' AND pr.approval_status='approved'
-        AND pr.start_at<=GETDATE() AND (pr.end_at IS NULL OR pr.end_at>GETDATE())
+        AND pr.start_at<=SYSUTCDATETIME() AND (pr.end_at IS NULL OR pr.end_at>SYSUTCDATETIME())
         AND EXISTS (SELECT 1 FROM PromotionTargets pt WHERE pt.promotion_id=pr.id AND pt.is_excluded=0 AND (
           pt.target_type='store' OR (pt.target_type='product' AND pt.target_value=CONVERT(NVARCHAR(100),p.id))
           OR (pt.target_type='variant' AND pt.target_value IN (v.id,v.sku))
@@ -499,6 +504,7 @@ export async function promotionSuggestions(req, res) {
     const hasStrongBusinessSignal = (max > 0 && stock >= max) || stockAgeDays > 90 || (favorites >= 5 && favoriteConversion < 0.4) || (previous >= 3 && sold / previous < 0.75);
     if (!hasStrongBusinessSignal) exclusionReasons.push("Chưa có tín hiệu kinh doanh đủ mạnh để khuyến mãi");
     score = Math.max(0, Math.min(100, score));
+    if (score < 75) exclusionReasons.push("Mức ưu tiên chưa đủ cao để mở khuyến mãi");
 
     const requestedPercent = pointsToDiscount(score);
     const recommendedPercent = exclusionReasons.length ? 0 : Math.min(requestedPercent, safeMaxPercent, 25);
@@ -514,11 +520,99 @@ export async function promotionSuggestions(req, res) {
     const projectedGrossProfit = projectedRevenue - projectedCost;
     const projectedGrossMargin = projectedRevenue > 0 ? projectedGrossProfit / projectedRevenue * 100 : 0;
     const discountPerUnit = price - proposedPrice;
+    const baselineUnitsInPeriod = Math.min(sellableStock, Math.max(0, Math.round(baselineUnits)));
+    const baselineRevenue = baselineUnitsInPeriod * price;
+    const baselineCost = baselineUnitsInPeriod * cost;
+    const baselineGrossProfit = baselineRevenue - baselineCost;
+    const baselineEndingStock = Math.max(0, stock - baselineUnitsInPeriod);
+    const promotionEndingStock = Math.max(0, stock - expectedUnits);
+
+    // Business-friendly inventory carrying assumptions. They are deliberately
+    // separated so the admin UI can explain the estimate without exposing formulas.
+    const periodRatio = durationDays / 365;
+    const holdingRates = { capital: 0.12, storage: 0.06, risk: 0.08 };
+    const holdingBreakdown = (endingStock) => ({
+      capital: Math.round(endingStock * cost * holdingRates.capital * periodRatio),
+      storage: Math.round(endingStock * cost * holdingRates.storage * periodRatio),
+      risk: Math.round(endingStock * cost * holdingRates.risk * periodRatio),
+    });
+    const baselineHolding = holdingBreakdown(baselineEndingStock);
+    const promotionHolding = holdingBreakdown(promotionEndingStock);
+    const baselineHoldingTotal = baselineHolding.capital + baselineHolding.storage + baselineHolding.risk;
+    const promotionHoldingTotal = promotionHolding.capital + promotionHolding.storage + promotionHolding.risk;
+    const avoidedHoldingCost = Math.max(0, baselineHoldingTotal - promotionHoldingTotal);
+    const discountCost = discountPerUnit * expectedUnits;
+    const netBenefitVsBaseline = (projectedGrossProfit - promotionHoldingTotal) - (baselineGrossProfit - baselineHoldingTotal);
+    const profitPerPromoUnit = Math.max(0, proposedPrice - cost);
+    const breakEvenUnits = profitPerPromoUnit > 0
+      ? Math.ceil(Math.max(0, baselineGrossProfit - avoidedHoldingCost) / profitPerPromoUnit)
+      : null;
+    const lowUnits = expectedUnits ? Math.max(baselineUnitsInPeriod, Math.floor(expectedUnits * 0.75)) : 0;
+    const highUnits = expectedUnits ? Math.min(sellableStock, Math.ceil(expectedUnits * 1.25)) : 0;
+    const actualUnits = Number(row.actual_sold_60d || 0);
+    const simulatedUnits = Number(row.simulated_sold_60d || 0);
+    const sourceTotal = actualUnits + simulatedUnits;
+    const actualDataPercent = sourceTotal > 0 ? Math.round(actualUnits / sourceTotal * 100) : 0;
     const confidence = sold >= 10 && stockAgeDays != null ? "high" : sold >= 3 || favorites >= 5 ? "medium" : "low";
     if (confidence === "low") risks.push("Dữ liệu lịch sử còn ít; nên thử ngân sách nhỏ");
-    return { ...row, eligible: exclusionReasons.length === 0 && score >= 30 && recommendedPercent > 0, exclusionReasons, score, reasons, risks, safeMaxPercent, recommendedPercent, businessGoal, durationDays, daysOfCover, stockAgeDays, favoriteConversion, grossMargin, sellableStock, expectedUnits, proposedPrice, estimatedBudget: discountPerUnit * expectedUnits, maximumExposure: discountPerUnit * sellableStock, projectedRevenue, projectedCost, projectedGrossProfit, projectedGrossMargin, confidence };
+    const recommendationLabel = netBenefitVsBaseline > 0
+      ? (confidence === "low" || actualDataPercent < 30 ? "Nên thử với số lượng nhỏ" : "Nên mở khuyến mãi")
+      : "Cần cân nhắc thêm";
+    const decisionSummary = netBenefitVsBaseline > 0
+      ? `Dự kiến thu ${Math.round(projectedRevenue).toLocaleString("vi-VN")}đ, giảm tồn từ ${stock} xuống khoảng ${promotionEndingStock} sản phẩm và có lợi hơn giữ giá khoảng ${Math.round(netBenefitVsBaseline).toLocaleString("vi-VN")}đ.`
+      : `Khuyến mãi giúp thu hồi tiền nhanh hơn nhưng lợi ích dự kiến chưa cao hơn phương án giữ giá. Nên giảm mức ưu đãi hoặc giới hạn số lượng.`;
+
+    return {
+      ...row,
+      eligible: exclusionReasons.length === 0 && score >= 75 && recommendedPercent > 0 && netBenefitVsBaseline > 0,
+      exclusionReasons, score, reasons, risks, safeMaxPercent, recommendedPercent,
+      businessGoal, durationDays, daysOfCover, stockAgeDays, favoriteConversion,
+      grossMargin, sellableStock, expectedUnits, proposedPrice,
+      estimatedBudget: discountCost,
+      maximumExposure: discountPerUnit * sellableStock,
+      projectedRevenue, projectedCost, projectedGrossProfit, projectedGrossMargin, confidence,
+      recommendationLabel,
+      decisionSummary,
+      financialSummary: {
+        baseline: {
+          units: baselineUnitsInPeriod,
+          revenue: Math.round(baselineRevenue),
+          grossProfit: Math.round(baselineGrossProfit),
+          endingStock: baselineEndingStock,
+          holdingCost: baselineHoldingTotal,
+          holdingBreakdown: baselineHolding,
+        },
+        promotion: {
+          units: expectedUnits,
+          revenue: Math.round(projectedRevenue),
+          revenueRange: {
+            low: Math.round(lowUnits * proposedPrice),
+            high: Math.round(highUnits * proposedPrice),
+          },
+          grossProfit: Math.round(projectedGrossProfit),
+          endingStock: promotionEndingStock,
+          holdingCost: promotionHoldingTotal,
+          holdingBreakdown: promotionHolding,
+          discountCost: Math.round(discountCost),
+        },
+        avoidedHoldingCost,
+        netBenefitVsBaseline: Math.round(netBenefitVsBaseline),
+        breakEvenUnits,
+        assumptions: {
+          capitalRateAnnual: 12,
+          storageRateAnnual: 6,
+          riskRateAnnual: 8,
+        },
+      },
+      dataQuality: {
+        actualUnits,
+        simulatedUnits,
+        actualDataPercent,
+        label: sourceTotal === 0 ? "Chưa có lịch sử bán" : actualDataPercent >= 60 ? "Chủ yếu dữ liệu thực tế" : actualDataPercent > 0 ? "Kết hợp dữ liệu thực tế và mô phỏng" : "Chủ yếu dữ liệu mô phỏng",
+      },
+    };
   }).sort((a,b) => Number(b.eligible)-Number(a.eligible) || b.score-a.score || a.sku.localeCompare(b.sku));
-  return res.json({ success: true, generatedAt: new Date().toISOString(), methodology: { minimumScore: 30, maximumNormalDiscount: 25, coolingOffDays: 30, recognitionRule: "delivered_and_paid" }, suggestions });
+  return res.json({ success: true, generatedAt: new Date().toISOString(), methodology: { minimumScore: 75, maximumNormalDiscount: 25, coolingOffDays: 30, recognitionRule: "delivered_and_paid" }, suggestions });
 }
 
 export async function archivePromotion(req, res) {

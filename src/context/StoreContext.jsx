@@ -130,7 +130,27 @@ export function StoreProvider({ children }) {
   }, [currentUser]);
 
   useEffect(() => {
-    refreshProducts();
+    let active = true;
+    const reloadCatalog = () => {
+      if (active) refreshProducts();
+    };
+    const reloadWhenVisible = () => {
+      if (document.visibilityState === "visible") reloadCatalog();
+    };
+
+    reloadCatalog();
+    // Promotions can be activated while a customer already has the storefront
+    // open. Refresh on focus/visibility and periodically so prices do not stay stale.
+    window.addEventListener("focus", reloadCatalog);
+    document.addEventListener("visibilitychange", reloadWhenVisible);
+    const refreshTimer = window.setInterval(reloadCatalog, 60000);
+
+    return () => {
+      active = false;
+      window.removeEventListener("focus", reloadCatalog);
+      document.removeEventListener("visibilitychange", reloadWhenVisible);
+      window.clearInterval(refreshTimer);
+    };
   }, [refreshProducts]);
 
   useEffect(() => {
