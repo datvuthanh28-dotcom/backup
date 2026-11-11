@@ -195,6 +195,7 @@ export const reportAPI = {
     const params = new URLSearchParams(Object.entries(filters).filter(([, value]) => value));
     return request(`/admin/reports/revenue${params.size ? `?${params.toString()}` : ""}`);
   },
+  updateRevenueTarget: (payload) => request("/admin/reports/revenue/target", { method: "PUT", body: JSON.stringify(payload) }),
   getProductInsights: () => request("/admin/reports/product-insights"),
   getWishlistAnalytics: () => request("/admin/reports/wishlist"),
   getReviews: () => request("/admin/reports/reviews"),

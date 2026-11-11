@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getRevenueReport } from "../controllers/reportController.js";
+import { getRevenueReport, updateRevenueTarget } from "../controllers/reportController.js";
 import {
   getAdminReviews,
   getProductInsights,
@@ -18,6 +18,7 @@ const router = Router();
 
 // Revenue reports are strictly reserved for Admin
 router.get("/revenue", authenticateToken, requireRole("admin"), getRevenueReport);
+router.put("/revenue/target", authenticateToken, requireRole("admin"), updateRevenueTarget);
 router.get("/product-insights", authenticateToken, requireRole("admin"), getProductInsights);
 
 // Wishlist Analytics Dashboard (Section C)
