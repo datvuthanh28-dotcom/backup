@@ -102,12 +102,12 @@ async function restoreReturnedInventory(transaction, returnRequest, performedBy,
   const variantUpdate = await transaction.request()
     .input("variant_id", sql.NVarChar, originalVariant.id)
     .input("qty", sql.Int, quantity)
-    .query("UPDATE ProductVariants SET stock_quantity=stock_quantity+@qty,updated_at=GETDATE() OUTPUT inserted.stock_quantity WHERE id=@variant_id");
+    .query("UPDATE ProductVariants SET stock_quantity=stock_quantity+@qty,updated_at=GETDATE() WHERE id=@variant_id; SELECT stock_quantity FROM ProductVariants WHERE id=@variant_id;");
   const resultingVariantStock = Number(variantUpdate.recordset[0].stock_quantity);
   const productUpdate = await transaction.request()
     .input("product_id", sql.Int, item.product_id)
     .input("qty", sql.Int, quantity)
-    .query("UPDATE Products SET stock=stock+@qty,updated_at=GETDATE() OUTPUT inserted.stock WHERE id=@product_id");
+    .query("UPDATE Products SET stock=stock+@qty,updated_at=GETDATE() WHERE id=@product_id; SELECT stock FROM Products WHERE id=@product_id;");
   if (!productUpdate.recordset[0]) throw new Error("The returned item's product could not be found in inventory.");
   const resultingProductStock = Number(productUpdate.recordset[0].stock);
   await transaction.request()
