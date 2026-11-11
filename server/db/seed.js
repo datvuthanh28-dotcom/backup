@@ -51,6 +51,78 @@ const DEFAULT_USERS = [
   },
 ];
 
+const DEMO_RETURN_REQUESTS = [
+  {
+    id: "RET-1793990899435-BOFA6", orderId: "MR-2024-00101", productId: 1,
+    productName: "Cashmere Cardigan", color: "BEIGE", size: "ONE SIZE", price: 6490000,
+    type: "refund", reason: "changed_mind", detail: null, amount: 6490000,
+    status: "manual_review", decision: "Cần kiểm tra tình trạng sản phẩm trước khi duyệt hoàn tiền.",
+  },
+  {
+    id: "RET-1793990861514-34SNC", orderId: "MR-2026-24663", productId: 107,
+    productName: "Baby Cashmere Crewneck Sweater", color: "Brown", size: "S", price: 4890000,
+    type: "refund", reason: "wrong_size_sent", detail: null, amount: 4890000,
+    status: "return_authorized", decision: "Sản phẩm đủ điều kiện tiếp nhận để kiểm tra.",
+  },
+  {
+    id: "RET-1793989608164-HBI0B", orderId: "MR-TEST-DEL-002", productId: 113,
+    productName: "Linen Classic Long-Sleeve Shirt", color: "White", size: "L", price: 2390000,
+    type: "refund", reason: "other", detail: "bi hu khoá", amount: 2390000,
+    status: "inspection_passed", decision: "Đã kiểm tra và xác nhận sản phẩm đủ điều kiện hoàn tiền.",
+  },
+  {
+    id: "RET-1793989568118-GYYGO", orderId: "MR-TEST-DEL-003", productId: 127,
+    productName: "Suede Penny Loafers", color: "Dark Brown", size: "42", price: 2390000,
+    type: "refund", reason: "other", detail: "bị bạc màu", amount: 2390000,
+    status: "auto_declined", decision: "Yêu cầu không đáp ứng điều kiện hoàn tiền tự động.",
+  },
+  {
+    id: "RET-1793989273993-H9HMF", orderId: "MR-2026-24663", productId: 107,
+    productName: "Baby Cashmere Crewneck Sweater", color: "Brown", size: "S", price: 4890000,
+    type: "exchange", reason: "wrong_color", detail: null, amount: 4890000,
+    status: "return_authorized", decision: "Sản phẩm đủ điều kiện tiếp nhận để đổi hàng.",
+  },
+];
+
+async function seedDemoReturnRequests(pool) {
+  console.log("[Seed] Checking demo return and refund requests...");
+  for (const record of DEMO_RETURN_REQUESTS) {
+    const existing = await pool.request().input("id", record.id).query("SELECT id FROM ReturnRequests WHERE id=@id");
+    if (existing.recordset.length) continue;
+
+    const existingOrder = await pool.request().input("id", record.orderId).query("SELECT id FROM Orders WHERE id=@id");
+    if (!existingOrder.recordset.length) {
+      await pool.request()
+        .input("id", record.orderId).input("customer_id", "usr_cust_01")
+        .input("customer_name", "Vũ Thành Đạt").input("customer_email", "vudat9532@gmail.com")
+        .input("customer_phone", "0987654321").input("shipping_address", "128 Đồng Khởi, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh")
+        .input("total_amount", record.amount).input("notes", "Demo order for return workflow")
+        .query(`INSERT INTO Orders(id,customer_id,customer_name,customer_email,customer_phone,shipping_address,shipping_fee,total_amount,order_status,stock_deducted,notes,created_at,updated_at)
+          VALUES(@id,@customer_id,@customer_name,@customer_email,@customer_phone,@shipping_address,0,@total_amount,'delivered',1,@notes,GETDATE(),GETDATE())`);
+    }
+
+    let item = await pool.request().input("order_id", record.orderId).input("product_id", record.productId).input("color", record.color).input("size", record.size)
+      .query("SELECT TOP 1 id FROM OrderItems WHERE order_id=@order_id AND product_id=@product_id AND selected_color=@color AND selected_size=@size ORDER BY id");
+    let orderItemId = item.recordset[0]?.id;
+    if (!orderItemId) {
+      const inserted = await pool.request()
+        .input("order_id", record.orderId).input("product_id", record.productId).input("name", record.productName)
+        .input("color", record.color).input("size", record.size).input("price", record.price).input("image", null)
+        .query(`INSERT INTO OrderItems(order_id,product_id,product_name,selected_color,selected_size,quantity,unit_price,total_price,image_url,created_at)
+          OUTPUT INSERTED.id VALUES(@order_id,@product_id,@name,@color,@size,1,@price,@price,@image,GETDATE())`);
+      orderItemId = inserted.recordset[0].id;
+    }
+
+    await pool.request()
+      .input("id", record.id).input("order_id", record.orderId).input("item_id", orderItemId).input("customer_id", "usr_cust_01")
+      .input("email", "vudat9532@gmail.com").input("type", record.type).input("reason", record.reason).input("detail", record.detail)
+      .input("amount", record.amount).input("status", record.status).input("decision", record.decision)
+      .query(`INSERT INTO ReturnRequests(id,order_id,order_item_id,customer_id,customer_email,request_type,reason_code,reason_detail,requested_quantity,exchange_size,exchange_color,requested_amount,status,decision_reason,return_deadline,created_at,updated_at)
+        VALUES(@id,@order_id,@item_id,@customer_id,@email,@type,@reason,@detail,1,NULL,NULL,@amount,@status,@decision,DATEADD(day,14,GETDATE()),GETDATE(),GETDATE())`);
+    console.log(`[Seed] Created return request: ${record.id}`);
+  }
+}
+
 export async function runSeed() {
   console.log("==================================================");
   console.log("MAISON RUE — Idempotent Database Seed Execution");
@@ -289,6 +361,8 @@ export async function runSeed() {
   } else {
     console.log(`[Seed] Orders already exist in database (${existingOrders.length} orders).`);
   }
+
+  await seedDemoReturnRequests(pool);
 
   console.log("==================================================");
   console.log("Maison Rue Database Seed Completed Successfully!");
