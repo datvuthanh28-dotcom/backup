@@ -25,6 +25,12 @@ export default function AdminProductInsights() {
   const [selectedRun, setSelectedRun] = useState(null);
   const [historyModal, setHistoryModal] = useState(null); // { reviewId, history: [] }
 
+  useEffect(() => {
+    if (!successMsg) return undefined;
+    const timerId = window.setTimeout(() => setSuccessMsg(""), 4000);
+    return () => window.clearTimeout(timerId);
+  }, [successMsg]);
+
   // Review Filters & Selection
   const [reviewFilter, setReviewFilter] = useState("all"); // 'all', 'published', 'hidden', 'flagged', 'pending'
   const [selectedReviewIds, setSelectedReviewIds] = useState([]);

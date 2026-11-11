@@ -1,6 +1,8 @@
 import "dotenv/config";
 import { sendTestEmail, getResendConfig } from "../server/services/emailService.js";
 
+/* global process */
+
 const targetEmail = (process.argv[2] || process.env.TEST_EMAIL_TO || "").trim();
 
 if (!targetEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail)) {

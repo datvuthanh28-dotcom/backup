@@ -1,6 +1,7 @@
 import { connectDB } from "../config/db.js";
 import { allProducts } from "../../src/data/products.js";
 import { initialVariantStock } from "./catalog-stock-policy.js";
+import { isLegacyProductCode } from "../utils/productLifecycle.js";
 
 const pool = await connectDB();
 try {
@@ -10,6 +11,10 @@ try {
     await tx.request().query("UPDATE ProductVariants SET is_active = 0, updated_at = GETDATE(); UPDATE Products SET is_active = 0, updated_at = GETDATE();");
     for (const [productIndex, product] of allProducts.entries()) {
       const productCode = `MR-${String(product.id).padStart(3, "0")}`;
+      if (isLegacyProductCode(productCode)) {
+        console.log(`[Catalog Seed] Skipping archived legacy product: ${productCode}`);
+        continue;
+      }
       const starterStocks = product.variants.map((_,variantIndex)=>initialVariantStock(productIndex,variantIndex));
       const starterTotal = starterStocks.reduce((sum,value)=>sum+value,0);
       const req = tx.request()

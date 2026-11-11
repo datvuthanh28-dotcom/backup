@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Maison Rue product image placeholder">
+  <rect width="400" height="400" fill="#f5f0e9"/>
+  <rect x="34" y="34" width="332" height="332" rx="8" fill="none" stroke="#d8cec1" stroke-width="2"/>
+  <path d="M142 166h116l14 126H128l14-126Z" fill="#e8dfd3" stroke="#8a7350" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M166 168v-20a34 34 0 0 1 68 0v20" fill="none" stroke="#8a7350" stroke-width="4"/>
+  <path d="M162 213h76" stroke="#c3b39f" stroke-width="3"/>
+  <text x="200" y="333" fill="#4e342e" font-family="Georgia, serif" font-size="18" letter-spacing="3" text-anchor="middle">MAISON RUE</text>
+</svg>

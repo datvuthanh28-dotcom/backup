@@ -1,6 +1,7 @@
 import sql from "mssql";
 import dotenv from "dotenv";
 import { allProducts as catalogProducts } from "../../src/data/products.js";
+import { activeProductSql, isLegacyProductCode, legacyProductSql } from "../utils/productLifecycle.js";
 
 dotenv.config();
 
@@ -210,7 +211,7 @@ export const db = {
   // ==========================================
   async getAllProducts() {
     const p = await getActivePool();
-    const res = await p.request().query("SELECT * FROM Products WHERE is_active = 1 ORDER BY id ASC");
+    const res = await p.request().query(`SELECT p.* FROM Products p WHERE ${activeProductSql("p")} ORDER BY p.id ASC`);
     const variantRes = await p.request().query("SELECT * FROM ProductVariants WHERE is_active = 1 ORDER BY product_id, color_name, size_name");
     return res.recordset.map((r) => {
       const catalog = catalogProducts.find((product) => product.id === r.id) || {};
@@ -226,7 +227,7 @@ export const db = {
     const res = await p
       .request()
       .input("id", sql.Int, numId)
-      .query("SELECT * FROM Products WHERE id = @id AND is_active = 1");
+      .query(`SELECT p.* FROM Products p WHERE p.id = @id AND ${activeProductSql("p")}`);
     const r = res.recordset[0];
     if (!r) return null;
     const catalog = catalogProducts.find((product) => product.id === r.id) || {};
@@ -258,8 +259,13 @@ export const db = {
       const prodRes = await transaction
         .request()
         .input("id", sql.Int, numId)
-        .query("SELECT stock FROM Products WHERE id = @id");
-      const currentStock = prodRes.recordset[0]?.stock || 0;
+        .query(`SELECT p.id, p.stock, p.product_code FROM Products p WHERE p.id = @id AND ${activeProductSql("p")}`);
+      const product = prodRes.recordset[0];
+      if (!product) {
+        await transaction.rollback();
+        return { success: false, error: "Không tìm thấy sản phẩm đang kinh doanh." };
+      }
+      const currentStock = product.stock || 0;
       const delta = parsedStock - currentStock;
 
       await transaction
@@ -307,7 +313,7 @@ export const db = {
                        p.name AS product_name
                 FROM ProductVariants pv WITH (UPDLOCK, ROWLOCK)
                 JOIN Products p ON p.id = pv.product_id
-                WHERE pv.id=@variant_id AND pv.product_id=@product_id AND pv.is_active=1`);
+                WHERE pv.id=@variant_id AND pv.product_id=@product_id AND pv.is_active=1 AND ${activeProductSql("p")}`);
       const variant = variantRes.recordset[0];
       if (!variant) throw new Error("Không tìm thấy biến thể sản phẩm đang hoạt động.");
 
@@ -369,7 +375,7 @@ export const db = {
 
   async updateVariantPricing(productId, variantId, costPrice, floorPrice) {
     const p = await getActivePool();
-    const result = await p.request().input("product_id", sql.Int, Number(productId)).input("variant_id", sql.NVarChar, variantId).query("SELECT id,price FROM ProductVariants WHERE id=@variant_id AND product_id=@product_id AND is_active=1");
+    const result = await p.request().input("product_id", sql.Int, Number(productId)).input("variant_id", sql.NVarChar, variantId).query(`SELECT v.id,v.price FROM ProductVariants v JOIN Products p ON p.id=v.product_id WHERE v.id=@variant_id AND v.product_id=@product_id AND v.is_active=1 AND ${activeProductSql("p")}`);
     if (!result.recordset.length) throw new Error("Không tìm thấy SKU cần cập nhật.");
     const sellingPrice = Number(result.recordset[0].price);
     if (costPrice < 0 || floorPrice < costPrice || floorPrice > sellingPrice) throw new Error("Giá phải thỏa mãn: 0 ≤ giá vốn ≤ giá sàn ≤ giá bán.");
@@ -377,9 +383,15 @@ export const db = {
     return { costPrice, floorPrice, sellingPrice };
   },
 
-  async getAllProductsAdmin() {
+  async getAllProductsAdmin(scope = "current") {
     const p = await getActivePool();
-    const res = await p.request().query("SELECT * FROM Products ORDER BY id DESC");
+    const legacySql = legacyProductSql("p");
+    const scopeSql = {
+      current: `NOT (${legacySql})`,
+      legacy: legacySql,
+      all: "1=1",
+    }[scope] || `NOT (${legacySql})`;
+    const res = await p.request().query(`SELECT p.* FROM Products p WHERE ${scopeSql} ORDER BY p.id DESC`);
     const variantRes = await p.request().query("SELECT * FROM ProductVariants ORDER BY product_id, color_name, size_name");
     return res.recordset.map((r) => {
       const catalog = catalogProducts.find((product) => product.id === r.id) || {};
@@ -431,6 +443,9 @@ export const db = {
 
     if (!name || !price || !category || !gender || !productCode) {
       throw new Error("Vui lòng cung cấp đầy đủ tên, giá, danh mục, đối tượng và mã sản phẩm (MR-xxx).");
+    }
+    if (isLegacyProductCode(productCode)) {
+      throw new Error("Mã sản phẩm từ 105 trở xuống đã được lưu trữ và không thể tạo mới.");
     }
     if (!Array.isArray(variants) || variants.length === 0) {
       throw new Error("Sản phẩm phải có ít nhất một SKU được khai báo rõ ràng.");
@@ -559,6 +574,7 @@ export const db = {
     if (!existing.recordset.length) throw new Error("Không tìm thấy sản phẩm cần cập nhật.");
 
     const r = existing.recordset[0];
+    if (isLegacyProductCode(r.product_code)) throw new Error("Sản phẩm mã cũ đã được lưu trữ và không thể chỉnh sửa.");
     const name = data.name !== undefined ? data.name.trim() : r.name;
     const price = data.price !== undefined ? Number(data.price) : Number(r.price);
     const category = data.category !== undefined ? data.category.trim() : r.category;
@@ -655,6 +671,7 @@ export const db = {
     const numId = Number(id);
     const existing = await p.request().input("id", sql.Int, numId).query("SELECT id, product_code, name, is_active FROM Products WHERE id = @id");
     if (!existing.recordset.length) throw new Error("Không tìm thấy sản phẩm.");
+    if (isLegacyProductCode(existing.recordset[0].product_code)) throw new Error("Sản phẩm mã cũ đã được lưu trữ và không thể khôi phục.");
     if (existing.recordset[0].is_active) throw new Error("Sản phẩm đang hoạt động, không cần khôi phục.");
 
     const transaction = new sql.Transaction(p);
@@ -715,6 +732,7 @@ export const db = {
     const prodRes = await p.request().input("id", sql.Int, numProductId).query("SELECT id, product_code, price FROM Products WHERE id = @id");
     if (!prodRes.recordset.length) throw new Error("Không tìm thấy sản phẩm.");
     const prod = prodRes.recordset[0];
+    if (isLegacyProductCode(prod.product_code)) throw new Error("Không thể thêm SKU cho sản phẩm mã cũ đã lưu trữ.");
 
     const color = String(data.color || "Standard").trim();
     const size = String(data.size || "M").trim();
@@ -799,6 +817,8 @@ export const db = {
       .input("id", sql.NVarChar, variantId)
       .query("SELECT * FROM ProductVariants WHERE id = @id AND product_id = @product_id");
     if (!existing.recordset.length) throw new Error("Không tìm thấy biến thể SKU.");
+    const product = await p.request().input("id", sql.Int, numProductId).query("SELECT product_code FROM Products WHERE id = @id");
+    if (isLegacyProductCode(product.recordset[0]?.product_code)) throw new Error("SKU thuộc sản phẩm mã cũ đã lưu trữ và không thể chỉnh sửa.");
 
     const r = existing.recordset[0];
     const color = data.color !== undefined ? String(data.color).trim() : r.color_name;
@@ -896,6 +916,8 @@ export const db = {
   async restoreVariantAdmin(productId, variantId, actor = "Admin") {
     const p = await getActivePool();
     const numProductId = Number(productId);
+    const product = await p.request().input("id", sql.Int, numProductId).query("SELECT product_code FROM Products WHERE id = @id");
+    if (isLegacyProductCode(product.recordset[0]?.product_code)) throw new Error("SKU thuộc sản phẩm mã cũ đã lưu trữ và không thể khôi phục.");
     const existing = await p.request()
       .input("product_id", sql.Int, numProductId)
       .input("id", sql.NVarChar, variantId)
@@ -997,10 +1019,10 @@ export const db = {
   async getProductVariantOptions(productId) {
     const p = await getActivePool();
     const result = await p.request().input("product_id", sql.Int, Number(productId)).query(`
-      SELECT DISTINCT color_name, size_name
-      FROM ProductVariants
-      WHERE product_id=@product_id AND is_active=1
-      ORDER BY color_name, size_name
+      SELECT DISTINCT v.color_name, v.size_name
+      FROM ProductVariants v JOIN Products p ON p.id=v.product_id
+      WHERE v.product_id=@product_id AND v.is_active=1 AND ${activeProductSql("p")}
+      ORDER BY v.color_name, v.size_name
     `);
     const variants = result.recordset;
     return {
@@ -1202,7 +1224,10 @@ export const db = {
         if (item.variantId) {
           const variantRes = await transaction.request()
             .input("variant_id", sql.NVarChar, item.variantId)
-            .query("SELECT id, sku, stock_quantity FROM ProductVariants WITH (UPDLOCK, ROWLOCK) WHERE id=@variant_id AND is_active=1");
+            .query(`SELECT v.id, v.sku, v.stock_quantity
+              FROM ProductVariants v WITH (UPDLOCK, ROWLOCK)
+              JOIN Products p ON p.id=v.product_id
+              WHERE v.id=@variant_id AND v.is_active=1 AND ${activeProductSql("p")}`);
           const variant = variantRes.recordset[0];
           if (!variant || variant.stock_quantity < item.quantity) {
             throw new Error(`Biến thể ${item.sku || item.variantId} không đủ tồn kho.`);
@@ -1212,7 +1237,7 @@ export const db = {
         const prodRes = await transaction
           .request()
           .input("id", sql.Int, item.id)
-          .query("SELECT id, name, stock FROM Products WHERE id = @id");
+          .query(`SELECT p.id, p.name, p.stock FROM Products p WHERE p.id = @id AND ${activeProductSql("p")}`);
         const prod = prodRes.recordset[0];
         if (!prod || prod.stock < item.quantity) {
           throw new Error(`Sản phẩm "${item.name}" chỉ còn ${prod ? prod.stock : 0} trong kho.`);
@@ -2091,6 +2116,5 @@ export const db = {
         WHEN NOT MATCHED THEN INSERT(period_key,period_label,target_revenue,target_gross_profit,note,updated_by) VALUES(@period_key,@period_label,@target_revenue,@target_gross_profit,@note,@updated_by);
       `);
     return this.getRevenueTarget(periodKey);
-  },
   },
 };

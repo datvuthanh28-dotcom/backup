@@ -5,6 +5,140 @@ import AdminPagination from "../../components/AdminPagination";
 
 const money = (val) => Number(val || 0).toLocaleString("vi-VN") + "đ";
 const PAGE_SIZE = 10;
+const LEGACY_PRODUCT_CODE_MAX = 105;
+
+const safeNumber = (value) => {
+  const result = Number(value);
+  return Number.isFinite(result) ? result : 0;
+};
+
+const normalizeImageUrl = (image) => {
+  if (!image || typeof image !== "string") return "";
+  const trimmed = image.trim();
+  if (!trimmed) return "";
+  if (/^(https?:)?\/\//i.test(trimmed) || trimmed.startsWith("data:") || trimmed.startsWith("blob:")) return trimmed;
+  return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+};
+
+const isInactiveValue = (value) => value === false || value === 0 || value === "0";
+
+const isLegacyProduct = (product) => {
+  const productCode = String(product?.productCode || product?.product_code || "").trim();
+  const codeNumber = productCode.match(/(\d+)$/);
+  const legacyNumber = codeNumber ? Number(codeNumber[1]) : productCode ? NaN : Number(product?.id);
+  return Number.isInteger(legacyNumber) && legacyNumber <= LEGACY_PRODUCT_CODE_MAX;
+};
+
+const isProductActive = (product) => {
+  if (isLegacyProduct(product)) return false;
+  const activeValue = product?.isActive ?? product?.is_active ?? product?.active;
+  return !isInactiveValue(activeValue);
+};
+
+const isVariantActive = (variant) => {
+  const activeValue = variant?.isActive ?? variant?.is_active ?? variant?.active;
+  return !isInactiveValue(activeValue);
+};
+
+const getProductImage = (product) => {
+  const imageList = Array.isArray(product?.images)
+    ? product.images.filter((image) => typeof image === "string" && image.trim())
+    : [];
+  if (imageList.length) return imageList[0];
+  if (typeof product?.image === "string" && product.image.trim()) return product.image;
+  return "";
+};
+
+const getProductDataIssues = (product, imageUnavailable = false) => {
+  if (isLegacyProduct(product)) return [];
+  const variants = Array.isArray(product?.variants) ? product.variants : [];
+  const activeVariants = variants.filter(isVariantActive);
+  const productCode = product?.productCode || product?.product_code;
+  const image = getProductImage(product);
+  const issues = [];
+  if (!product?.name?.trim()) issues.push("tên sản phẩm");
+  if (!productCode || !String(productCode).trim()) issues.push("mã sản phẩm");
+  if (!product?.category || !product?.gender) issues.push("phân loại");
+  const hasImage = Boolean(image) && !imageUnavailable;
+  if (!hasImage) issues.push(imageUnavailable ? "đường dẫn ảnh hợp lệ" : "ảnh đại diện");
+  if (!activeVariants.length) issues.push("SKU đang kinh doanh");
+  const hasCompleteVariant = activeVariants.length > 0 && activeVariants.every((variant) => {
+    const price = safeNumber(variant?.price);
+    const cost = safeNumber(variant?.costPrice ?? variant?.cost_price);
+    const floor = safeNumber(variant?.floorPrice ?? variant?.floor_price);
+    const stock = safeNumber(variant?.stock);
+    const minStock = safeNumber(variant?.minStock ?? variant?.lowStockThreshold ?? variant?.low_stock_threshold);
+    const maxStock = safeNumber(variant?.maxStock ?? variant?.maxStockThreshold ?? variant?.max_stock_threshold);
+
+    return Boolean(variant?.sku?.trim() && variant?.color?.trim() && variant?.size?.trim())
+      && price > 0
+      && cost > 0
+      && cost <= floor
+      && floor <= price
+      && Number.isInteger(stock)
+      && stock >= 0
+      && Number.isInteger(minStock)
+      && Number.isInteger(maxStock)
+      && maxStock > minStock;
+  });
+  if (!hasCompleteVariant && activeVariants.length) issues.push("giá / tồn kho SKU");
+  return issues;
+};
+
+const getProductDataStatus = (product, imageUnavailable = false) => {
+  if (isLegacyProduct(product)) return "Lưu trữ";
+  return getProductDataIssues(product, imageUnavailable).length ? "Cần hoàn tất" : "Hoàn chỉnh";
+};
+
+const getProductBusinessStatus = (product, imageUnavailable = false) => {
+  if (isLegacyProduct(product)) return "Lưu trữ";
+  if (!isProductActive(product)) return "Ngừng kinh doanh";
+  return getProductDataStatus(product, imageUnavailable) === "Hoàn chỉnh"
+    ? "Đang kinh doanh"
+    : "Cần hoàn tất";
+};
+
+const getColorCount = (product) => new Set((product?.variants || []).map((variant) => String(variant?.color || "").trim()).filter(Boolean)).size;
+
+const getPriceLabel = (product) => {
+  const prices = (product?.variants || []).map((variant) => safeNumber(variant?.price)).filter((value) => value > 0);
+  if (!prices.length) return "—";
+  const uniquePrices = [...new Set(prices)];
+  if (uniquePrices.length === 1) return money(uniquePrices[0]);
+  const min = Math.min(...uniquePrices);
+  const max = Math.max(...uniquePrices);
+  return `${money(min)} – ${money(max)}`;
+};
+
+const getInventorySummary = (product) => {
+  const variants = Array.isArray(product?.variants) ? product.variants : [];
+  const activeVariants = isProductActive(product) ? variants.filter(isVariantActive) : [];
+  const summary = {
+    total: variants.length,
+    sold: activeVariants.length,
+    inactive: variants.length - activeVariants.length,
+    activeStock: activeVariants.reduce((sum, variant) => sum + safeNumber(variant?.stock), 0),
+    outOfStock: activeVariants.filter((variant) => safeNumber(variant?.stock) === 0).length,
+    lowStock: activeVariants.filter((variant) => {
+      const stock = safeNumber(variant?.stock);
+      const minStock = safeNumber(variant?.minStock ?? variant?.lowStockThreshold);
+      return stock > 0 && stock <= minStock;
+    }).length,
+    stable: activeVariants.filter((variant) => {
+      const stock = safeNumber(variant?.stock);
+      const minStock = safeNumber(variant?.minStock ?? variant?.lowStockThreshold);
+      const maxStock = safeNumber(variant?.maxStock ?? variant?.maxStockThreshold);
+      return minStock < stock && stock < maxStock;
+    }).length,
+    overStock: activeVariants.filter((variant) => {
+      const stock = safeNumber(variant?.stock);
+      const maxStock = safeNumber(variant?.maxStock ?? variant?.maxStockThreshold);
+      return maxStock > 0 && stock >= maxStock;
+    }).length,
+  };
+
+  return summary;
+};
 
 export default function AdminProducts() {
   useDocumentTitle("Admin — Quản Lý Sản Phẩm & SKU");
@@ -13,10 +147,22 @@ export default function AdminProducts() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [unavailableProductImages, setUnavailableProductImages] = useState({});
+
+  useEffect(() => {
+    if (!successMsg) return undefined;
+    const timerId = window.setTimeout(() => setSuccessMsg(""), 4000);
+    return () => window.clearTimeout(timerId);
+  }, [successMsg]);
 
   // Filters
-  const [statusFilter, setStatusFilter] = useState("all"); // 'all', 'active', 'inactive'
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [catalogScope, setCatalogScope] = useState("current");
+  const [businessFilter, setBusinessFilter] = useState("Đang kinh doanh");
+  const [inventoryFilter, setInventoryFilter] = useState("all");
+  const [dataStatusFilter, setDataStatusFilter] = useState("all");
+  const [collectionFilter, setCollectionFilter] = useState("all");
+  const [genderFilter, setGenderFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
@@ -29,6 +175,11 @@ export default function AdminProducts() {
   const [movementsModal, setMovementsModal] = useState(null); // { productId: ..., movements: [] }
   const [busy, setBusy] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
+
+  const isProductImageUnavailable = useCallback((product) => {
+    const image = normalizeImageUrl(getProductImage(product));
+    return Boolean(image && unavailableProductImages[product.id] === image);
+  }, [unavailableProductImages]);
 
   const emptyVariant = (price = "") => ({
     sku: "", color: "", size: "", price, costPrice: "", floorPrice: "",
@@ -98,7 +249,7 @@ export default function AdminProducts() {
     setLoading(true);
     setError("");
     try {
-      const res = await productsAPI.getAllAdmin();
+      const res = await productsAPI.getAllAdmin(catalogScope);
       setProducts(res.products || []);
       setSelectedProduct((current) => current ? (res.products.find((product) => product.id === current.id) || current) : null);
     } catch (err) {
@@ -106,31 +257,106 @@ export default function AdminProducts() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [catalogScope]);
 
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
 
+  const allCollections = useMemo(
+    () => [...new Set(products.map((product) => (product.collectionName || product.collection || "")).filter(Boolean))],
+    [products]
+  );
+  const allGenders = useMemo(
+    () => [...new Set(products.map((product) => (product.gender || "")).filter(Boolean))],
+    [products]
+  );
+
   const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
-      if (statusFilter === "active" && !p.isActive) return false;
-      if (statusFilter === "inactive" && p.isActive) return false;
-      if (categoryFilter !== "all" && p.category !== categoryFilter) return false;
+    return products.filter((product) => {
+      const imageUnavailable = isProductImageUnavailable(product);
+      const businessStatus = getProductBusinessStatus(product, imageUnavailable);
+      const dataStatus = getProductDataStatus(product, imageUnavailable);
+      const inventorySummary = getInventorySummary(product);
+      const skuSearchText = (product.variants || []).map((variant) => (variant?.sku || "")).join(" ");
+
+      if (businessFilter !== "all" && businessStatus !== businessFilter) return false;
+      if (categoryFilter !== "all" && String(product.category || "") !== categoryFilter) return false;
+      if (collectionFilter !== "all" && String(product.collectionName || product.collection || "") !== collectionFilter) return false;
+      if (genderFilter !== "all" && String(product.gender || "") !== genderFilter) return false;
+      if (dataStatusFilter !== "all" && dataStatus !== dataStatusFilter) return false;
+      if (inventoryFilter !== "all") {
+        const matchingStockCount = {
+          out: inventorySummary.outOfStock,
+          low: inventorySummary.lowStock,
+          stable: inventorySummary.stable,
+          over: inventorySummary.overStock,
+        }[inventoryFilter] || 0;
+        if (matchingStockCount === 0) return false;
+      }
       if (search.trim()) {
         const q = search.toLowerCase();
-        const code = (p.productCode || p.product_code || "").toLowerCase();
-        const name = (p.name || "").toLowerCase();
-        if (!code.includes(q) && !name.includes(q)) return false;
+        const code = (product.productCode || product.product_code || "").toLowerCase();
+        const name = (product.name || "").toLowerCase();
+        const skuMatch = skuSearchText.toLowerCase().includes(q);
+        const collection = (product.collectionName || product.collection || "").toLowerCase();
+        if (!code.includes(q) && !name.includes(q) && !skuMatch && !collection.includes(q)) return false;
       }
       return true;
     });
-  }, [products, statusFilter, categoryFilter, search]);
+  }, [products, isProductImageUnavailable, businessFilter, categoryFilter, collectionFilter, genderFilter, dataStatusFilter, inventoryFilter, search]);
+
+  const stats = useMemo(() => {
+    const counts = {
+      totalProducts: products.length,
+      activeProducts: products.filter((product) => getProductBusinessStatus(product, isProductImageUnavailable(product)) === "Đang kinh doanh").length,
+      incompleteProducts: products.filter((product) => getProductDataStatus(product, isProductImageUnavailable(product)) === "Cần hoàn tất").length,
+      inactiveProducts: products.filter((product) => getProductBusinessStatus(product, isProductImageUnavailable(product)) === "Ngừng kinh doanh").length,
+      skuOutOfStock: products.reduce((sum, product) => sum + getInventorySummary(product).outOfStock, 0),
+      skuLowStock: products.reduce((sum, product) => sum + getInventorySummary(product).lowStock, 0),
+      skuOverStock: products.reduce((sum, product) => sum + getInventorySummary(product).overStock, 0),
+    };
+
+    return counts;
+  }, [products, isProductImageUnavailable]);
+
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE));
   const pagedProducts = filteredProducts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  useEffect(() => setPage(1), [statusFilter, categoryFilter, search]);
+  useEffect(() => setPage(1), [catalogScope, businessFilter, categoryFilter, collectionFilter, genderFilter, dataStatusFilter, inventoryFilter, search]);
   useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
+
+  const applyQuickFilter = (filter) => {
+    if (filter === "all") {
+      setBusinessFilter("all");
+      setInventoryFilter("all");
+      setDataStatusFilter("all");
+      return;
+    }
+    if (filter === "incomplete") {
+      setBusinessFilter("all");
+      setInventoryFilter("all");
+      setDataStatusFilter("Cần hoàn tất");
+      return;
+    }
+    if (filter === "active" || filter === "inactive") {
+      setBusinessFilter(filter === "active" ? "Đang kinh doanh" : "Ngừng kinh doanh");
+      setInventoryFilter("all");
+      setDataStatusFilter("all");
+      return;
+    }
+    setBusinessFilter("all");
+    setInventoryFilter(filter);
+    setDataStatusFilter("all");
+  };
+
+  const changeCatalogScope = (nextScope) => {
+    setCatalogScope(nextScope);
+    setSelectedProduct(null);
+    setBusinessFilter(nextScope === "current" ? "Đang kinh doanh" : "all");
+    setInventoryFilter("all");
+    setDataStatusFilter("all");
+  };
 
   // Product Actions
   const handleSaveProduct = async (e) => {
@@ -314,47 +540,134 @@ export default function AdminProducts() {
         </div>
       )}
 
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: "12px", marginBottom: "18px" }}>
+        {[
+          { key: "all", label: "Tổng sản phẩm", value: stats.totalProducts, tone: "#F4EEE8" },
+          { key: "active", label: "Đang kinh doanh", value: stats.activeProducts, tone: "#EAF7EC" },
+          { key: "incomplete", label: "Cần hoàn tất", value: stats.incompleteProducts, tone: "#F8F0E5" },
+          { key: "out", label: "SKU hết hàng", value: stats.skuOutOfStock, tone: "#FCEBED" },
+          { key: "low", label: "SKU sắp hết", value: stats.skuLowStock, tone: "#FFF3DE" },
+          { key: "over", label: "SKU vượt mức tồn", value: stats.skuOverStock, tone: "#F7E7F4" },
+          { key: "inactive", label: "Ngừng kinh doanh", value: stats.inactiveProducts, tone: "#F3E8E3" },
+        ].map((summary) => (
+          <button
+            key={summary.label}
+            type="button"
+            onClick={() => applyQuickFilter(summary.key)}
+            style={{ border: "1px solid #E8E1D6", borderRadius: "8px", background: summary.tone, padding: "12px 14px", textAlign: "left", cursor: "pointer" }}
+          >
+            <div style={{ fontSize: "11px", letterSpacing: "0.6px", textTransform: "uppercase", color: "#745E4C", fontWeight: "700" }}>{summary.label}</div>
+            <div style={{ marginTop: "8px", fontSize: "24px", fontWeight: "700", color: "#14100E" }}>{summary.value}</div>
+          </button>
+        ))}
+      </div>
+
       {/* Filter Bar */}
-      <div style={{ display: "flex", gap: "15px", backgroundColor: "#FFF", padding: "16px 20px", borderRadius: "8px", border: "1px solid #E8E1D6", marginBottom: "25px", alignItems: "center" }}>
-        <div style={{ flex: 1 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px", backgroundColor: "#FFF", padding: "16px 20px", borderRadius: "8px", border: "1px solid #E8E1D6", marginBottom: "12px", alignItems: "end" }}>
+        <div>
+          <label style={{ display: "block", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.7px", color: "#7A6557", marginBottom: "6px" }}>Phạm vi dữ liệu</label>
+          <select value={catalogScope} onChange={(e) => changeCatalogScope(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: "1px solid #D8CEC1", borderRadius: "5px", fontSize: "13px", backgroundColor: "#FFF" }}>
+            <option value="current">Catalog hiện hành</option>
+            <option value="legacy">Dữ liệu lưu trữ cũ</option>
+            <option value="all">Tất cả dữ liệu</option>
+          </select>
+        </div>
+        <div>
+          <label style={{ display: "block", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.7px", color: "#7A6557", marginBottom: "6px" }}>Tìm kiếm</label>
           <input
             type="text"
-            placeholder="Tìm theo mã sản phẩm (MR-xxx) hoặc tên..."
+            placeholder="Tên, mã hoặc SKU..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ width: "100%", padding: "9px 14px", border: "1px solid #D8CEC1", borderRadius: "5px", fontSize: "13px", outline: "none", boxSizing: "border-box" }}
+            style={{ width: "100%", padding: "9px 12px", border: "1px solid #D8CEC1", borderRadius: "5px", fontSize: "13px", outline: "none", boxSizing: "border-box" }}
           />
         </div>
         <div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            style={{ padding: "9px 14px", border: "1px solid #D8CEC1", borderRadius: "5px", fontSize: "13px", backgroundColor: "#FFF" }}
-          >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="active">Đang kinh doanh (Active)</option>
-            <option value="inactive">Đã ngừng bán (Soft-Deleted)</option>
+          <label style={{ display: "block", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.7px", color: "#7A6557", marginBottom: "6px" }}>Trạng thái kinh doanh</label>
+          <select value={businessFilter} onChange={(e) => setBusinessFilter(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: "1px solid #D8CEC1", borderRadius: "5px", fontSize: "13px", backgroundColor: "#FFF" }}>
+            <option value="all">Tất cả</option>
+            <option value="Đang kinh doanh">Đang kinh doanh</option>
+            <option value="Cần hoàn tất">Cần hoàn tất</option>
+            <option value="Ngừng kinh doanh">Ngừng kinh doanh</option>
           </select>
         </div>
         <div>
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            style={{ padding: "9px 14px", border: "1px solid #D8CEC1", borderRadius: "5px", fontSize: "13px", backgroundColor: "#FFF" }}
-          >
-            <option value="all">Tất cả danh mục</option>
-            <option value="clothing">Trang phục (Clothing)</option>
-            <option value="footwear">Giày dép (Footwear)</option>
-            <option value="accessories">Phụ kiện (Accessories)</option>
+          <label style={{ display: "block", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.7px", color: "#7A6557", marginBottom: "6px" }}>Tình trạng kho</label>
+          <select value={inventoryFilter} onChange={(e) => setInventoryFilter(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: "1px solid #D8CEC1", borderRadius: "5px", fontSize: "13px", backgroundColor: "#FFF" }}>
+            <option value="all">Tất cả</option>
+            <option value="out">Hết hàng</option>
+            <option value="low">Sắp hết</option>
+            <option value="stable">Ổn định</option>
+            <option value="over">Vượt mức tồn</option>
           </select>
         </div>
-        <div style={{ fontSize: "13px", color: "#8A7350", fontWeight: "600", minWidth: "120px", textAlign: "right" }}>
-          {filteredProducts.length} sản phẩm
+        <div>
+          <label style={{ display: "block", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.7px", color: "#7A6557", marginBottom: "6px" }}>Danh mục</label>
+          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: "1px solid #D8CEC1", borderRadius: "5px", fontSize: "13px", backgroundColor: "#FFF" }}>
+            <option value="all">Tất cả</option>
+            <option value="clothing">Trang phục</option>
+            <option value="footwear">Giày dép</option>
+            <option value="accessories">Phụ kiện</option>
+          </select>
         </div>
+        <div>
+          <label style={{ display: "block", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.7px", color: "#7A6557", marginBottom: "6px" }}>Đối tượng</label>
+          <select value={genderFilter} onChange={(e) => setGenderFilter(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: "1px solid #D8CEC1", borderRadius: "5px", fontSize: "13px", backgroundColor: "#FFF" }}>
+            <option value="all">Tất cả</option>
+            {allGenders.map((gender) => <option key={gender} value={gender}>{gender}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={{ display: "block", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.7px", color: "#7A6557", marginBottom: "6px" }}>Bộ sưu tập</label>
+          <select value={collectionFilter} onChange={(e) => setCollectionFilter(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: "1px solid #D8CEC1", borderRadius: "5px", fontSize: "13px", backgroundColor: "#FFF" }}>
+            <option value="all">Tất cả</option>
+            {allCollections.map((collection) => <option key={collection} value={collection}>{collection}</option>)}
+          </select>
+        </div>
+      </div>
+      <div style={{ margin: "0 0 18px", color: "#806D60", fontSize: "12px" }}>
+        {catalogScope === "current" ? "Đang vận hành catalog từ mã MR-106 trở đi. Dữ liệu cũ chỉ được mở trong mục lưu trữ." : catalogScope === "legacy" ? "Dữ liệu lưu trữ chỉ để tra cứu lịch sử; không dùng để vận hành kho hoặc bán hàng." : "Chế độ kiểm tra toàn bộ dữ liệu. Hãy thận trọng khi thao tác với bản ghi lưu trữ."}
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "18px" }}>
+        {[
+          { key: "all", label: "Tất cả" },
+          { key: "incomplete", label: "Cần hoàn tất" },
+          { key: "out", label: "Hết hàng" },
+          { key: "low", label: "Sắp hết" },
+          { key: "over", label: "Vượt mức tồn" },
+          { key: "inactive", label: "Ngừng kinh doanh" },
+        ].map((filter) => {
+          const selected =
+            (filter.key === "all" && businessFilter === "all" && inventoryFilter === "all" && dataStatusFilter === "all") ||
+            (filter.key === "incomplete" && dataStatusFilter === "Cần hoàn tất") ||
+            (["out", "low", "over"].includes(filter.key) && inventoryFilter === filter.key) ||
+            (filter.key === "inactive" && businessFilter === "Ngừng kinh doanh");
+
+          return (
+            <button
+              key={filter.key}
+              type="button"
+              onClick={() => applyQuickFilter(filter.key)}
+              style={{
+                border: "1px solid #D8CEC1",
+                background: selected ? "#8A5A36" : "#FFF",
+                borderRadius: "999px",
+                padding: "7px 12px",
+                fontSize: "12px",
+                fontWeight: "600",
+                color: selected ? "#FFF" : "#4E342E",
+                cursor: "pointer",
+              }}
+            >
+              {filter.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Main Content Layout */}
-      <div style={{ display: "grid", gridTemplateColumns: selectedProduct ? "1fr 1fr" : "1fr", gap: "25px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: selectedProduct ? "1.7fr 1fr" : "1fr", gap: "25px" }}>
         {/* Products Table */}
         <div style={{ backgroundColor: "#FFF", borderRadius: "8px", border: "1px solid #E8E1D6", overflow: "hidden" }}>
           <div style={{ padding: "16px 20px", borderBottom: "1px solid #E8E1D6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -370,83 +683,101 @@ export default function AdminProducts() {
             <div style={{ padding: "40px", textAlign: "center", color: "#8A7350" }}>Đang tải danh mục sản phẩm...</div>
           ) : (
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", textAlign: "left" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12.5px", textAlign: "left", minWidth: "1180px" }}>
                 <thead>
-                  <tr style={{ backgroundColor: "#FAF6F0", borderBottom: "1px solid #E8E1D6", color: "#6B5A4B", textTransform: "uppercase", fontSize: "11px", letterSpacing: "0.5px" }}>
-                    <th style={{ padding: "12px 16px" }}>Mã & Tên</th>
-                    <th style={{ padding: "12px 14px" }}>Danh mục</th>
-                    <th style={{ padding: "12px 14px" }}>Giá bán</th>
-                    <th style={{ padding: "12px 14px" }}>Tồn kho</th>
-                    <th style={{ padding: "12px 14px" }}>Trạng thái</th>
-                    <th style={{ padding: "12px 16px", textAlign: "right" }}>Thao tác</th>
+                  <tr style={{ backgroundColor: "#FAF6F0", borderBottom: "1px solid #E8E1D6", color: "#6B5A4B", textTransform: "uppercase", fontSize: "10.5px", letterSpacing: "0.5px" }}>
+                    <th style={{ padding: "12px 14px" }}>Sản Phẩm</th>
+                    <th style={{ padding: "12px 12px" }}>Phân Loại</th>
+                    <th style={{ padding: "12px 12px" }}>Giá</th>
+                    <th style={{ padding: "12px 12px" }}>SKU</th>
+                    <th style={{ padding: "12px 12px" }}>Tồn Kho</th>
+                    <th style={{ padding: "12px 12px" }}>Dữ Liệu</th>
+                    <th style={{ padding: "12px 12px" }}>Trạng Thái</th>
+                    <th style={{ padding: "12px 12px", textAlign: "right" }}>Thao Tác</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pagedProducts.map((p) => {
                     const isSelected = selectedProduct?.id === p.id;
+                    const image = getProductImage(p);
+                    const imageUnavailable = isProductImageUnavailable(p);
+                    const businessStatus = getProductBusinessStatus(p, imageUnavailable);
+                    const dataStatus = getProductDataStatus(p, imageUnavailable);
+                    const inventorySummary = getInventorySummary(p);
+                    const priceLabel = getPriceLabel(p);
+                    const legacyProduct = isLegacyProduct(p);
                     return (
-                      <tr
-                        key={p.id}
-                        onClick={() => setSelectedProduct(p)}
-                        style={{
-                          borderBottom: "1px solid #F0EAE1",
-                          backgroundColor: isSelected ? "rgba(138, 90, 54, 0.08)" : "transparent",
-                          cursor: "pointer",
-                          transition: "background 0.15s",
-                        }}
-                      >
-                        <td style={{ padding: "12px 16px" }}>
-                          <strong style={{ color: "#14100E", display: "block" }}>{p.name}</strong>
-                          <span style={{ fontSize: "11px", color: "#8A7350" }}>{p.productCode || p.product_code}</span>
-                        </td>
-                        <td style={{ padding: "12px 14px", color: "#6B5A4B" }}>
-                          {p.category} • {p.gender}
-                        </td>
-                        <td style={{ padding: "12px 14px", fontWeight: "600", color: "#2B211C" }}>
-                          {money(p.price)}
-                        </td>
+                      <tr key={p.id} onClick={() => setSelectedProduct(p)} style={{ borderBottom: "1px solid #F0EAE1", backgroundColor: isSelected ? "rgba(138, 90, 54, 0.08)" : "transparent", cursor: "pointer" }}>
                         <td style={{ padding: "12px 14px" }}>
-                          <span style={{ fontWeight: "600", color: p.activeStock <= 5 ? "#D9534F" : "#2E8B57" }}>
-                            {p.activeStock}
-                          </span>
-                          <span style={{ fontSize: "11px", color: "#8A7350" }}> / {p.variants?.length || 0} SKU</span>
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            <div style={{ width: "56px", height: "56px", borderRadius: "8px", overflow: "hidden", border: "1px solid #E8E1D6", backgroundColor: "#F8F2EC", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              {image && !imageUnavailable ? (
+                                <img
+                                  src={normalizeImageUrl(image)}
+                                  alt={p.name}
+                                  loading="lazy"
+                                  onError={() => {
+                                    if (!image || imageUnavailable) return;
+                                    const failedImage = normalizeImageUrl(image);
+                                    setUnavailableProductImages((current) => ({ ...current, [p.id]: failedImage }));
+                                  }}
+                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                />
+                              ) : (
+                                <span style={{ padding: "6px", color: "#8A7350", fontSize: "10px", lineHeight: 1.25, textAlign: "center" }}>Chưa có ảnh</span>
+                              )}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: "700", color: "#14100E", marginBottom: "4px" }}>{p.name}</div>
+                              <div style={{ fontSize: "11px", color: "#8A7350", marginBottom: "2px" }}>{p.productCode || p.product_code}</div>
+                              <div style={{ fontSize: "10.5px", color: "#6B5A4B" }}>{p.collectionName || p.collection || ""}</div>
+                            </div>
+                          </div>
                         </td>
-                        <td style={{ padding: "12px 14px" }}>
-                          {p.isActive ? (
-                            <span style={{ padding: "3px 8px", backgroundColor: "#E8F5E9", color: "#2E8B57", borderRadius: "12px", fontSize: "11px", fontWeight: "600" }}>
-                              Kinh doanh
-                            </span>
-                          ) : (
-                            <span style={{ padding: "3px 8px", backgroundColor: "#FFEBEE", color: "#D9534F", borderRadius: "12px", fontSize: "11px", fontWeight: "600" }}>
-                              Ngừng bán
-                            </span>
+                        <td style={{ padding: "12px 12px", color: "#6B5A4B" }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                            <span>{p.category || "—"}</span>
+                            <span>{p.gender || "—"}</span>
+                            <small>{inventorySummary.total} SKU · {getColorCount(p)} màu</small>
+                          </div>
+                        </td>
+                        <td style={{ padding: "12px 12px", fontWeight: "600", color: "#2B211C" }}>
+                          <div>{priceLabel}</div>
+                          {((p.variants || []).some((variant) => safeNumber(variant.costPrice) === 0) || (p.variants || []).some((variant) => safeNumber(variant.floorPrice) <= 0)) && (
+                            <small style={{ color: "#B55A2A", display: "block", marginTop: "4px" }}>Cảnh báo giá vốn / giá sàn</small>
                           )}
                         </td>
-                        <td style={{ padding: "12px 16px", textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
+                        <td style={{ padding: "12px 12px" }}>
+                          <div style={{ fontWeight: "700" }}>{inventorySummary.total} SKU</div>
+                          <div style={{ fontSize: "11px", color: "#2E8B57" }}>{inventorySummary.sold} đang bán</div>
+                          <div style={{ fontSize: "11px", color: "#D9534F" }}>{inventorySummary.inactive} ngừng bán</div>
+                        </td>
+                        <td style={{ padding: "12px 12px" }}>
+                          {legacyProduct ? <span style={{ color: "#806D60", fontSize: "11px" }}>Không theo dõi</span> : <>
+                            <div style={{ fontWeight: "700" }}>{inventorySummary.activeStock.toLocaleString("vi-VN")}</div>
+                            <div style={{ fontSize: "11px", color: "#D9534F" }}>{inventorySummary.outOfStock} hết hàng</div>
+                            <div style={{ fontSize: "11px", color: "#B56A1F" }}>{inventorySummary.lowStock} sắp hết</div>
+                            <div style={{ fontSize: "11px", color: "#2E8B57" }}>{inventorySummary.stable} ổn định</div>
+                            <div style={{ fontSize: "11px", color: "#8A5A36" }}>{inventorySummary.overStock} vượt mức</div>
+                          </>}
+                        </td>
+                        <td style={{ padding: "12px 12px" }}>
+                          <span title={getProductDataIssues(p, imageUnavailable).length ? `Cần bổ sung: ${getProductDataIssues(p, imageUnavailable).join(", ")}` : "Dữ liệu đã sẵn sàng"} style={{ display: "inline-block", padding: "4px 8px", backgroundColor: dataStatus === "Hoàn chỉnh" ? "#EAF7EC" : dataStatus === "Lưu trữ" ? "#F2EEE9" : "#FFF3DE", color: "#3D2B22", borderRadius: "999px", fontWeight: "600", fontSize: "11px" }}>{dataStatus}</span>
+                          {getProductDataIssues(p, imageUnavailable).length > 0 && <small style={{ display: "block", marginTop: "5px", maxWidth: "140px", color: "#806D60", fontSize: "10px" }}>{getProductDataIssues(p, imageUnavailable).slice(0, 2).join(" · ")}</small>}
+                        </td>
+                        <td style={{ padding: "12px 12px" }}>
+                          <span style={{ display: "inline-block", padding: "4px 8px", backgroundColor: businessStatus === "Đang kinh doanh" ? "#EAF7EC" : businessStatus === "Ngừng kinh doanh" ? "#FCEBED" : "#F8F0E5", color: businessStatus === "Đang kinh doanh" ? "#2E8B57" : businessStatus === "Ngừng kinh doanh" ? "#B23535" : "#745E4C", borderRadius: "999px", fontWeight: "600", fontSize: "11px" }}>{businessStatus}</span>
+                        </td>
+                        <td style={{ padding: "12px 12px", textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
                           <div style={{ display: "inline-flex", gap: "6px" }}>
-                            <button
-                              onClick={() => openEditProduct(p)}
-                              title="Sửa thông tin"
-                              style={{ padding: "4px 8px", backgroundColor: "#FAF6F0", border: "1px solid #D8CEC1", borderRadius: "4px", fontSize: "11px", cursor: "pointer" }}
-                            >
-                              <i className="fas fa-edit"></i>
-                            </button>
-                            {p.isActive ? (
-                              <button
-                                onClick={() => handleSoftDeleteProduct(p)}
-                                title="Xóa mềm (Ngừng bán)"
-                                style={{ padding: "4px 8px", backgroundColor: "#FFF0F0", border: "1px solid #F5C6CB", color: "#D9534F", borderRadius: "4px", fontSize: "11px", cursor: "pointer" }}
-                              >
-                                <i className="fas fa-trash-alt"></i>
-                              </button>
+                            <button onClick={() => setSelectedProduct(p)} title="Xem chi tiết" style={{ padding: "4px 8px", backgroundColor: "#FAF6F0", border: "1px solid #D8CEC1", borderRadius: "4px", fontSize: "11px", cursor: "pointer" }}><i className="fas fa-eye"></i></button>
+                            {!legacyProduct && <button onClick={() => openEditProduct(p)} title="Chỉnh sửa" style={{ padding: "4px 8px", backgroundColor: "#FAF6F0", border: "1px solid #D8CEC1", borderRadius: "4px", fontSize: "11px", cursor: "pointer" }}><i className="fas fa-edit"></i></button>}
+                            {legacyProduct ? (
+                              <span title="Mã sản phẩm cũ được xếp vào mục ngừng kinh doanh" style={{ padding: "4px 8px", color: "#745E4C" }}><i className="fas fa-box-archive"></i></span>
+                            ) : isProductActive(p) ? (
+                              <button onClick={() => handleSoftDeleteProduct(p)} title="Ngừng bán bằng xóa mềm" style={{ padding: "4px 8px", backgroundColor: "#FFF0F0", border: "1px solid #F5C6CB", color: "#D9534F", borderRadius: "4px", fontSize: "11px", cursor: "pointer" }}><i className="fas fa-trash-alt"></i></button>
                             ) : (
-                              <button
-                                onClick={() => handleRestoreProduct(p)}
-                                title="Khôi phục bán"
-                                style={{ padding: "4px 8px", backgroundColor: "#F0FFF0", border: "1px solid #C3E6CB", color: "#2E8B57", borderRadius: "4px", fontSize: "11px", cursor: "pointer" }}
-                              >
-                                <i className="fas fa-trash-restore"></i>
-                              </button>
+                              <button onClick={() => handleRestoreProduct(p)} title="Khôi phục" style={{ padding: "4px 8px", backgroundColor: "#F0FFF0", border: "1px solid #C3E6CB", color: "#2E8B57", borderRadius: "4px", fontSize: "11px", cursor: "pointer" }}><i className="fas fa-undo"></i></button>
                             )}
                           </div>
                         </td>
@@ -497,7 +828,7 @@ export default function AdminProducts() {
                 <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "#2B211C" }}>
                   Danh Sách SKU ({selectedProduct.variants?.length || 0})
                 </h4>
-                <button
+                {!isLegacyProduct(selectedProduct) && <button
                   onClick={() => setVariantModal({
                     mode: "create",
                     productId: selectedProduct.id,
@@ -516,7 +847,7 @@ export default function AdminProducts() {
                   style={{ padding: "5px 12px", backgroundColor: "#4E342E", color: "#FFF", border: "none", borderRadius: "4px", fontSize: "12px", cursor: "pointer", fontWeight: "600" }}
                 >
                   <i className="fas fa-plus"></i> Thêm SKU
-                </button>
+                </button>}
               </div>
 
               <div style={{ overflowX: "auto" }}>
@@ -534,7 +865,9 @@ export default function AdminProducts() {
                     </tr>
                   </thead>
                   <tbody>
-                    {(selectedProduct.variants || []).map((v) => (
+                    {(selectedProduct.variants || []).map((v) => {
+                      const variantActive = isProductActive(selectedProduct) && isVariantActive(v);
+                      return (
                       <tr key={v.id} style={{ borderBottom: "1px solid #F0EAE1" }}>
                         <td style={{ padding: "8px 10px", fontWeight: "600", color: "#14100E" }}>{v.sku}</td>
                         <td style={{ padding: "8px 10px", color: "#4E342E" }}>{v.color} / {v.size}</td>
@@ -548,7 +881,7 @@ export default function AdminProducts() {
                           <span style={{ fontSize: "10.5px", color: "#8A7350" }}> (Min:{v.lowStockThreshold})</span>
                         </td>
                         <td style={{ padding: "8px 10px", textAlign: "center" }}>
-                          {v.isActive ? (
+                          {variantActive ? (
                             <span style={{ color: "#2E8B57", fontSize: "11px", fontWeight: "600" }}>● Đang bán</span>
                           ) : (
                             <span style={{ color: "#D9534F", fontSize: "11px", fontWeight: "600" }}>● Ngừng bán</span>
@@ -556,14 +889,14 @@ export default function AdminProducts() {
                         </td>
                         <td style={{ padding: "8px 10px", textAlign: "right" }}>
                           <div style={{ display: "inline-flex", gap: "5px" }}>
-                            <button
+                            {!isLegacyProduct(selectedProduct) && <button
                               onClick={() => setVariantModal({ mode: "edit", productId: selectedProduct.id, data: { ...v } })}
                               title="Sửa SKU"
                               style={{ padding: "3px 6px", backgroundColor: "#FAF6F0", border: "1px solid #D8CEC1", borderRadius: "3px", fontSize: "10px", cursor: "pointer" }}
                             >
                               <i className="fas fa-edit"></i>
-                            </button>
-                            {v.isActive ? (
+                            </button>}
+                            {!isLegacyProduct(selectedProduct) && variantActive ? (
                               <button
                                 onClick={() => handleSoftDeleteVariant(selectedProduct.id, v)}
                                 title="Ngừng bán SKU (Xóa mềm)"
@@ -571,7 +904,7 @@ export default function AdminProducts() {
                               >
                                 <i className="fas fa-ban"></i>
                               </button>
-                            ) : (
+                            ) : !isLegacyProduct(selectedProduct) ? (
                               <button
                                 onClick={() => handleRestoreVariant(selectedProduct.id, v)}
                                 title="Khôi phục SKU"
@@ -579,11 +912,12 @@ export default function AdminProducts() {
                               >
                                 <i className="fas fa-undo"></i>
                               </button>
-                            )}
+                            ) : <span style={{ color: "#745E4C", fontSize: "10px" }}>Lưu trữ</span>}
                           </div>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -711,7 +1045,7 @@ export default function AdminProducts() {
 
               <section style={{ borderTop: "1px solid #E8E1D6", paddingTop: "16px" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}><div><h3 style={{ margin: "0 0 4px", fontSize: "16px" }}>Ảnh sản phẩm</h3><small style={{ color: "#806D60" }}>Ảnh đầu tiên được dùng làm ảnh đại diện. Khuyến nghị WebP, tỷ lệ 1:1.</small></div><label style={{ padding: "8px 13px", border: "1px solid #BDAA96", borderRadius: "5px", cursor: uploadingImages ? "wait" : "pointer", color: "#4E342E", fontSize: "12px", fontWeight: 600, whiteSpace: "nowrap" }}>{uploadingImages ? "Đang tải ảnh…" : "+ Tải ảnh từ máy"}<input type="file" multiple accept="image/webp,image/jpeg,image/png" disabled={uploadingImages} onChange={handleImageUpload} style={{ display: "none" }} /></label></div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(95px,1fr))", gap: "9px", marginTop: "12px" }}>{String(productModal.data.imageText || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean).map((image, index, images) => <div key={`${image}-${index}`} style={{ position: "relative", border: index === 0 ? "2px solid #8A5A36" : "1px solid #DDD2C5", borderRadius: "5px", overflow: "hidden", aspectRatio: "1" }}><img src={image} alt={`Ảnh sản phẩm ${index + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} /><button type="button" onClick={() => updateProductField("imageText", images.filter((_, imageIndex) => imageIndex !== index).join("\n"))} aria-label="Xóa ảnh" style={{ position: "absolute", right: "4px", top: "4px", width: "22px", height: "22px", border: 0, borderRadius: "50%", background: "rgba(35,25,20,.8)", color: "#FFF", cursor: "pointer" }}>×</button>{index === 0 && <span style={{ position: "absolute", left: "4px", bottom: "4px", padding: "2px 5px", borderRadius: "3px", background: "rgba(35,25,20,.8)", color: "#FFF", fontSize: "9px" }}>Đại diện</span>}</div>)}</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(95px,1fr))", gap: "9px", marginTop: "12px" }}>{String(productModal.data.imageText || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean).map((image, index, images) => <div key={`${image}-${index}`} style={{ position: "relative", border: index === 0 ? "2px solid #8A5A36" : "1px solid #DDD2C5", borderRadius: "5px", overflow: "hidden", aspectRatio: "1", background: "#F7F1EA" }}><img src={normalizeImageUrl(image)} alt={`Ảnh sản phẩm ${index + 1}`} onError={(event) => { event.currentTarget.style.display = "none"; }} style={{ width: "100%", height: "100%", objectFit: "cover" }} /><button type="button" onClick={() => updateProductField("imageText", images.filter((_, imageIndex) => imageIndex !== index).join("\n"))} aria-label="Xóa ảnh" style={{ position: "absolute", right: "4px", top: "4px", width: "22px", height: "22px", border: 0, borderRadius: "50%", background: "rgba(35,25,20,.8)", color: "#FFF", cursor: "pointer" }}>×</button>{index === 0 && <span style={{ position: "absolute", left: "4px", bottom: "4px", padding: "2px 5px", borderRadius: "3px", background: "rgba(35,25,20,.8)", color: "#FFF", fontSize: "9px" }}>Đại diện</span>}</div>)}</div>
                 <small style={{ display: "block", color: "#806D60", marginTop: "10px" }}>Hoặc nhập đường dẫn ảnh, mỗi dòng một ảnh:</small>
                 <textarea rows="4" value={productModal.data.imageText || ""} onChange={(event) => updateProductField("imageText", event.target.value)} placeholder="/image/catalog/MR-xxx/front.webp&#10;/image/catalog/MR-xxx/back.webp" style={{ width: "100%", boxSizing: "border-box", marginTop: "8px", padding: "9px", border: "1px solid #D8CEC1", borderRadius: "4px" }} />
               </section>

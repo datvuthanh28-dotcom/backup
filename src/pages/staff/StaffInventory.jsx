@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useStore } from "../../context/StoreContext";
 import { productsAPI } from "../../services/api";
@@ -94,15 +94,25 @@ export default function StaffInventory() {
   const [stockNote, setStockNote] = useState("");
   const [toastMessage, setToastMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const toastTimerRef = useRef(null);
   // Movements modal
   const [selectedProductMovements, setSelectedProductMovements] = useState(null);
   const [movementsList, setMovementsList] = useState([]);
   const [loadingMovements, setLoadingMovements] = useState(false);
 
   const showToast = (msg) => {
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current);
+    }
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(""), 4000);
+    toastTimerRef.current = window.setTimeout(() => setToastMessage(""), 4000);
   };
+
+  useEffect(() => () => {
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current);
+    }
+  }, []);
 
   const productTypes = useMemo(
     () => [...new Set(products.map((product) => product.productType || product.category).filter(Boolean))].sort(),

@@ -1,6 +1,7 @@
 import sql from "mssql";
 import { getPool } from "../config/db.js";
 import { triggerManualReviewAudit } from "../services/reviewAuditService.js";
+import { activeProductSql } from "../utils/productLifecycle.js";
 
 const parseImages = (value) => {
   try { return JSON.parse(value || "[]"); } catch { return []; }
@@ -22,6 +23,7 @@ export async function getPublicReviews(req, res) {
     OUTER APPLY (SELECT TOP 1 content,updated_at FROM ReviewReplies WHERE review_id=r.id AND is_visible=1 AND deleted_at IS NULL) reply
     WHERE r.product_id = @product_id AND r.status = 'published'
       AND (r.is_hidden_by_admin IS NULL OR r.is_hidden_by_admin = 0)
+      AND EXISTS (SELECT 1 FROM Products p WHERE p.id=@product_id AND ${activeProductSql("p")})
       -- A review is only displayed while the purchased line remains reviewable.
       -- A completed exchange is explicitly eligible; every other return state is not.
       AND NOT EXISTS (SELECT 1 FROM ReturnRequests rr WHERE rr.order_item_id = r.order_item_id AND rr.status <> 'exchanged')
@@ -36,6 +38,7 @@ export async function getPublicReviews(req, res) {
     FROM ProductReviews r
     WHERE r.product_id=@product_id AND r.status='published'
       AND (r.is_hidden_by_admin IS NULL OR r.is_hidden_by_admin = 0)
+      AND EXISTS (SELECT 1 FROM Products p WHERE p.id=@product_id AND ${activeProductSql("p")})
       AND NOT EXISTS (SELECT 1 FROM ReturnRequests rr WHERE rr.order_item_id=r.order_item_id AND rr.status<>'exchanged')`);
   return res.json({ success: true, reviews: result.recordset, summary: summary.recordset[0] });
 }
@@ -45,7 +48,7 @@ export async function getFavorites(req, res) {
   const result = await pool.request().input("user_id", sql.NVarChar, req.user.id).query(`
     SELECT f.product_id,f.created_at,p.product_code,p.name,p.price,p.images_json
     FROM ProductFavorites f JOIN Products p ON p.id=f.product_id
-    WHERE f.user_id=@user_id AND f.is_active=1 AND p.is_active=1
+    WHERE f.user_id=@user_id AND f.is_active=1 AND ${activeProductSql("p")}
     ORDER BY f.updated_at DESC`);
   const favorites = result.recordset.map((row) => ({ ...row, images: parseImages(row.images_json) }));
   return res.json({ success: true, favorites, productIds: favorites.map((item) => item.product_id) });
@@ -56,7 +59,7 @@ export async function setFavorite(req, res) {
   const active = req.body.active !== false;
   if (!productId) return res.status(400).json({ success: false, error: "Sản phẩm không hợp lệ." });
   const pool = getPool();
-  const product = await pool.request().input("product_id", sql.Int, productId).query("SELECT id FROM Products WHERE id=@product_id AND is_active=1");
+  const product = await pool.request().input("product_id", sql.Int, productId).query(`SELECT p.id FROM Products p WHERE p.id=@product_id AND ${activeProductSql("p")}`);
   if (!product.recordset.length) return res.status(404).json({ success: false, error: "Sản phẩm không tồn tại." });
   const current = await pool.request().input("user_id", sql.NVarChar, req.user.id).input("product_id", sql.Int, productId).query("SELECT is_active FROM ProductFavorites WHERE user_id=@user_id AND product_id=@product_id");
   if (current.recordset.length && Boolean(current.recordset[0].is_active) === active) {
@@ -79,6 +82,7 @@ export async function getReviewEligibility(req, res) {
     SELECT TOP 1 oi.id order_item_id,oi.order_id,oi.selected_color,oi.selected_size
     FROM OrderItems oi JOIN Orders o ON o.id=oi.order_id
     WHERE o.customer_id=@user_id AND oi.product_id=@product_id AND o.order_status='delivered'
+      AND EXISTS (SELECT 1 FROM Products p WHERE p.id=@product_id AND ${activeProductSql("p")})
       AND NOT EXISTS (SELECT 1 FROM ReturnRequests rr WHERE rr.order_item_id=oi.id AND rr.status<>'exchanged')
     ORDER BY o.updated_at DESC`);
   const existing = await pool.request().input("user_id", sql.NVarChar, req.user.id).input("product_id", sql.Int, productId).query("SELECT TOP 1 * FROM ProductReviews WHERE user_id=@user_id AND product_id=@product_id AND status<>'deleted'");
@@ -93,6 +97,7 @@ export async function getMyReviewEligibility(req, res) {
              ROW_NUMBER() OVER (PARTITION BY oi.product_id ORDER BY COALESCE(o.delivered_at,o.updated_at) DESC,oi.id DESC) row_number
       FROM OrderItems oi
       JOIN Orders o ON o.id=oi.order_id
+      JOIN Products p ON p.id=oi.product_id AND ${activeProductSql("p")}
       WHERE o.customer_id=@user_id AND o.order_status='delivered'
         AND NOT EXISTS (SELECT 1 FROM ReturnRequests rr WHERE rr.order_item_id=oi.id AND rr.status<>'exchanged')
     )
@@ -135,6 +140,7 @@ export async function saveReview(req, res) {
     SELECT TOP 1 oi.id order_item_id, oi.order_id, oi.selected_color, oi.selected_size
     FROM OrderItems oi JOIN Orders o ON o.id = oi.order_id
     WHERE o.customer_id = @user_id AND oi.product_id = @product_id AND o.order_status = 'delivered'
+      AND EXISTS (SELECT 1 FROM Products p WHERE p.id=@product_id AND ${activeProductSql("p")})
       AND NOT EXISTS (SELECT 1 FROM ReturnRequests rr WHERE rr.order_item_id = oi.id AND rr.status <> 'exchanged')
       AND (@order_id IS NULL OR o.id = @order_id) AND (@order_item_id IS NULL OR oi.id = @order_item_id)
     ORDER BY COALESCE(o.delivered_at, o.updated_at) DESC, oi.id DESC
@@ -602,7 +608,7 @@ export async function getProductInsights(req, res) {
         AND NOT EXISTS (SELECT 1 FROM ReturnRequests rr WHERE rr.order_item_id=r.order_item_id AND rr.status<>'exchanged')
     ) r
     OUTER APPLY (SELECT SUM(oi.quantity) units_sold FROM OrderItems oi JOIN Orders o ON o.id=oi.order_id WHERE oi.product_id=p.id AND o.order_status='delivered') s
-    WHERE p.is_active=1 ORDER BY current_favorites DESC, average_rating DESC, p.id`);
+    WHERE ${activeProductSql("p")} ORDER BY current_favorites DESC, average_rating DESC, p.id`);
   return res.json({ success: true, insights: result.recordset.map((row) => ({ ...row, images: parseImages(row.images_json) })) });
 }
 
@@ -619,8 +625,9 @@ export async function getWishlistAnalytics(req, res) {
     const activeUsersRes = await pool.request().query(`
       SELECT COUNT(DISTINCT user_id) AS total_active_customers,
              COUNT(*) AS total_active_items
-      FROM ProductFavorites
-      WHERE is_active = 1
+      FROM ProductFavorites f
+      JOIN Products p ON p.id=f.product_id
+      WHERE f.is_active = 1 AND ${activeProductSql("p")}
     `);
     const totalActiveCustomers = activeUsersRes.recordset[0]?.total_active_customers || 0;
     const totalActiveItems = activeUsersRes.recordset[0]?.total_active_items || 0;
@@ -687,7 +694,7 @@ export async function getWishlistAnalytics(req, res) {
       FROM Products p
       LEFT JOIN WishlistPerProduct w ON w.product_id = p.id
       LEFT JOIN PurchasesFromWishlist pw ON pw.product_id = p.id
-      WHERE p.is_active = 1
+      WHERE ${activeProductSql("p")}
       ORDER BY current_active_users DESC, all_time_users DESC, p.id ASC
     `);
 

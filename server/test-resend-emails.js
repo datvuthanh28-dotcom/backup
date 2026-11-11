@@ -8,7 +8,6 @@ const { default: app } = await import("./index.js");
 const { connectDB, db } = await import("./config/db.js");
 const { runMigration } = await import("./db/migrate.js");
 const emailService = await import("./services/emailService.js");
-const sql = (await import("mssql")).default;
 
 let server;
 let baseUrl;
@@ -401,7 +400,9 @@ async function runTests() {
     }
     try {
       await pool.close();
-    } catch {}
+    } catch {
+      // The in-memory test pool may already be closed after an expected failure.
+    }
   }
 }
 

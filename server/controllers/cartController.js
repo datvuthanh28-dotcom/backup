@@ -1,5 +1,6 @@
 import sql from "mssql";
 import { getPool } from "../config/db.js";
+import { activeProductSql } from "../utils/productLifecycle.js";
 
 function safeJson(value, fallback) {
   try { return JSON.parse(value); } catch { return fallback; }
@@ -29,7 +30,7 @@ async function readCart(pool, customerId) {
            v.id variant_id,v.sku,v.color_name,v.size_name,v.price,v.stock_quantity
     FROM ShoppingCarts c
     JOIN ShoppingCartItems ci ON ci.cart_id=c.id
-    JOIN Products p ON p.id=ci.product_id AND p.is_active=1
+    JOIN Products p ON p.id=ci.product_id AND ${activeProductSql("p")}
     JOIN ProductVariants v ON v.id=ci.variant_id AND v.product_id=p.id AND v.is_active=1
     WHERE c.customer_id=@customer_id AND c.status='active'
     ORDER BY ci.created_at,ci.id`);
@@ -84,14 +85,14 @@ export async function saveCart(req, res) {
         variantResult = await lookup.input("variant_id", sql.NVarChar, variantId).query(`
           SELECT TOP 1 v.id,v.stock_quantity FROM ProductVariants v
           JOIN Products p ON p.id=v.product_id
-          WHERE v.id=@variant_id AND v.product_id=@product_id AND v.is_active=1 AND p.is_active=1`);
+          WHERE v.id=@variant_id AND v.product_id=@product_id AND v.is_active=1 AND ${activeProductSql("p")}`);
       } else {
         variantResult = await lookup.input("color", sql.NVarChar, String(item.selectedColor || ""))
           .input("size", sql.NVarChar, String(item.selectedSize || "")).query(`
           SELECT TOP 1 v.id,v.stock_quantity FROM ProductVariants v
           JOIN Products p ON p.id=v.product_id
           WHERE v.product_id=@product_id AND v.color_name=@color AND v.size_name=@size
-            AND v.is_active=1 AND p.is_active=1`);
+            AND v.is_active=1 AND ${activeProductSql("p")}`);
       }
       const variant = variantResult.recordset[0];
       if (!variant || variant.stock_quantity <= 0) continue;

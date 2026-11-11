@@ -162,7 +162,8 @@ export async function getInventoryMovements(req, res) {
 
 export async function getAllProductsAdmin(req, res) {
   try {
-    const products = await db.getAllProductsAdmin();
+    const scope = ["current", "legacy", "all"].includes(req.query.scope) ? req.query.scope : "current";
+    const products = await db.getAllProductsAdmin(scope);
     return res.json({ success: true, products });
   } catch (err) {
     console.error("[Admin Products] Error:", err);

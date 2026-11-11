@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useStore, STATUS_LABELS, VALID_STATUS_TRANSITIONS } from "../../context/StoreContext";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
@@ -46,6 +46,7 @@ export default function StaffOrders() {
   const [statusNote, setStatusNote] = useState("");
   const [toastMessage, setToastMessage] = useState("");
   const [loadingAction, setLoadingAction] = useState(false);
+  const toastTimerRef = useRef(null);
 
   // Payment confirmation & refund modal states
   const [paymentModalOrder, setPaymentModalOrder] = useState(null);
@@ -54,9 +55,18 @@ export default function StaffOrders() {
   const [loadingPayment, setLoadingPayment] = useState(false);
 
   const showToast = (msg) => {
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current);
+    }
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(""), 4500);
+    toastTimerRef.current = window.setTimeout(() => setToastMessage(""), 4500);
   };
+
+  useEffect(() => () => {
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     const status = searchParams.get("status") || "all";

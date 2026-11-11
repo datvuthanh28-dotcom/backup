@@ -1,6 +1,7 @@
 import sql from "mssql";
 import { db, getPool } from "../config/db.js";
 import { calculatePromotions, normalizeCode } from "../services/promotionService.js";
+import { activeProductSql } from "../utils/productLifecycle.js";
 
 const effectiveStatus = (row) => row.is_archived ? "archived" : row.requires_reapproval ? "needs_review" : row.status === "paused" ? "paused" : row.status === "draft" ? "draft" : new Date(row.start_at) > new Date() ? "scheduled" : row.end_at && new Date(row.end_at) <= new Date() ? "expired" : (row.usage_limit_total && row.used_count >= row.usage_limit_total) || (row.budget_total && Number(row.budget_reserved) + Number(row.budget_spent) >= Number(row.budget_total)) ? "exhausted" : "active";
 const slugify = (value) => String(value || "sale").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 150);
@@ -205,7 +206,7 @@ async function reservePromotionSkus(transaction, promotionId, actor) {
     SELECT DISTINCT v.id,v.sku,v.stock_quantity,v.low_stock_threshold,v.price,v.cost_price,v.floor_price
     FROM PromotionTargets pt
     JOIN ProductVariants v ON v.is_active=1
-    JOIN Products p ON p.id=v.product_id AND p.is_active=1
+    JOIN Products p ON p.id=v.product_id AND ${activeProductSql("p")}
     WHERE pt.promotion_id=@id AND pt.is_excluded=0 AND (
       pt.target_type='store' OR
       (pt.target_type='product' AND pt.target_value=CONVERT(NVARCHAR(100),p.id)) OR
@@ -233,7 +234,7 @@ async function reservePromotionSkus(transaction, promotionId, actor) {
     WHERE r.promotion_id<>@promotion_id AND r.variant_id IN (
       SELECT DISTINCT v.id FROM PromotionTargets pt
       JOIN ProductVariants v ON v.is_active=1
-      JOIN Products product ON product.id=v.product_id AND product.is_active=1
+      JOIN Products product ON product.id=v.product_id AND ${activeProductSql("product")}
       WHERE pt.promotion_id=@promotion_id AND pt.is_excluded=0 AND (
         pt.target_type='store' OR
         (pt.target_type='product' AND pt.target_value=CONVERT(NVARCHAR(100),product.id)) OR
@@ -639,7 +640,7 @@ export async function promotionSuggestions(req, res) {
           (pt.target_type='product' AND pt.target_value=CONVERT(NVARCHAR(100),p.id))
           OR (pt.target_type='variant' AND pt.target_value IN (v.id,v.sku))))
     ) active_promo
-    WHERE p.is_active=1 ORDER BY p.id,v.sku
+    WHERE ${activeProductSql("p")} ORDER BY p.id,v.sku
   `);
 
   const pointsToDiscount = (score) => score >= 90 ? 25 : score >= 80 ? 20 : score >= 65 ? 15 : score >= 50 ? 10 : score >= 30 ? 5 : 0;
