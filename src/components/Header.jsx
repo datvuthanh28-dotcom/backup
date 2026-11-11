@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
 import { useAuth } from "../context/AuthContext";
 import { useStore } from "../hooks/useStore";
@@ -92,6 +92,7 @@ export default function Header() {
   const { cartCount } = useCart();
   const { products } = useStore();
   const { currentUser, role, logout } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -140,6 +141,13 @@ export default function Header() {
       document.body.style.overflow = "";
     };
   }, [searchOpen]);
+
+  useEffect(() => {
+    setSearchOpen(false);
+    setQuery("");
+    setHighlightedSearchIndex(-1);
+    setUserMenuOpen(false);
+  }, [location.pathname, location.search]);
 
   const handleSearch = (event) => {
     event?.preventDefault();

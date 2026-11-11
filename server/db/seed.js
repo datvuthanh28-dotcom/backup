@@ -53,9 +53,9 @@ const DEFAULT_USERS = [
 
 const DEMO_RETURN_REQUESTS = [
   {
-    id: "RET-1793990899435-BOFA6", orderId: "MR-2024-00101", productId: 1,
-    productName: "Cashmere Cardigan", color: "BEIGE", size: "ONE SIZE", price: 6490000,
-    type: "refund", reason: "changed_mind", detail: null, amount: 6490000,
+    id: "RET-1793990899435-BOFA6", orderId: "MR-2024-00101", productId: 109,
+    productName: "Cashmere Button Cardigan", color: "Beige", size: "S", price: 4890000,
+    type: "refund", reason: "changed_mind", detail: null, amount: 4890000,
     status: "manual_review", decision: "Cần kiểm tra tình trạng sản phẩm trước khi duyệt hoàn tiền.",
   },
   {
