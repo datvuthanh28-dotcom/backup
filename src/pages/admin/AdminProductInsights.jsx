@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
-import { reportAPI } from "../../services/api";
+import { reportAPI, reviewOperationsAPI } from "../../services/api";
+import AdminPagination from "../../components/AdminPagination";
 
-const statusLabels = { published: "Đang hiển thị", hidden: "Đã ẩn", rejected: "Từ chối" };
+const REVIEW_PAGE_SIZE = 8;
+const WISHLIST_PAGE_SIZE = 10;
+
 const formatNumber = (value) => Number(value || 0).toLocaleString("vi-VN");
 const money = (val) => Number(val || 0).toLocaleString("vi-VN") + "đ";
 
@@ -25,6 +28,10 @@ export default function AdminProductInsights() {
   // Review Filters & Selection
   const [reviewFilter, setReviewFilter] = useState("all"); // 'all', 'published', 'hidden', 'flagged', 'pending'
   const [selectedReviewIds, setSelectedReviewIds] = useState([]);
+  const [replyEditor, setReplyEditor] = useState(null);
+  const [replyContent, setReplyContent] = useState("");
+  const [reviewPage, setReviewPage] = useState(1);
+  const [wishlistPage, setWishlistPage] = useState(1);
 
   const loadAll = async () => {
     setLoading(true);
@@ -59,6 +66,15 @@ export default function AdminProductInsights() {
       return true;
     });
   }, [reviews, reviewFilter]);
+  const reviewPages = Math.max(1, Math.ceil(filteredReviews.length / REVIEW_PAGE_SIZE));
+  const pagedReviews = filteredReviews.slice((reviewPage - 1) * REVIEW_PAGE_SIZE, reviewPage * REVIEW_PAGE_SIZE);
+  const wishlistRows = wishlistData?.productStats || [];
+  const wishlistPages = Math.max(1, Math.ceil(wishlistRows.length / WISHLIST_PAGE_SIZE));
+  const pagedWishlistRows = wishlistRows.slice((wishlistPage - 1) * WISHLIST_PAGE_SIZE, wishlistPage * WISHLIST_PAGE_SIZE);
+
+  useEffect(() => setReviewPage(1), [reviewFilter]);
+  useEffect(() => { if (reviewPage > reviewPages) setReviewPage(reviewPages); }, [reviewPage, reviewPages]);
+  useEffect(() => { if (wishlistPage > wishlistPages) setWishlistPage(wishlistPages); }, [wishlistPage, wishlistPages]);
 
   // Review Decisions
   const handleDecideReview = async (id, action) => {
@@ -79,6 +95,33 @@ export default function AdminProductInsights() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const startReply = (review) => {
+    setReplyEditor(review.id);
+    setReplyContent(review.reply_content || "");
+    setError("");
+  };
+
+  const saveReply = async (reviewId) => {
+    if (replyContent.trim().length < 5) return setError("Phản hồi cần ít nhất 5 ký tự.");
+    setBusy(true); setError("");
+    try {
+      await reviewOperationsAPI.saveReply(reviewId, replyContent.trim());
+      setReplyEditor(null); setReplyContent(""); setSuccessMsg("Đã lưu phản hồi chính thức của Maison Rue.");
+      await loadAll();
+    } catch (saveError) { setError(saveError.message); }
+    finally { setBusy(false); }
+  };
+
+  const removeReply = async (reviewId) => {
+    if (!window.confirm("Thu hồi phản hồi này? Lịch sử thao tác vẫn được lưu.")) return;
+    setBusy(true); setError("");
+    try {
+      await reviewOperationsAPI.removeReply(reviewId);
+      setSuccessMsg("Đã thu hồi phản hồi."); await loadAll();
+    } catch (removeError) { setError(removeError.message); }
+    finally { setBusy(false); }
   };
 
   // Bulk Review Decisions
@@ -329,7 +372,7 @@ export default function AdminProductInsights() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(wishlistData?.productStats || []).map((p) => (
+                  {pagedWishlistRows.map((p) => (
                     <tr key={p.productId} style={{ borderBottom: "1px solid #F0EAE1" }}>
                       <td style={{ padding: "12px 16px" }}>
                         <strong style={{ color: "#14100E", display: "block" }}>{p.name}</strong>
@@ -366,6 +409,7 @@ export default function AdminProductInsights() {
                 </tbody>
               </table>
             </div>
+            <AdminPagination page={wishlistPage} total={wishlistRows.length} pageSize={WISHLIST_PAGE_SIZE} onPageChange={setWishlistPage} itemLabel="sản phẩm" />
           </div>
         </div>
       ) : tab === "reviews" ? (
@@ -428,12 +472,11 @@ export default function AdminProductInsights() {
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-              {filteredReviews.map((r) => {
+              {pagedReviews.map((r) => {
                 const isSelected = selectedReviewIds.includes(r.id);
                 const ai = r.aiAnalysis;
                 const isFlagged = r.audit_status === "flagged";
                 const isClean = r.audit_status === "audited_clean";
-                const isPending = r.audit_status === "pending_audit";
 
                 return (
                   <article
@@ -506,6 +549,8 @@ export default function AdminProductInsights() {
                       </div>
                       {r.title && <h4 style={{ margin: "0 0 6px", fontSize: "14px", color: "#2B211C" }}>{r.title}</h4>}
                       <p style={{ margin: 0, fontSize: "13.5px", color: "#33261F", lineHeight: "1.5" }}>{r.content}</p>
+                      {r.reply_content && <div className="staff-official-reply"><strong>Phản hồi chính thức của Maison Rue</strong><p>{r.reply_content}</p><small>{r.reply_created_by_role === "admin" ? "Quản trị viên" : "Nhân viên chăm sóc"} · cập nhật {new Date(r.reply_updated_at).toLocaleString("vi-VN")}</small></div>}
+                      {replyEditor === r.id ? <div className="staff-reply-editor"><label>Phản hồi chính thức<textarea minLength="5" maxLength="1500" value={replyContent} onChange={(event) => setReplyContent(event.target.value)} placeholder="Trả lời rõ ràng, lịch sự và không đưa thông tin đơn hàng nhạy cảm." /></label><small>{replyContent.length}/1.500 ký tự</small><div><button type="button" onClick={() => setReplyEditor(null)}>Hủy</button><button type="button" className="primary" disabled={busy || replyContent.trim().length < 5} onClick={() => saveReply(r.id)}>{busy ? "Đang lưu" : "Lưu phản hồi"}</button></div></div> : <div className="staff-review-actions"><button type="button" className="primary" onClick={() => startReply(r)}>{r.reply_content ? "Chỉnh sửa phản hồi" : "Trả lời đánh giá"}</button>{r.reply_content && <button type="button" disabled={busy} onClick={() => removeReply(r.id)}>Thu hồi</button>}</div>}
                     </div>
 
                     {/* AI Explanation Box */}
@@ -577,6 +622,7 @@ export default function AdminProductInsights() {
                   </article>
                 );
               })}
+              <AdminPagination page={reviewPage} total={filteredReviews.length} pageSize={REVIEW_PAGE_SIZE} onPageChange={setReviewPage} itemLabel="đánh giá" />
             </div>
           )}
         </div>

@@ -1,8 +1,10 @@
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
 import { productsAPI } from "../../services/api";
+import AdminPagination from "../../components/AdminPagination";
 
 const money = (val) => Number(val || 0).toLocaleString("vi-VN") + "đ";
+const PAGE_SIZE = 10;
 
 export default function AdminProducts() {
   useDocumentTitle("Admin — Quản Lý Sản Phẩm & SKU");
@@ -16,6 +18,7 @@ export default function AdminProducts() {
   const [statusFilter, setStatusFilter] = useState("all"); // 'all', 'active', 'inactive'
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
   // Selected product for SKU & history views
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -26,26 +29,23 @@ export default function AdminProducts() {
   const [movementsModal, setMovementsModal] = useState(null); // { productId: ..., movements: [] }
   const [busy, setBusy] = useState(false);
 
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
       const res = await productsAPI.getAllAdmin();
       setProducts(res.products || []);
-      if (selectedProduct) {
-        const refreshed = res.products.find((p) => p.id === selectedProduct.id);
-        if (refreshed) setSelectedProduct(refreshed);
-      }
+      setSelectedProduct((current) => current ? (res.products.find((product) => product.id === current.id) || current) : null);
     } catch (err) {
       setError(err.message || "Không thể tải danh sách sản phẩm.");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [loadProducts]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
@@ -61,6 +61,11 @@ export default function AdminProducts() {
       return true;
     });
   }, [products, statusFilter, categoryFilter, search]);
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE));
+  const pagedProducts = filteredProducts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => setPage(1), [statusFilter, categoryFilter, search]);
+  useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
 
   // Product Actions
   const handleSaveProduct = async (e) => {
@@ -315,7 +320,7 @@ export default function AdminProducts() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredProducts.map((p) => {
+                  {pagedProducts.map((p) => {
                     const isSelected = selectedProduct?.id === p.id;
                     return (
                       <tr
@@ -390,6 +395,7 @@ export default function AdminProducts() {
               </table>
             </div>
           )}
+          {!loading && <AdminPagination page={page} total={filteredProducts.length} pageSize={PAGE_SIZE} onPageChange={setPage} itemLabel="sản phẩm" />}
         </div>
 
         {/* Selected Product SKU & Details Inspector */}

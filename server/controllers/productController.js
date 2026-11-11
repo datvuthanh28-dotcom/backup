@@ -4,8 +4,10 @@ import { db } from "../config/db.js";
 function sanitizeForViewer(product, isStaffOrAdmin) {
   if (isStaffOrAdmin || !product) return product;
   const sanitizedVariants = product.variants?.map((v) => {
-    const { costPrice, cost_price, ...rest } = v;
-    return rest;
+    const sanitized = { ...v };
+    delete sanitized.costPrice;
+    delete sanitized.cost_price;
+    return sanitized;
   });
   return {
     ...product,

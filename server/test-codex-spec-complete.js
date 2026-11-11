@@ -38,7 +38,7 @@ function makeRequest(method, path, body = null, cookie = null) {
       let data = "";
       res.on("data", (chunk) => (data += chunk));
       res.on("end", () => {
-        let parsed = null;
+        let parsed;
         try {
           parsed = JSON.parse(data);
         } catch {
@@ -99,7 +99,7 @@ async function runCodexVerification() {
       password: "staff123",
     });
     assert(staffLogin.status === 200, "Staff login successful");
-    const staffCookie = staffLogin.cookie;
+    assert(Boolean(staffLogin.cookie), "Staff session cookie issued");
 
     const customerLogin = await makeRequest("POST", "/api/auth/customer/login", {
       email: "vudat9532@gmail.com",

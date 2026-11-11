@@ -3,6 +3,9 @@ import { useAuth } from "../../context/AuthContext";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
 import { returnsAPI } from "../../services/api";
 import { sendReturnApprovalEmail } from "../../services/returnService";
+import AdminPagination from "../../components/AdminPagination";
+
+const PAGE_SIZE = 8;
 
 const labels = {
   auto_approved: "Return authorised",
@@ -31,6 +34,7 @@ export default function AdminReturns({ isStaffView = false }) {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
 
   const load = useCallback(async () => {
     setLoading(true); setError("");
@@ -77,13 +81,18 @@ export default function AdminReturns({ isStaffView = false }) {
   };
 
   const visible = requests.filter((request) => filter === "all" || request.status === filter);
+  const pages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+  const pagedRequests = visible.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const statuses = ["all", "manual_review", "return_authorized", "in_transit", "received", "inspection_passed", "refunded", "exchanged", "auto_declined"];
+
+  useEffect(() => setPage(1), [filter]);
+  useEffect(() => { if (page > pages) setPage(pages); }, [page, pages]);
 
   return <main className="return-admin-page">
     <header className="return-admin-header"><p className="eyebrow">CLIENT SERVICES</p><h1>{isAdmin ? "Returns & Refunds" : "Return Inspection"}</h1><p>Return authorisation is separate from refund or exchange approval. Every parcel must be received and inspected in person first.</p></header>
     {error && <p className="return-admin-error" role="alert">{error}</p>}
     <nav className="return-admin-filters" aria-label="Filter return requests">{statuses.map((status) => <button key={status} className={filter === status ? "active" : ""} onClick={() => setFilter(status)}>{status === "all" ? `All (${requests.length})` : `${labels[status]} (${requests.filter((r) => r.status === status).length})`}</button>)}</nav>
-    {loading ? <p className="return-admin-empty">Loading requests…</p> : visible.length === 0 ? <p className="return-admin-empty">No requests in this view.</p> : <div className="return-admin-list">{visible.map((request) => <article className="return-admin-request" key={request.id}>
+    {loading ? <p className="return-admin-empty">Loading requests…</p> : visible.length === 0 ? <p className="return-admin-empty">No requests in this view.</p> : <><div className="return-admin-list">{pagedRequests.map((request) => <article className="return-admin-request" key={request.id}>
       <div className="return-admin-request-head"><div><span className="return-admin-id">{request.id}</span><span className={`return-admin-status status-${request.status}`}>{labels[request.status] || request.status}</span></div><span>{new Date(request.created_at).toLocaleString("en-GB")}</span></div>
       <div className="return-admin-grid"><section><p className="eyebrow">CUSTOMER & ITEM</p><h2>{request.product_name} · {request.selected_color} · {request.selected_size}</h2><p>{request.customer_name} · {request.customer_email}</p><p>Order <strong>{request.order_id}</strong> · Quantity {request.requested_quantity} · Requested {money(request.requested_amount)}</p><p>Type: {request.request_type} · Reason: {request.reason_code}</p>{request.reason_detail && <p className="return-admin-detail">{request.reason_detail}</p>}<p className="return-admin-decision">System decision: {request.decision_reason}</p>{request.return_deadline && <small>Request deadline: {new Date(request.return_deadline).toLocaleDateString("en-GB")}</small>}</section>
       <section className="return-admin-workflow"><label>Inspection / resolution note<textarea value={notes[request.id] ?? request.inspection_note ?? request.resolution_note ?? ""} onChange={(event) => setNotes((previous) => ({ ...previous, [request.id]: event.target.value }))} placeholder="Record parcel condition and inspection result" /></label><div className="return-admin-actions">
@@ -94,6 +103,6 @@ export default function AdminReturns({ isStaffView = false }) {
         {isAdmin && request.status === "inspection_passed" && request.request_type === "exchange" && <button disabled={busyId === request.id} onClick={() => act(request, "exchange")}>Complete exchange</button>}
         {isAdmin && ["manual_review", "return_authorized"].includes(request.status) && <button className="secondary" disabled={busyId === request.id} onClick={() => act(request, "decline")}>Decline with reason</button>}
       </div>{busyId === request.id && <small>Saving…</small>}</section></div>
-    </article>)}</div>}
+    </article>)}</div><AdminPagination page={page} total={visible.length} pageSize={PAGE_SIZE} onPageChange={setPage} itemLabel="yêu cầu" /></>}
   </main>;
 }

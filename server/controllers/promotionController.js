@@ -2,7 +2,8 @@ import sql from "mssql";
 import { db, getPool } from "../config/db.js";
 import { calculatePromotions, normalizeCode } from "../services/promotionService.js";
 
-const effectiveStatus = (row) => row.is_archived ? "archived" : row.status === "paused" ? "paused" : row.status === "draft" ? "draft" : new Date(row.start_at) > new Date() ? "scheduled" : row.end_at && new Date(row.end_at) <= new Date() ? "expired" : (row.usage_limit_total && row.used_count >= row.usage_limit_total) || (row.budget_total && Number(row.budget_reserved) + Number(row.budget_spent) >= Number(row.budget_total)) ? "exhausted" : "active";
+const effectiveStatus = (row) => row.is_archived ? "archived" : row.requires_reapproval ? "needs_review" : row.status === "paused" ? "paused" : row.status === "draft" ? "draft" : new Date(row.start_at) > new Date() ? "scheduled" : row.end_at && new Date(row.end_at) <= new Date() ? "expired" : (row.usage_limit_total && row.used_count >= row.usage_limit_total) || (row.budget_total && Number(row.budget_reserved) + Number(row.budget_spent) >= Number(row.budget_total)) ? "exhausted" : "active";
+const slugify = (value) => String(value || "sale").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 150);
 
 const promotionDiscount = (body, price) => body.discountType === "percentage"
   ? Math.floor(price * Number(body.discountValue || 0) / 100)
@@ -10,6 +11,7 @@ const promotionDiscount = (body, price) => body.discountType === "percentage"
 
 const validatePromotion = (body) => {
   const errors = [];
+  const maxEffectiveDiscount = Number(body.maxEffectiveDiscount || 25);
   if (!String(body.name || "").trim()) errors.push("Tên chương trình là bắt buộc.");
   if (!['percentage','fixed_amount','free_shipping','shipping_amount'].includes(body.discountType)) errors.push("Loại ưu đãi không hợp lệ.");
   if (Number(body.discountValue || 0) < 0 || (body.discountType === 'percentage' && Number(body.discountValue) > 100)) errors.push("Giá trị ưu đãi không hợp lệ.");
@@ -17,6 +19,10 @@ const validatePromotion = (body) => {
   if (body.endAt && new Date(body.endAt) <= new Date(body.startAt)) errors.push("Thời gian kết thúc phải sau thời gian bắt đầu.");
   if (body.budgetTotal && Number(body.budgetTotal) <= 0) errors.push("Ngân sách phải lớn hơn 0.");
   if (body.status === 'active' && body.approvalStatus !== 'approved') errors.push("Chương trình phải được phê duyệt trước khi kích hoạt.");
+  if (maxEffectiveDiscount <= 0 || maxEffectiveDiscount > 35) errors.push("Tổng mức giảm hiệu dụng phải từ 1% đến tối đa 35%.");
+  if (body.discountType === 'percentage' && Number(body.discountValue || 0) > maxEffectiveDiscount) errors.push("Mức giảm của chương trình đang vượt trần giảm hiệu dụng đã chọn.");
+  if (maxEffectiveDiscount > 25 && !String(body.deepDiscountReasonCode || '').trim()) errors.push("Giảm sâu trên 25% cần chọn lý do.");
+  if (maxEffectiveDiscount > 25 && body.deepDiscountReasonCode === 'other' && !String(body.deepDiscountReasonNote || '').trim()) errors.push("Lý do khác cần có mô tả chi tiết.");
   return errors;
 };
 
@@ -38,9 +44,14 @@ export async function catalogPromotionPrices(req, res) {
   try {
     const { db } = await import("../config/db.js");
     const products = await db.getAllProducts();
-    const items = products.map((product) => ({ id: product.id, price: Number(product.price), floorPrice: Number(product.variants?.[0]?.floorPrice || 0), quantity: 1, category: product.category, productType: product.productType, subcategory: product.subcategory, audience: product.audience, gender: product.gender, variantId: product.variants?.[0]?.id || null, variantSku: product.variants?.[0]?.sku || null }));
+    const items = products.flatMap((product) => (product.variants?.length ? product.variants : [null]).map((variant) => ({ id: product.id, price: Number(variant?.price ?? product.price), floorPrice: Number(variant?.floorPrice || 0), quantity: 1, category: product.category, productType: product.productType, subcategory: product.subcategory, audience: product.audience, gender: product.gender, variantId: variant?.id || null, variantSku: variant?.sku || null })));
     const pricing = await calculatePromotions({ items });
-    const prices = Object.fromEntries(pricing.items.map((item) => [item.id, { originalPrice: item.originalUnitPrice, salePrice: item.finalLineTotal, discount: item.automaticDiscount, promotionName: item.automaticPromotion?.name || null }]));
+    const prices = pricing.items.reduce((result, item) => {
+      const discountPercent = item.originalUnitPrice > 0 ? item.automaticDiscount / item.originalUnitPrice : 0;
+      const current = result[item.id];
+      if (!current || discountPercent > current.discountPercent) result[item.id] = { originalPrice: item.originalUnitPrice, salePrice: item.finalLineTotal, discount: item.automaticDiscount, discountPercent, promotionName: item.automaticPromotion?.name || null, variantId: item.variantId, variantSku: item.variantSku };
+      return result;
+    }, {});
     return res.json({ success: true, prices });
   } catch (error) { return res.status(500).json({ success: false, error: error.message }); }
 }
@@ -67,8 +78,63 @@ export async function myPromotionOffers(req, res) {
 
 export async function listPromotions(req, res) {
   const pool = getPool();
-  const rows = await pool.request().query(`SELECT p.*, (SELECT STRING_AGG(CONCAT(target_type,':',target_value),', ') FROM PromotionTargets WHERE promotion_id=p.id AND is_excluded=0) targets, (SELECT STRING_AGG(code,', ') FROM PromotionCodes WHERE promotion_id=p.id AND is_active=1) codes FROM Promotions p ORDER BY p.created_at DESC`);
+  await releaseExpiredReservationHolds(pool);
+  const rows = await pool.request().query(`SELECT p.*,
+    (SELECT STRING_AGG(CONCAT(target_type,':',target_value),', ') FROM PromotionTargets WHERE promotion_id=p.id AND is_excluded=0) targets,
+    (SELECT STRING_AGG(CONCAT(target_type,':',target_value),', ') FROM PromotionTargets WHERE promotion_id=p.id AND is_excluded=1) excluded_targets,
+    (SELECT STRING_AGG(code,', ') FROM PromotionCodes WHERE promotion_id=p.id AND is_active=1) codes,
+    (SELECT SUM(used_count) FROM PromotionCodes WHERE promotion_id=p.id AND is_active=1) code_used_count,
+    (SELECT SUM(usage_limit) FROM PromotionCodes WHERE promotion_id=p.id AND is_active=1 AND usage_limit IS NOT NULL) code_usage_limit,
+    (SELECT COUNT(*) FROM PromotionSkuReservations WHERE promotion_id=p.id AND status IN ('reserved','active','paused_hold')) reserved_sku_count,
+    (SELECT MIN(hold_expires_at) FROM PromotionSkuReservations WHERE promotion_id=p.id AND status='paused_hold') reservation_hold_expires_at
+    FROM Promotions p ORDER BY p.created_at DESC`);
   return res.json({ success: true, promotions: rows.recordset.map((row) => ({ ...row, effective_status: effectiveStatus(row) })) });
+}
+
+export async function listPromotionTemplates(req, res) {
+  const result = await getPool().request().query("SELECT * FROM PromotionTemplates WHERE is_archived=0 ORDER BY is_active DESC,id");
+  return res.json({ success: true, templates: result.recordset });
+}
+
+export async function savePromotionTemplate(req, res) {
+  const body = req.body || {};
+  if (!String(body.name || "").trim()) return res.status(400).json({ success: false, error: "Tên mẫu là bắt buộc." });
+  const request = getPool().request()
+    .input("name", sql.NVarChar, String(body.name).trim())
+    .input("type", sql.NVarChar, String(body.campaignType || "custom"))
+    .input("description", sql.NVarChar, body.description || null)
+    .input("discount", sql.Decimal(5,2), Number(body.discountPercent || 10))
+    .input("days", sql.Int, Math.max(1, Number(body.durationDays || 7)))
+    .input("budget", sql.Decimal(18,0), body.defaultBudget || null)
+    .input("title", sql.NVarChar, body.publicTitle || body.name)
+    .input("public_description", sql.NVarChar, body.publicDescription || body.description || null)
+    .input("banner", sql.NVarChar, body.bannerUrl || null);
+  if (req.params.id) {
+    await request.input("id", sql.Int, Number(req.params.id)).query("UPDATE PromotionTemplates SET name=@name,campaign_type=@type,description=@description,default_discount_percent=@discount,default_duration_days=@days,default_budget=@budget,public_title=@title,public_description=@public_description,banner_url=@banner,updated_at=GETDATE() WHERE id=@id AND is_archived=0");
+    return res.json({ success: true });
+  }
+  const inserted = await request.query("INSERT INTO PromotionTemplates(name,campaign_type,description,default_discount_percent,default_duration_days,default_budget,public_title,public_description,banner_url) OUTPUT INSERTED.id VALUES(@name,@type,@description,@discount,@days,@budget,@title,@public_description,@banner)");
+  return res.status(201).json({ success: true, id: inserted.recordset[0].id });
+}
+
+export async function publicCampaigns(req, res) {
+  const result = await getPool().request().query(`
+    SELECT p.id,p.name,p.slug,p.public_title,p.public_description,p.banner_url,p.campaign_type,
+      p.discount_type,p.discount_value,p.start_at,p.end_at,p.usage_limit_total,p.used_count,
+      (SELECT STRING_AGG(target_product_id,',') FROM (
+        SELECT DISTINCT CASE WHEN pt.target_type='product' THEN pt.target_value WHEN pt.target_type='variant' THEN CONVERT(NVARCHAR(40),pv.product_id) END target_product_id
+        FROM PromotionTargets pt LEFT JOIN ProductVariants pv ON pt.target_type='variant' AND pt.target_value IN (pv.id,pv.sku)
+        WHERE pt.promotion_id=p.id AND pt.is_excluded=0
+      ) campaign_products WHERE target_product_id IS NOT NULL) product_ids,
+      (SELECT STRING_AGG(CASE WHEN pt.target_type='variant' THEN pt.target_value END,',') FROM PromotionTargets pt WHERE pt.promotion_id=p.id AND pt.is_excluded=0) variant_values
+    FROM Promotions p
+    WHERE p.is_archived=0 AND p.is_public=1 AND p.is_automatic=1 AND p.status='active' AND p.approval_status='approved'
+      AND p.start_at<=SYSUTCDATETIME() AND (p.end_at IS NULL OR p.end_at>SYSUTCDATETIME())
+      AND (p.usage_limit_total IS NULL OR p.used_count<p.usage_limit_total)
+      AND (p.budget_total IS NULL OR p.budget_reserved+p.budget_spent<p.budget_total)
+    ORDER BY p.priority DESC,p.start_at DESC
+  `);
+  return res.json({ success: true, campaigns: result.recordset });
 }
 
 async function persistPromotion(req, res, id = null) {
@@ -79,21 +145,22 @@ async function persistPromotion(req, res, id = null) {
   const transaction = new sql.Transaction(pool);
   await transaction.begin();
   try {
-    const request = transaction.request().input("name", sql.NVarChar, String(body.name || "").trim()).input("description", sql.NVarChar, body.description || null).input("type", sql.NVarChar, body.discountType).input("value", sql.Decimal(18,2), Number(body.discountValue || 0)).input("max", sql.Decimal(18,0), body.maximumDiscount || null).input("min", sql.Decimal(18,0), Number(body.minimumOrderValue || 0)).input("automatic", sql.Bit, body.isAutomatic ? 1 : 0).input("stacking", sql.NVarChar, body.stackingPolicy || "none").input("priority", sql.Int, Number(body.priority || 0)).input("requirement", sql.NVarChar, body.customerRequirement || "any").input("total_limit", sql.Int, body.usageLimitTotal || null).input("customer_limit", sql.Int, body.usageLimitPerCustomer || null).input("start", sql.DateTime2, new Date(body.startAt)).input("end", sql.DateTime2, body.endAt ? new Date(body.endAt) : null).input("status", sql.NVarChar, body.status || "draft").input("goal", sql.NVarChar, body.businessGoal || "revenue_growth").input("budget", sql.Decimal(18,0), body.budgetTotal || null).input("max_order", sql.Decimal(18,0), body.maxDiscountPerOrder || null).input("override", sql.Bit, body.requiresOverride ? 1 : 0).input("override_reason", sql.NVarChar, body.overrideReason || null).input("actor", sql.NVarChar, req.user.id);
+    const request = transaction.request().input("name", sql.NVarChar, String(body.name || "").trim()).input("description", sql.NVarChar, body.description || null).input("type", sql.NVarChar, body.discountType).input("value", sql.Decimal(18,2), Number(body.discountValue || 0)).input("max", sql.Decimal(18,0), body.maximumDiscount || null).input("min", sql.Decimal(18,0), Number(body.minimumOrderValue || 0)).input("automatic", sql.Bit, body.isAutomatic ? 1 : 0).input("stacking", sql.NVarChar, body.stackingPolicy || "none").input("priority", sql.Int, Number(body.priority || 0)).input("requirement", sql.NVarChar, body.customerRequirement || "any").input("total_limit", sql.Int, body.usageLimitTotal || null).input("customer_limit", sql.Int, body.usageLimitPerCustomer || null).input("start", sql.DateTime2, new Date(body.startAt)).input("end", sql.DateTime2, body.endAt ? new Date(body.endAt) : null).input("status", sql.NVarChar, body.status || "draft").input("goal", sql.NVarChar, body.businessGoal || "revenue_growth").input("budget", sql.Decimal(18,0), body.budgetTotal || null).input("max_order", sql.Decimal(18,0), body.maxDiscountPerOrder || null).input("override", sql.Bit, body.requiresOverride ? 1 : 0).input("override_reason", sql.NVarChar, body.overrideReason || null).input("template", sql.Int, body.templateId || null).input("slug", sql.NVarChar, slugify(body.slug || body.name)).input("campaign_type", sql.NVarChar, body.campaignType || "manual").input("is_public", sql.Bit, body.isPublic === false ? 0 : 1).input("public_title", sql.NVarChar, body.publicTitle || body.name).input("public_description", sql.NVarChar, body.publicDescription || body.description || null).input("banner", sql.NVarChar, body.bannerUrl || null).input("effective_cap", sql.Decimal(5,2), Number(body.maxEffectiveDiscount || 25)).input("deep_reason", sql.NVarChar, body.deepDiscountReasonCode || null).input("deep_note", sql.NVarChar, body.deepDiscountReasonNote || null).input("actor", sql.NVarChar, req.user.id);
     let promotionId = id;
     if (id) {
       request.input("id", sql.Int, id);
       const used = await transaction.request().input("promotion_id", sql.Int, id).query("SELECT used_count FROM Promotions WHERE id=@promotion_id AND is_archived=0");
       if (!used.recordset.length) throw new Error("Chương trình không tồn tại.");
       if (Number(used.recordset[0].used_count) > 0) throw new Error("Chương trình đã phát sinh đơn hàng. Hãy tạo chương trình mới để bảo toàn lịch sử.");
-      await request.query(`UPDATE Promotions SET name=@name,description=@description,discount_type=@type,discount_value=@value,maximum_discount=@max,minimum_order_value=@min,is_automatic=@automatic,stacking_policy=@stacking,priority=@priority,customer_requirement=@requirement,usage_limit_total=@total_limit,usage_limit_per_customer=@customer_limit,start_at=@start,end_at=@end,status=@status,business_goal=@goal,budget_total=@budget,max_discount_per_order=@max_order,requires_override=@override,override_reason=@override_reason,approval_status='pending',approved_by=NULL,approved_at=NULL,updated_by=@actor,updated_at=GETDATE() WHERE id=@id AND is_archived=0`);
+      await request.query(`UPDATE Promotions SET name=@name,description=@description,discount_type=@type,discount_value=@value,maximum_discount=@max,minimum_order_value=@min,is_automatic=@automatic,stacking_policy=@stacking,priority=@priority,customer_requirement=@requirement,usage_limit_total=@total_limit,usage_limit_per_customer=@customer_limit,start_at=@start,end_at=@end,status=@status,business_goal=@goal,budget_total=@budget,max_discount_per_order=@max_order,requires_override=@override,override_reason=@override_reason,template_id=@template,slug=@slug,campaign_type=@campaign_type,is_public=@is_public,public_title=@public_title,public_description=@public_description,banner_url=@banner,max_effective_discount=@effective_cap,deep_discount_reason_code=@deep_reason,deep_discount_reason_note=@deep_note,approval_status='pending',approved_by=NULL,approved_at=NULL,requires_reapproval=0,updated_by=@actor,updated_at=GETDATE() WHERE id=@id AND is_archived=0`);
+      await transaction.request().input("id", sql.Int, id).query("UPDATE PromotionSkuReservations SET status='released',released_at=GETDATE(),release_reason=N'Chương trình được chỉnh sửa và cần phê duyệt lại' WHERE promotion_id=@id AND status IN ('reserved','active','paused_hold')");
       await transaction.request().input("id", sql.Int, id).query("DELETE FROM PromotionTargets WHERE promotion_id=@id");
     } else {
-      const inserted = await request.query(`INSERT INTO Promotions(name,description,discount_type,discount_value,maximum_discount,minimum_order_value,is_automatic,stacking_policy,priority,customer_requirement,usage_limit_total,usage_limit_per_customer,start_at,end_at,status,business_goal,budget_total,max_discount_per_order,requires_override,override_reason,approval_status,created_by,updated_by) OUTPUT INSERTED.id VALUES(@name,@description,@type,@value,@max,@min,@automatic,@stacking,@priority,@requirement,@total_limit,@customer_limit,@start,@end,@status,@goal,@budget,@max_order,@override,@override_reason,'pending',@actor,@actor)`);
+      const inserted = await request.query(`INSERT INTO Promotions(name,description,discount_type,discount_value,maximum_discount,minimum_order_value,is_automatic,stacking_policy,priority,customer_requirement,usage_limit_total,usage_limit_per_customer,start_at,end_at,status,business_goal,budget_total,max_discount_per_order,requires_override,override_reason,template_id,slug,campaign_type,is_public,public_title,public_description,banner_url,max_effective_discount,deep_discount_reason_code,deep_discount_reason_note,approval_status,created_by,updated_by) OUTPUT INSERTED.id VALUES(@name,@description,@type,@value,@max,@min,@automatic,@stacking,@priority,@requirement,@total_limit,@customer_limit,@start,@end,@status,@goal,@budget,@max_order,@override,@override_reason,@template,@slug,@campaign_type,@is_public,@public_title,@public_description,@banner,@effective_cap,@deep_reason,@deep_note,'pending',@actor,@actor)`);
       promotionId = inserted.recordset[0].id;
     }
     const targets = Array.isArray(body.targets) && body.targets.length ? body.targets : [{ type: "store", value: "all" }];
-    for (const target of targets) await transaction.request().input("id", sql.Int, promotionId).input("type", sql.NVarChar, target.type).input("value", sql.NVarChar, String(target.value)).input("excluded", sql.Bit, target.excluded ? 1 : 0).query("INSERT INTO PromotionTargets(promotion_id,target_type,target_value,is_excluded) VALUES(@id,@type,@value,@excluded)");
+    for (const target of targets) await transaction.request().input("id", sql.Int, promotionId).input("type", sql.NVarChar, target.type).input("value", sql.NVarChar, String(target.value)).input("excluded", sql.Bit, target.excluded ? 1 : 0).input("source", sql.NVarChar, target.selectionSource || "admin").input("fit", sql.Decimal(5,2), target.fitScore ?? null).input("need", sql.Decimal(5,2), target.needScore ?? null).input("suggested", sql.Decimal(5,2), target.suggestedDiscount ?? null).input("approved", sql.Decimal(5,2), target.approvedDiscount ?? body.discountValue ?? null).input("reason", sql.NVarChar, target.selectionReason || null).input("exception", sql.NVarChar, target.exceptionReason || null).query("INSERT INTO PromotionTargets(promotion_id,target_type,target_value,is_excluded,selection_source,fit_score,need_score,suggested_discount,approved_discount,selection_reason,exception_reason) VALUES(@id,@type,@value,@excluded,@source,@fit,@need,@suggested,@approved,@reason,@exception)");
     if (!id && body.code) {
       const distribution = ["public","targeted","private"].includes(body.codeDistribution) ? body.codeDistribution : "public";
       const insertedCode = await transaction.request().input("id", sql.Int, promotionId).input("code", sql.NVarChar, normalizeCode(body.code)).input("limit", sql.Int, body.codeUsageLimit || null).input("distribution",sql.NVarChar,distribution).input("display",sql.NVarChar,body.codeDescription || body.description || null).query("INSERT INTO PromotionCodes(promotion_id,code,usage_limit,distribution_type,display_description) OUTPUT INSERTED.id VALUES(@id,@code,@limit,@distribution,@display)");
@@ -116,15 +183,97 @@ async function persistPromotion(req, res, id = null) {
 export const createPromotion = (req, res) => persistPromotion(req, res);
 export const updatePromotion = (req, res) => persistPromotion(req, res, Number(req.params.id));
 
+async function releaseExpiredReservationHolds(poolOrTransaction = getPool()) {
+  await poolOrTransaction.request().query(`
+    UPDATE r SET status='released',released_at=GETDATE(),release_reason=N'Tạm dừng quá 24 giờ'
+    FROM PromotionSkuReservations r
+    WHERE r.status='paused_hold' AND r.hold_expires_at<=GETDATE();
+    UPDATE p SET requires_reapproval=1,approval_status='pending',status='paused',updated_at=GETDATE()
+    FROM Promotions p WHERE p.id IN (
+      SELECT DISTINCT promotion_id FROM PromotionSkuReservations WHERE status='released' AND release_reason=N'Tạm dừng quá 24 giờ'
+    ) AND p.is_archived=0;
+  `);
+}
+
+async function reservePromotionSkus(transaction, promotionId, actor) {
+  await releaseExpiredReservationHolds(transaction);
+  const promotionResult = await transaction.request().input("id", sql.Int, promotionId).query("SELECT id,start_at,end_at,discount_type,discount_value,maximum_discount,max_discount_per_order FROM Promotions WITH (UPDLOCK,HOLDLOCK) WHERE id=@id AND is_archived=0");
+  if (!promotionResult.recordset.length) throw new Error("Chương trình không tồn tại.");
+  const promotion = promotionResult.recordset[0];
+  if (!promotion.end_at) throw new Error("Cần có thời gian kết thúc rõ ràng trước khi phê duyệt và giữ SKU.");
+  const variants = await transaction.request().input("id", sql.Int, promotionId).query(`
+    SELECT DISTINCT v.id,v.sku,v.stock_quantity,v.low_stock_threshold,v.price,v.cost_price,v.floor_price
+    FROM PromotionTargets pt
+    JOIN ProductVariants v ON v.is_active=1
+    JOIN Products p ON p.id=v.product_id AND p.is_active=1
+    WHERE pt.promotion_id=@id AND pt.is_excluded=0 AND (
+      pt.target_type='store' OR
+      (pt.target_type='product' AND pt.target_value=CONVERT(NVARCHAR(100),p.id)) OR
+      (pt.target_type='variant' AND pt.target_value IN (v.id,v.sku)) OR
+      (pt.target_type='category' AND pt.target_value=p.category) OR
+      (pt.target_type='audience' AND pt.target_value=p.gender)
+    )
+  `);
+  if (!variants.recordset.length) throw new Error("Chương trình chưa có SKU hợp lệ để giữ chỗ.");
+  const invalid = variants.recordset.filter((row) => Number(row.price || 0) <= 0 || Number(row.cost_price || 0) <= 0 || Number(row.floor_price || 0) <= 0);
+  if (invalid.length) throw new Error(`Không thể duyệt vì ${invalid.length} SKU chưa có đủ giá bán, giá vốn hoặc giá sàn. Ví dụ: ${invalid.slice(0, 5).map((row) => row.sku).join(", ")}.`);
+  const belowFloor = variants.recordset.filter((row) => {
+    let discount = promotion.discount_type === "percentage"
+      ? Math.floor(Number(row.price) * Number(promotion.discount_value || 0) / 100)
+      : promotion.discount_type === "fixed_amount" ? Number(promotion.discount_value || 0) : 0;
+    if (promotion.maximum_discount != null) discount = Math.min(discount, Number(promotion.maximum_discount));
+    if (promotion.max_discount_per_order != null) discount = Math.min(discount, Number(promotion.max_discount_per_order));
+    return Number(row.price) - discount < Number(row.floor_price);
+  });
+  if (belowFloor.length) throw new Error(`Không thể duyệt vì giá sau giảm thấp hơn giá sàn ở ${belowFloor.length} SKU. Ví dụ: ${belowFloor.slice(0, 5).map((row) => row.sku).join(", ")}. Hãy giảm mức ưu đãi hoặc loại các SKU này.`);
+  const conflictRequest = transaction.request().input("promotion_id", sql.Int, promotionId).input("start", sql.DateTime2, promotion.start_at).input("end", sql.DateTime2, promotion.end_at);
+  const conflicts = await conflictRequest.query(`
+    SELECT r.variant_id,p.name,r.reserved_from,r.reserved_until FROM PromotionSkuReservations r WITH (UPDLOCK,HOLDLOCK)
+    JOIN Promotions p ON p.id=r.promotion_id
+    WHERE r.promotion_id<>@promotion_id AND r.variant_id IN (
+      SELECT DISTINCT v.id FROM PromotionTargets pt
+      JOIN ProductVariants v ON v.is_active=1
+      JOIN Products product ON product.id=v.product_id AND product.is_active=1
+      WHERE pt.promotion_id=@promotion_id AND pt.is_excluded=0 AND (
+        pt.target_type='store' OR
+        (pt.target_type='product' AND pt.target_value=CONVERT(NVARCHAR(100),product.id)) OR
+        (pt.target_type='variant' AND pt.target_value IN (v.id,v.sku)) OR
+        (pt.target_type='category' AND pt.target_value=product.category) OR
+        (pt.target_type='audience' AND pt.target_value=product.gender)
+      )
+    )
+      AND r.status IN ('reserved','active','paused_hold')
+      AND @start<r.reserved_until AND r.reserved_from<@end
+  `);
+  if (conflicts.recordset.length) {
+    const labels = conflicts.recordset.slice(0, 5).map((row) => `${row.variant_id} (${row.name})`).join(", ");
+    throw new Error(`SKU đang được chương trình khác giữ trong thời gian chồng lấn: ${labels}.`);
+  }
+  await transaction.request().input("id", sql.Int, promotionId).query("UPDATE PromotionSkuReservations SET status='released',released_at=GETDATE(),release_reason=N'Phê duyệt lại chương trình' WHERE promotion_id=@id AND status IN ('reserved','active','paused_hold')");
+  for (const variant of variants.recordset) {
+    const quantity = Math.max(0, Number(variant.stock_quantity) - Number(variant.low_stock_threshold));
+    if (quantity <= 0) throw new Error(`${variant.sku} đã chạm mức tồn tối thiểu và không thể đưa vào sale.`);
+    await transaction.request().input("promotion_id", sql.Int, promotionId).input("variant", sql.NVarChar, variant.id).input("start", sql.DateTime2, promotion.start_at).input("end", sql.DateTime2, promotion.end_at).input("quantity", sql.Int, quantity).input("actor", sql.NVarChar, actor).query("INSERT INTO PromotionSkuReservations(promotion_id,variant_id,reserved_from,reserved_until,quantity_reserved,status,reserved_by) VALUES(@promotion_id,@variant,@start,@end,@quantity,'reserved',@actor)");
+  }
+  return variants.recordset.length;
+}
+
 export async function updatePromotionStatus(req, res) {
   const status = String(req.body.status || "");
   if (!["draft","active","paused"].includes(status)) return res.status(400).json({ success: false, error: "Trạng thái không hợp lệ." });
-  const result = await getPool().request().input("id", sql.Int, Number(req.params.id)).query("SELECT approval_status,budget_total,budget_reserved,budget_spent FROM Promotions WHERE id=@id AND is_archived=0");
+  await releaseExpiredReservationHolds();
+  const result = await getPool().request().input("id", sql.Int, Number(req.params.id)).query("SELECT approval_status,budget_total,budget_reserved,budget_spent,requires_reapproval FROM Promotions WHERE id=@id AND is_archived=0");
   if (!result.recordset.length) return res.status(404).json({ success: false, error: "Chương trình không tồn tại." });
   const promotion = result.recordset[0];
   if (status === "active" && promotion.approval_status !== "approved") return res.status(400).json({ success: false, error: "Chương trình phải được phê duyệt trước khi kích hoạt." });
+  if (status === "active" && promotion.requires_reapproval) return res.status(400).json({ success: false, error: "Reservation đã hết thời gian giữ. Cần phân tích và phê duyệt lại chương trình." });
   if (status === "active" && promotion.budget_total && Number(promotion.budget_reserved) + Number(promotion.budget_spent) >= Number(promotion.budget_total)) return res.status(400).json({ success: false, error: "Ngân sách chương trình đã hết." });
-  await getPool().request().input("id", sql.Int, Number(req.params.id)).input("status", sql.NVarChar, status).input("actor", sql.NVarChar, req.user.id).query("UPDATE Promotions SET status=@status,updated_by=@actor,updated_at=GETDATE() WHERE id=@id AND is_archived=0");
+  await getPool().request().input("id", sql.Int, Number(req.params.id)).input("status", sql.NVarChar, status).input("actor", sql.NVarChar, req.user.id).query(`
+    UPDATE Promotions SET status=@status,paused_at=CASE WHEN @status='paused' THEN GETDATE() ELSE NULL END,updated_by=@actor,updated_at=GETDATE() WHERE id=@id AND is_archived=0;
+    UPDATE PromotionSkuReservations SET status=CASE WHEN @status='active' THEN 'active' ELSE 'paused_hold' END,
+      hold_expires_at=CASE WHEN @status='paused' THEN DATEADD(hour,24,GETDATE()) ELSE NULL END
+    WHERE promotion_id=@id AND status IN ('reserved','active','paused_hold');
+  `);
   return res.json({ success: true });
 }
 
@@ -132,11 +281,20 @@ export async function approvePromotion(req, res) {
   const approvalStatus = String(req.body.status || "");
   if (!["approved", "rejected"].includes(approvalStatus)) return res.status(400).json({ success: false, error: "Quyết định phê duyệt không hợp lệ." });
   const note = String(req.body.note || "").trim();
-  const current = await getPool().request().input("id", sql.Int, Number(req.params.id)).query("SELECT requires_override,override_reason FROM Promotions WHERE id=@id AND is_archived=0");
+  const current = await getPool().request().input("id", sql.Int, Number(req.params.id)).query("SELECT requires_override,override_reason,max_effective_discount,deep_discount_reason_code,deep_discount_reason_note FROM Promotions WHERE id=@id AND is_archived=0");
   if (!current.recordset.length) return res.status(404).json({ success: false, error: "Chương trình không tồn tại." });
   if (approvalStatus === "approved" && current.recordset[0].requires_override && !String(current.recordset[0].override_reason || "").trim()) return res.status(400).json({ success: false, error: "Cần ghi rõ lý do vượt ngưỡng trước khi phê duyệt." });
-  await getPool().request().input("id", sql.Int, Number(req.params.id)).input("status", sql.NVarChar, approvalStatus).input("note", sql.NVarChar, note || null).input("actor", sql.NVarChar, `${req.user.name} (${req.user.role})`).query("UPDATE Promotions SET approval_status=@status,approval_note=@note,approved_by=@actor,approved_at=GETDATE(),updated_by=@actor,updated_at=GETDATE() WHERE id=@id AND is_archived=0; INSERT INTO PromotionAuditLogs(promotion_id,action,new_data,performed_by) VALUES(@id,@status,@note,@actor)");
-  return res.json({ success: true });
+  if (approvalStatus === "approved" && Number(current.recordset[0].max_effective_discount) > 25 && !String(current.recordset[0].deep_discount_reason_code || "").trim()) return res.status(400).json({ success: false, error: "Giảm sâu trên 25% cần chọn lý do trước khi phê duyệt." });
+  if (approvalStatus === "approved" && current.recordset[0].deep_discount_reason_code === "other" && !String(current.recordset[0].deep_discount_reason_note || "").trim()) return res.status(400).json({ success: false, error: "Lý do khác cần có mô tả chi tiết." });
+  const pool = getPool(); const transaction = new sql.Transaction(pool); await transaction.begin();
+  try {
+    const actor = `${req.user.name} (${req.user.role})`;
+    let reservedSkuCount = 0;
+    if (approvalStatus === "approved") reservedSkuCount = await reservePromotionSkus(transaction, Number(req.params.id), actor);
+    else await transaction.request().input("id", sql.Int, Number(req.params.id)).query("UPDATE PromotionSkuReservations SET status='released',released_at=GETDATE(),release_reason=N'Chương trình bị từ chối' WHERE promotion_id=@id AND status IN ('reserved','active','paused_hold')");
+    await transaction.request().input("id", sql.Int, Number(req.params.id)).input("status", sql.NVarChar, approvalStatus).input("note", sql.NVarChar, note || null).input("actor", sql.NVarChar, actor).input("data",sql.NVarChar,JSON.stringify({ note,reservedSkuCount })).query("UPDATE Promotions SET approval_status=@status,approval_note=@note,approved_by=@actor,approved_at=GETDATE(),requires_reapproval=0,updated_by=@actor,updated_at=GETDATE() WHERE id=@id AND is_archived=0; INSERT INTO PromotionAuditLogs(promotion_id,action,new_data,performed_by) VALUES(@id,@status,@data,@actor)");
+    await transaction.commit(); return res.json({ success: true, reservedSkuCount });
+  } catch (error) { await transaction.rollback(); return res.status(400).json({ success:false,error:error.message }); }
 }
 
 export async function simulatePromotion(req, res) {
@@ -213,8 +371,10 @@ export async function simulatePromotion(req, res) {
     estimatedExposure += safeDiscount * Number(row.stock_quantity || 0);
 
     const hasCost = row.cost_price != null && row.cost_price > 0;
-    if (!hasCost || !row.floor_price) {
+    const missingFloor = !row.floor_price || Number(row.floor_price) <= 0;
+    if (!hasCost || missingFloor) {
       missingCostCount++;
+      warnings.push(`${row.sku}: thiếu giá vốn hoặc giá sàn, không thể phê duyệt khuyến mãi.`);
     }
 
     const unitPrice = row.price;
@@ -270,6 +430,8 @@ export async function simulatePromotion(req, res) {
       belowFloor,
       lowStock,
       hasCost,
+      missingFloor,
+      hardBlocked: lowStock || !hasCost || missingFloor,
     };
   });
 
@@ -384,8 +546,8 @@ export async function simulatePromotion(req, res) {
       estimatedExposure,
       budgetTotal: Number(body.budgetTotal || 0),
       overBudget: Boolean(body.budgetTotal && estimatedExposure > Number(body.budgetTotal)),
-      requiresOverride: variants.some((row) => row.belowFloor),
-      hasBlockedVariants: variants.some((row) => row.lowStock),
+      requiresOverride: false,
+      hasBlockedVariants: variants.some((row) => row.hardBlocked),
       warnings: uniqueWarnings.slice(0, 30),
       variants: variants.slice(0, 100),
       forecast,
@@ -395,8 +557,31 @@ export async function simulatePromotion(req, res) {
 }
 
 export async function promotionSuggestions(req, res) {
+  if (req.query.refresh !== "1") {
+    const cached = await getPool().request().query(`
+      SELECT payload_json,generated_at FROM PromotionRecommendationSnapshot
+      WHERE id=1 AND generated_at>DATEADD(hour,-1,GETDATE())
+    `).catch(() => ({ recordset: [] }));
+    if (cached.recordset.length) {
+      const payload = JSON.parse(cached.recordset[0].payload_json);
+      return res.json({ ...payload, cached: true, refresh: { ...(payload.refresh || {}), nextAutomaticRefreshAt: new Date(new Date(cached.recordset[0].generated_at).getTime() + 3600000).toISOString(), mode: "hourly_or_manual" } });
+    }
+  }
+  const refreshState = await getPool().request().query(`
+    SELECT COUNT(*) pending_count, MIN(created_at) oldest_change_at,
+      STRING_AGG(reason,' · ') reasons
+    FROM (SELECT DISTINCT TOP 12 reason,created_at FROM PromotionRecommendationRefreshEvents WHERE processed_at IS NULL ORDER BY created_at) pending
+  `).catch(() => ({ recordset: [{ pending_count: 0, oldest_change_at: null, reasons: null }] }));
+  if (req.query.refresh === "1") {
+    await getPool().request().input("actor", sql.NVarChar, req.user?.id || "admin").query(`
+      INSERT INTO PromotionRecommendationRefreshEvents(source_type,entity_id,reason)
+      VALUES('manual',@actor,N'Admin yêu cầu làm mới đề xuất')
+    `).catch(() => null);
+  }
   const rows = await getPool().request().query(`
-    SELECT p.id product_id,p.name,p.category,v.id variant_id,v.sku,v.color_name,v.size_name,
+    SELECT p.id product_id,p.name,p.category,p.launched_at,p.is_classic,p.is_bestseller,
+      p.season_tags,p.occasion_tags,p.material_tags,p.lifecycle,p.giftable,
+      v.id variant_id,v.sku,v.color_name,v.size_name,
       v.price,v.cost_price,v.floor_price,v.stock_quantity,v.low_stock_threshold,v.max_stock_threshold,
       COALESCE(f.favorite_count,0) favorite_count,COALESCE(fb.favorite_buyers,0) favorite_buyers,
       COALESCE(s.sold_60d,0) sold_60d,COALESCE(s.actual_sold_60d,0) actual_sold_60d,
@@ -470,6 +655,12 @@ export async function promotionSuggestions(req, res) {
     if (!cost || !floor) exclusionReasons.push("Chưa đủ giá vốn hoặc giá sàn");
     if (safeMaxPercent < 5) exclusionReasons.push("Không còn dư địa giảm giá an toàn");
     if (row.has_active_promotion) exclusionReasons.push("Đang nằm trong chương trình khuyến mãi khác");
+    if (row.is_classic) exclusionReasons.push("Sản phẩm thuộc dòng Classic");
+    if (row.is_bestseller) exclusionReasons.push("Sản phẩm đang bán chạy");
+    const launchAgeDays = row.launched_at
+      ? Math.floor((Date.now() - new Date(row.launched_at).getTime()) / 86400000)
+      : null;
+    if (launchAgeDays != null && launchAgeDays < 60) exclusionReasons.push("Sản phẩm mới ra mắt trong 60 ngày");
 
     let score = 0;
     const reasons = [];
@@ -477,18 +668,18 @@ export async function promotionSuggestions(req, res) {
     const dailyVelocity = sold / 60;
     const daysOfCover = dailyVelocity > 0 ? Math.round(stock / dailyVelocity) : stock > min ? 999 : 0;
     if (max > 0 && stock >= max) { score += 15; reasons.push("Tồn kho vượt mức tối đa"); }
-    if (daysOfCover > 180) { score += 15; reasons.push("Số ngày tồn dự kiến trên 180 ngày"); }
-    else if (daysOfCover > 90) { score += 10; reasons.push("Số ngày tồn dự kiến trên 90 ngày"); }
-    else if (daysOfCover > 60) { score += 5; reasons.push("Số ngày tồn dự kiến trên 60 ngày"); }
+    if (daysOfCover > 180) { score += 15; reasons.push("Dự kiến trên 180 ngày để bán hết"); }
+    else if (daysOfCover > 90) { score += 10; reasons.push("Dự kiến trên 90 ngày để bán hết"); }
+    else if (daysOfCover > 60) { score += 5; reasons.push("Dự kiến trên 60 ngày để bán hết"); }
     if (sold === 0) { score += 25; reasons.push("Không phát sinh doanh thu trong 60 ngày"); }
     else if (sold <= 2) { score += 15; reasons.push("Bán chậm trong 60 ngày"); }
     else if (previous > 0 && sold / previous < 0.5) { score += 20; reasons.push("Tốc độ bán giảm trên 50%"); }
     else if (previous > 0 && sold / previous < 0.75) { score += 10; reasons.push("Tốc độ bán đang giảm"); }
     else if (previous > 0 && sold / previous > 1.5) { score -= 10; risks.push("Tốc độ bán đang tăng, chưa cần giảm sâu"); }
     const favoriteConversion = favorites ? favoriteBuyers / favorites : null;
-    if (favorites >= 5 && favoriteConversion < 0.2) { score += 15; reasons.push("Nhiều yêu thích nhưng tỷ lệ mua thấp"); }
-    else if (favorites >= 5 && favoriteConversion < 0.4) { score += 10; reasons.push("Có nhu cầu quan tâm chưa chuyển đổi"); }
-    else if (favorites >= 5) { score += 5; reasons.push("Có tín hiệu quan tâm từ khách hàng"); }
+    if (favorites >= 5 && favoriteConversion < 0.2) { score += 15; reasons.push(`${favorites} lượt yêu thích, tỷ lệ mua thấp`); }
+    else if (favorites >= 5 && favoriteConversion < 0.4) { score += 10; reasons.push(`${favorites} lượt yêu thích chưa chuyển đổi tốt`); }
+    else if (favorites >= 5) { score += 5; reasons.push(`${favorites} lượt yêu thích từ khách hàng`); }
     const grossMargin = price > 0 ? (price - cost) / price * 100 : 0;
     if (grossMargin > 65) score += 20;
     else if (grossMargin > 55) score += 15;
@@ -555,6 +746,43 @@ export async function promotionSuggestions(req, res) {
     const actualDataPercent = sourceTotal > 0 ? Math.round(actualUnits / sourceTotal * 100) : 0;
     const confidence = sold >= 10 && stockAgeDays != null ? "high" : sold >= 3 || favorites >= 5 ? "medium" : "low";
     if (confidence === "low") risks.push("Dữ liệu lịch sử còn ít; nên thử ngân sách nhỏ");
+
+    // Keep the admin explanation short and decision-oriented. Scoring still uses
+    // every signal above; this list only selects the most useful facts to show.
+    const displayReasons = [];
+    if (sold === 0) displayReasons.push("Không bán được trong 60 ngày");
+    else if (sold <= 2) displayReasons.push(`Chỉ bán ${sold} sản phẩm trong 60 ngày`);
+    else if (previous > 0 && sold / previous < 0.5) displayReasons.push("Sức bán giảm trên 50%");
+    else if (previous > 0 && sold / previous < 0.75) displayReasons.push("Sức bán đang giảm");
+
+    if (favorites >= 5 && favoriteConversion < 0.2) {
+      displayReasons.push(`${favorites} lượt yêu thích, chỉ ${favoriteBuyers} khách đã mua`);
+    } else if (favorites >= 5 && favoriteConversion < 0.4) {
+      displayReasons.push(`${favorites} lượt yêu thích, tỷ lệ mua ${Math.round(favoriteConversion * 100)}%`);
+    }
+
+    let inventoryReason = stockAgeDays > 60 ? `Đã nằm kho ${stockAgeDays} ngày` : "";
+    if (max > 0 && stock >= max && daysOfCover > 60) {
+      const excess = Math.max(0, stock - max);
+      const coverLabel = daysOfCover > 180 ? "trên 180 ngày" : daysOfCover > 90 ? "trên 90 ngày" : "trên 60 ngày";
+      const stockLabel = excess > 0 ? `vượt mức ${excess} sản phẩm` : "đang ở mức tồn tối đa";
+      inventoryReason = stockAgeDays > 60
+        ? `${inventoryReason}, ${stockLabel}`
+        : `${stockLabel.charAt(0).toUpperCase() + stockLabel.slice(1)}, dự kiến ${coverLabel} để bán hết`;
+    } else if (max > 0 && stock >= max) {
+      const excess = Math.max(0, stock - max);
+      const stockLabel = excess > 0 ? `vượt mức ${excess} sản phẩm` : "đang ở mức tồn tối đa";
+      inventoryReason = stockAgeDays > 60
+        ? `${inventoryReason}, ${stockLabel}`
+        : stockLabel.charAt(0).toUpperCase() + stockLabel.slice(1);
+    } else if (daysOfCover > 60) {
+      inventoryReason ||= `Dự kiến ${daysOfCover > 180 ? "trên 180 ngày" : daysOfCover > 90 ? "trên 90 ngày" : "trên 60 ngày"} để bán hết`;
+    }
+    if (inventoryReason) displayReasons.push(inventoryReason);
+
+    if (grossMargin > 45) {
+      displayReasons.push(`Biên lợi nhuận ${grossMargin.toFixed(1).replace(".", ",")}% còn dư địa giảm`);
+    }
     const recommendationLabel = netBenefitVsBaseline > 0
       ? (confidence === "low" || actualDataPercent < 30 ? "Nên thử với số lượng nhỏ" : "Nên mở khuyến mãi")
       : "Cần cân nhắc thêm";
@@ -562,11 +790,51 @@ export async function promotionSuggestions(req, res) {
       ? `Dự kiến thu ${Math.round(projectedRevenue).toLocaleString("vi-VN")}đ, giảm tồn từ ${stock} xuống khoảng ${promotionEndingStock} sản phẩm và có lợi hơn giữ giá khoảng ${Math.round(netBenefitVsBaseline).toLocaleString("vi-VN")}đ.`
       : `Khuyến mãi giúp thu hồi tiền nhanh hơn nhưng lợi ích dự kiến chưa cao hơn phương án giữ giá. Nên giảm mức ưu đãi hoặc giới hạn số lượng.`;
 
+    const merchandisingText = `${row.name || ""} ${row.season_tags || ""} ${row.occasion_tags || ""} ${row.material_tags || ""}`.toLowerCase();
+    const campaignFitScores = {
+      black_friday: Math.min(100,
+        (favorites >= 5 && favoriteConversion < 0.4 ? 25 : favorites >= 5 ? 10 : 0) +
+        (grossMargin > 55 ? 20 : grossMargin > 45 ? 10 : 0) +
+        (sellableStock >= 10 ? 15 : sellableStock >= 5 ? 8 : 0) +
+        (previous > 0 && sold / previous < 0.75 ? 15 : sold <= 2 ? 10 : 0) +
+        (["Clothing","Accessories","Footwear"].includes(row.category) ? 10 : 5) +
+        (stock > min ? 10 : 0) + (sourceTotal >= 3 ? 5 : 0)),
+      tet: Math.min(100,
+        (/(holiday|gifting|formal)/.test(merchandisingText) ? 25 : 5) +
+        (row.giftable ? 15 : 0) +
+        (stock > min + 5 ? 15 : stock > min ? 8 : 0) +
+        (favorites >= 5 ? 15 : favorites >= 2 ? 8 : 0) +
+        (grossMargin > 55 ? 15 : grossMargin > 45 ? 8 : 0) +
+        (/(shirt|trouser|dress|bag|scarf|wallet|belt)/.test(merchandisingText) ? 10 : 4) +
+        (sellableStock >= 5 ? 5 : 0)),
+      summer_sale: Math.min(100,
+        (/(summer|linen|cotton|short)/.test(merchandisingText) ? 30 : 0) +
+        (stockAgeDays > 90 ? 20 : stockAgeDays > 60 ? 10 : 0) +
+        (max > 0 && stock >= max ? 15 : stock > min + 5 ? 8 : 0) +
+        (sold <= 2 ? 15 : previous > 0 && sold / previous < 0.75 ? 10 : 0) +
+        (grossMargin > 55 ? 10 : grossMargin > 45 ? 5 : 0) +
+        (favorites >= 5 && favoriteConversion < 0.4 ? 10 : 0)),
+      year_end: Math.min(100,
+        (stockAgeDays > 180 ? 25 : stockAgeDays > 90 ? 18 : stockAgeDays > 60 ? 10 : 0) +
+        (daysOfCover > 180 ? 20 : daysOfCover > 90 ? 14 : daysOfCover > 60 ? 7 : 0) +
+        (previous > 0 && sold / previous < 0.75 ? 15 : sold <= 2 ? 10 : 0) +
+        (["seasonal","end_of_season","discontinued"].includes(row.lifecycle) ? 15 : 5) +
+        (grossMargin > 55 ? 10 : grossMargin > 45 ? 5 : 0) +
+        (favorites >= 5 && favoriteConversion < 0.4 ? 10 : 0) +
+        (sellableStock > 0 && sellableStock < 5 ? 5 : 0)),
+      clearance: Math.min(100,
+        (stockAgeDays > 180 ? 30 : stockAgeDays > 90 ? 22 : stockAgeDays > 60 ? 12 : 0) +
+        (max > 0 && stock >= max ? 25 : stock > min + 5 ? 12 : 0) +
+        (daysOfCover > 180 ? 20 : daysOfCover > 90 ? 14 : daysOfCover > 60 ? 7 : 0) +
+        (sold === 0 ? 15 : sold <= 2 ? 10 : 0) +
+        (baselineHoldingTotal > 0 ? 10 : 0)),
+    };
+
     return {
       ...row,
       eligible: exclusionReasons.length === 0 && score >= 75 && recommendedPercent > 0 && netBenefitVsBaseline > 0,
-      exclusionReasons, score, reasons, risks, safeMaxPercent, recommendedPercent,
-      businessGoal, durationDays, daysOfCover, stockAgeDays, favoriteConversion,
+      exclusionReasons, score, reasons, displayReasons: displayReasons.slice(0, 4), risks, safeMaxPercent, recommendedPercent,
+      businessGoal, durationDays, daysOfCover, stockAgeDays, launchAgeDays, favoriteConversion,
       grossMargin, sellableStock, expectedUnits, proposedPrice,
       estimatedBudget: discountCost,
       maximumExposure: discountPerUnit * sellableStock,
@@ -604,6 +872,7 @@ export async function promotionSuggestions(req, res) {
           riskRateAnnual: 8,
         },
       },
+      campaignFitScores,
       dataQuality: {
         actualUnits,
         simulatedUnits,
@@ -612,11 +881,20 @@ export async function promotionSuggestions(req, res) {
       },
     };
   }).sort((a,b) => Number(b.eligible)-Number(a.eligible) || b.score-a.score || a.sku.localeCompare(b.sku));
-  return res.json({ success: true, generatedAt: new Date().toISOString(), methodology: { minimumScore: 75, maximumNormalDiscount: 25, coolingOffDays: 30, recognitionRule: "delivered_and_paid" }, suggestions });
+  const generatedAt = new Date().toISOString();
+  await getPool().request().query("UPDATE PromotionRecommendationRefreshEvents SET processed_at=GETDATE() WHERE processed_at IS NULL").catch(() => null);
+  const responsePayload = { success: true, generatedAt, cached: false, refresh: { pendingChanges: Number(refreshState.recordset[0]?.pending_count || 0), oldestChangeAt: refreshState.recordset[0]?.oldest_change_at || null, reasons: refreshState.recordset[0]?.reasons || null, nextAutomaticRefreshAt: new Date(Date.now() + 3600000).toISOString(), mode: "hourly_or_manual" }, methodology: { minimumScore: 75, maximumNormalDiscount: 25, coolingOffDays: 30, recognitionRule: "delivered_and_paid" }, suggestions };
+  await getPool().request()
+    .input("payload", sql.NVarChar(sql.MAX), JSON.stringify(responsePayload))
+    .input("actor", sql.NVarChar, req.user?.id || "system")
+    .query(`MERGE PromotionRecommendationSnapshot AS target USING (SELECT CAST(1 AS TINYINT) id) source ON target.id=source.id
+      WHEN MATCHED THEN UPDATE SET payload_json=@payload,generated_at=GETDATE(),generated_by=@actor
+      WHEN NOT MATCHED THEN INSERT(id,payload_json,generated_at,generated_by) VALUES(1,@payload,GETDATE(),@actor);`).catch(() => null);
+  return res.json(responsePayload);
 }
 
 export async function archivePromotion(req, res) {
-  await getPool().request().input("id", sql.Int, Number(req.params.id)).input("actor", sql.NVarChar, req.user.id).query("UPDATE Promotions SET is_archived=1,status='paused',updated_by=@actor,updated_at=GETDATE() WHERE id=@id");
+  await getPool().request().input("id", sql.Int, Number(req.params.id)).input("actor", sql.NVarChar, req.user.id).query("UPDATE Promotions SET is_archived=1,status='paused',updated_by=@actor,updated_at=GETDATE() WHERE id=@id; UPDATE PromotionSkuReservations SET status='released',released_at=GETDATE(),release_reason=N'Chương trình đã lưu trữ' WHERE promotion_id=@id AND status IN ('reserved','active','paused_hold')");
   return res.json({ success: true });
 }
 

@@ -3,6 +3,9 @@ import { useStore, STATUS_LABELS } from "../../context/StoreContext";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
 import OrderItemLine from "../../components/OrderItemLine";
 import OrderFinancialBreakdown from "../../components/OrderFinancialBreakdown";
+import AdminPagination from "../../components/AdminPagination";
+
+const PAGE_SIZE = 10;
 
 export const PAYMENT_STATUS_META = {
   paid: { label: "Đã thu tiền (Paid)", color: "#2E8B57", bg: "#EAF7EE" },
@@ -43,6 +46,7 @@ export default function AdminOrders() {
   const [paymentModalNote, setPaymentModalNote] = useState("");
   const [loadingPayment, setLoadingPayment] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     if (!selectedOrder && !paymentModalOrder) return undefined;
@@ -122,6 +126,11 @@ export default function AdminOrders() {
       (o.customer_email || o.customerEmail || "").toLowerCase().includes(term);
     return matchesStatus && matchesSearch;
   });
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
+  const pagedOrders = filteredOrders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => setPage(1), [statusFilter, searchTerm]);
+  useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
 
   return (
     <div>
@@ -234,7 +243,7 @@ export default function AdminOrders() {
                   </td>
                 </tr>
               ) : (
-                filteredOrders.map((order, idx) => {
+                pagedOrders.map((order, idx) => {
                   const st = order.order_status || order.status;
                   const meta = STATUS_LABELS[st] || { label: st, color: "#333", bg: "#eee" };
                   const payment = order.payment;
@@ -385,6 +394,7 @@ export default function AdminOrders() {
             </tbody>
           </table>
         </div>
+        <AdminPagination page={page} total={filteredOrders.length} pageSize={PAGE_SIZE} onPageChange={setPage} itemLabel="đơn hàng" />
       </div>
 
       {toastMessage && (

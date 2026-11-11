@@ -233,6 +233,7 @@ export default function Header() {
         <AudienceDropdown audience="men" />
         <AudienceDropdown audience="women" />
         <AudienceDropdown audience="kids" />
+        <Link to="/sale" className="nav-main nav-sale">SALE</Link>
         <Link to="/our-story" className="nav-main">OUR STORY</Link>
       </nav>
 

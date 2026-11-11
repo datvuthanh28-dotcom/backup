@@ -16,8 +16,10 @@ export async function getPublicReviews(req, res) {
   const pool = getPool();
   const result = await pool.request().input("product_id", sql.Int, productId).query(`
     SELECT r.id, r.product_id, r.rating, r.title, r.content, r.selected_color, r.selected_size,
-      r.is_verified_purchase, r.created_at, r.updated_at, u.name AS customer_name
+      r.is_verified_purchase, r.created_at, r.updated_at, u.name AS customer_name,
+      reply.content reply_content,reply.updated_at reply_updated_at
     FROM ProductReviews r JOIN Users u ON u.id = r.user_id
+    OUTER APPLY (SELECT TOP 1 content,updated_at FROM ReviewReplies WHERE review_id=r.id AND is_visible=1 AND deleted_at IS NULL) reply
     WHERE r.product_id = @product_id AND r.status = 'published'
       AND (r.is_hidden_by_admin IS NULL OR r.is_hidden_by_admin = 0)
       -- A review is only displayed while the purchased line remains reviewable.
@@ -238,10 +240,13 @@ export async function getAdminReviews(req, res) {
              r.ai_version_analyzed, r.ai_error, r.ai_audit_run_id, r.moderation_note,
              r.moderated_by, r.moderated_at, r.created_at, r.updated_at,
              p.product_code, p.name AS product_name,
-             u.name AS customer_name, u.email AS customer_email
+             u.name AS customer_name, u.email AS customer_email,
+             reply.id reply_id,reply.content reply_content,reply.created_by reply_created_by,
+             reply.created_by_role reply_created_by_role,reply.updated_at reply_updated_at
       FROM ProductReviews r
       JOIN Products p ON p.id = r.product_id
       JOIN Users u ON u.id = r.user_id
+      OUTER APPLY (SELECT TOP 1 id,content,created_by,created_by_role,updated_at FROM ReviewReplies WHERE review_id=r.id AND is_visible=1 AND deleted_at IS NULL) reply
       WHERE r.status <> 'deleted'
       ORDER BY r.created_at DESC
     `);
@@ -267,6 +272,63 @@ export async function getAdminReviews(req, res) {
       error: "Không thể tải dữ liệu đánh giá. Vui lòng kiểm tra cấu trúc cơ sở dữ liệu.",
     });
   }
+}
+
+export async function getOperationalReviews(req, res) {
+  const visibilityFilter = req.user.role === "staff" ? "AND r.status='published' AND (r.is_hidden_by_admin IS NULL OR r.is_hidden_by_admin=0)" : "";
+  const result = await getPool().request().query(`
+    SELECT r.id,r.product_id,r.order_id,r.rating,r.title,r.content,r.selected_color,r.selected_size,
+      r.status,r.created_at,p.product_code,p.name product_name,p.images_json,
+      u.name customer_name,
+      reply.id reply_id,reply.content reply_content,reply.created_by reply_created_by,
+      reply.created_by_role reply_created_by_role,reply.reply_author_name,reply.updated_at reply_updated_at,
+      CASE WHEN reply.id IS NULL THEN 'unanswered' ELSE 'answered' END reply_status
+    FROM ProductReviews r
+    JOIN Products p ON p.id=r.product_id
+    JOIN Users u ON u.id=r.user_id
+    OUTER APPLY (SELECT TOP 1 rr.id,rr.content,rr.created_by,rr.created_by_role,creator.name reply_author_name,rr.updated_at FROM ReviewReplies rr LEFT JOIN Users creator ON creator.id=rr.created_by WHERE rr.review_id=r.id AND rr.is_visible=1 AND rr.deleted_at IS NULL) reply
+    WHERE r.status<>'deleted' ${visibilityFilter}
+    ORDER BY CASE WHEN reply.id IS NULL AND r.rating<=2 THEN 0 WHEN reply.id IS NULL THEN 1 ELSE 2 END,r.created_at DESC
+  `);
+  return res.json({ success:true,reviews:result.recordset.map((row) => ({ ...row,images:parseImages(row.images_json) })) });
+}
+
+export async function saveReviewReply(req, res) {
+  const reviewId = Number(req.params.id);
+  const content = String(req.body.content || "").trim();
+  if (!reviewId || content.length < 5 || content.length > 1500) return res.status(400).json({ success:false,error:"Phản hồi cần từ 5 đến 1.500 ký tự." });
+  const pool = getPool();
+  const review = await pool.request().input("id",sql.Int,reviewId).query("SELECT id,status FROM ProductReviews WHERE id=@id AND status<>'deleted'");
+  if (!review.recordset.length) return res.status(404).json({ success:false,error:"Không tìm thấy đánh giá." });
+  const existing = await pool.request().input("review",sql.Int,reviewId).query("SELECT TOP 1 * FROM ReviewReplies WHERE review_id=@review");
+  if (existing.recordset.length) {
+    const reply = existing.recordset[0];
+    if (req.user.role === "staff" && reply.created_by !== req.user.id && reply.is_visible) return res.status(403).json({ success:false,error:"Phản hồi này do nhân viên khác tạo. Hãy chuyển admin nếu cần chỉnh sửa." });
+    await pool.request().input("id",sql.Int,reply.id).input("review",sql.Int,reviewId).input("content",sql.NVarChar,content).input("previous",sql.NVarChar,reply.content).input("actor",sql.NVarChar,req.user.id).input("role",sql.NVarChar,req.user.role).query(`
+      UPDATE ReviewReplies SET content=@content,is_visible=1,deleted_at=NULL,deleted_by=NULL,updated_at=GETDATE() WHERE id=@id;
+      INSERT INTO ReviewReplyHistory(reply_id,review_id,action,previous_content,new_content,performed_by,performed_by_role) VALUES(@id,@review,'updated',@previous,@content,@actor,@role);
+    `);
+  } else {
+    await pool.request().input("review",sql.Int,reviewId).input("content",sql.NVarChar,content).input("actor",sql.NVarChar,req.user.id).input("role",sql.NVarChar,req.user.role).query(`
+      INSERT INTO ReviewReplies(review_id,content,created_by,created_by_role) VALUES(@review,@content,@actor,@role);
+      DECLARE @reply INT=SCOPE_IDENTITY();
+      INSERT INTO ReviewReplyHistory(reply_id,review_id,action,new_content,performed_by,performed_by_role) VALUES(@reply,@review,'created',@content,@actor,@role);
+    `);
+  }
+  return res.json({ success:true });
+}
+
+export async function removeReviewReply(req, res) {
+  const reviewId = Number(req.params.id);
+  const existing = await getPool().request().input("review",sql.Int,reviewId).query("SELECT TOP 1 * FROM ReviewReplies WHERE review_id=@review AND is_visible=1");
+  if (!existing.recordset.length) return res.status(404).json({ success:false,error:"Đánh giá chưa có phản hồi đang hiển thị." });
+  const reply = existing.recordset[0];
+  if (req.user.role === "staff" && reply.created_by !== req.user.id) return res.status(403).json({ success:false,error:"Chỉ admin hoặc nhân viên đã tạo phản hồi mới có thể thu hồi." });
+  await getPool().request().input("id",sql.Int,reply.id).input("review",sql.Int,reviewId).input("previous",sql.NVarChar,reply.content).input("actor",sql.NVarChar,req.user.id).input("role",sql.NVarChar,req.user.role).query(`
+    UPDATE ReviewReplies SET is_visible=0,deleted_at=GETDATE(),deleted_by=@actor,updated_at=GETDATE() WHERE id=@id;
+    INSERT INTO ReviewReplyHistory(reply_id,review_id,action,previous_content,performed_by,performed_by_role) VALUES(@id,@review,'withdrawn',@previous,@actor,@role);
+  `);
+  return res.json({ success:true });
 }
 
 export async function auditReviewsNow(req, res) {

@@ -113,6 +113,10 @@ npm run db:seed
 # Phân bổ lại dữ liệu tồn kho demo theo bốn trạng thái vận hành
 npm run db:seed-metrics
 
+# Chuẩn hóa tuổi tồn, ngày ra mắt, nhãn Classic/Best seller và hành vi yêu thích
+# để phần đề xuất khuyến mãi có dữ liệu thực tế, có thể chạy lại an toàn
+npm run db:normalize-promotions
+
 # Chỉ đồng bộ bốn tài khoản demo, không thay đổi catalog/đơn hàng/tồn kho
 npm run db:accounts
 ```

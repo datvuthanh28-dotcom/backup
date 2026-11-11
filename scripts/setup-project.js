@@ -7,6 +7,8 @@ const steps = [
   ["db:seed-metrics", []],
   ["db:costs", []],
   ["db:seed-analytics", []],
+  ["db:normalize-promotions", []],
+  ["db:campaigns", []],
   ["db:metrics", ["--", "90"]],
   ["db:promotion-distribution", []],
 ];

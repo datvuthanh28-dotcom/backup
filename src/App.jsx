@@ -27,6 +27,7 @@ import SearchResultsPage from "./pages/SearchResultsPage";
 import OurStory from "./pages/OurStory";
 import Wishlist from "./pages/Wishlist";
 import StoreInfoPage from "./pages/StoreInfoPage";
+import SalePage from "./pages/SalePage";
 
 // Separate Portals Login Pages
 import StaffLogin from "./pages/staff/StaffLogin"; // Staff Login (/staff/login)
@@ -36,6 +37,7 @@ import AdminLogin from "./pages/admin/AdminLogin"; // Admin Login (/admin/login)
 import StaffDashboard from "./pages/staff/StaffDashboard";
 import StaffOrders from "./pages/staff/StaffOrders";
 import StaffInventory from "./pages/staff/StaffInventory";
+import StaffReviews from "./pages/staff/StaffReviews";
 
 // Admin Workspace Pages (Admin Portal)
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -64,6 +66,8 @@ function App() {
                 <Route path="/kids" element={<ProductListPage audience="kids" title="Kids" />} />
                 <Route path="/accessories" element={<ProductListPage productType="Accessories" title="Accessories" />} />
                 <Route path="/our-story" element={<OurStory />} />
+                <Route path="/sale" element={<SalePage />} />
+                <Route path="/sale/:slug" element={<SalePage />} />
                 <Route path="/wishlist" element={<Wishlist />} />
                 <Route path="/contact" element={<StoreInfoPage page="contact" />} />
                 <Route path="/returns" element={<StoreInfoPage page="returns" />} />
@@ -111,6 +115,7 @@ function App() {
                 <Route path="orders" element={<StaffOrders />} />
                 <Route path="inventory" element={<StaffInventory />} />
                 <Route path="returns" element={<AdminReturns isStaffView={true} />} />
+                <Route path="reviews" element={<StaffReviews />} />
               </Route>
 
               {/* 3. ADMIN PORTAL (Dedicated Login & Workspace) */}

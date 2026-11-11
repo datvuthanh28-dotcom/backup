@@ -1,14 +1,18 @@
 import { Router } from "express";
-import { approvePromotion, archivePromotion, catalogPromotionPrices, createPromotion, listPromotions, myPromotionOffers, previewPromotion, promotionReport, promotionSuggestions, simulatePromotion, updatePromotion, updatePromotionStatus } from "../controllers/promotionController.js";
+import { approvePromotion, archivePromotion, catalogPromotionPrices, createPromotion, listPromotions, listPromotionTemplates, myPromotionOffers, previewPromotion, promotionReport, promotionSuggestions, publicCampaigns, savePromotionTemplate, simulatePromotion, updatePromotion, updatePromotionStatus } from "../controllers/promotionController.js";
 import { authenticateToken, optionalAuthenticateToken, requireRole } from "../middleware/auth.js";
 
 const router = Router();
 const safe = (handler) => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
 router.post("/preview", optionalAuthenticateToken, previewPromotion);
 router.get("/catalog-prices", catalogPromotionPrices);
+router.get("/campaigns", safe(publicCampaigns));
 router.get("/my-offers", authenticateToken, requireRole("customer"), safe(myPromotionOffers));
 router.get("/admin", authenticateToken, requireRole("admin"), safe(listPromotions));
 router.get("/admin/suggestions", authenticateToken, requireRole("admin"), safe(promotionSuggestions));
+router.get("/admin/templates", authenticateToken, requireRole("admin"), safe(listPromotionTemplates));
+router.post("/admin/templates", authenticateToken, requireRole("admin"), safe(savePromotionTemplate));
+router.put("/admin/templates/:id", authenticateToken, requireRole("admin"), safe(savePromotionTemplate));
 router.post("/admin/simulate", authenticateToken, requireRole("admin"), safe(simulatePromotion));
 router.post("/admin", authenticateToken, requireRole("admin"), createPromotion);
 router.put("/admin/:id", authenticateToken, requireRole("admin"), updatePromotion);
