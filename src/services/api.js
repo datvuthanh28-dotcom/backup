@@ -74,12 +74,21 @@ export const engagementAPI = {
   getReviews: (productId) => request(`/engagement/products/${productId}/reviews`),
 };
 
+export const reviewOperationsAPI = {
+  getAll: () => request("/review-operations"),
+  saveReply: (reviewId, content) => request(`/review-operations/${reviewId}/reply`, { method: "PUT", body: JSON.stringify({ content }) }),
+  removeReply: (reviewId) => request(`/review-operations/${reviewId}/reply`, { method: "DELETE" }),
+};
+
 export const promotionAPI = {
   preview: (items, code = "", shippingFee = 0) => request("/promotions/preview", { method: "POST", body: JSON.stringify({ items, code, shippingFee }) }),
   getCatalogPrices: () => request("/promotions/catalog-prices"),
+  getCampaigns: () => request("/promotions/campaigns"),
   getMyOffers: () => request("/promotions/my-offers"),
   getAll: () => request("/promotions/admin"),
-  getSuggestions: () => request("/promotions/admin/suggestions"),
+    getSuggestions: (refresh = false) => request(`/promotions/admin/suggestions${refresh ? "?refresh=1" : ""}`),
+  getTemplates: () => request("/promotions/admin/templates"),
+  createTemplate: (payload) => request("/promotions/admin/templates", { method: "POST", body: JSON.stringify(payload) }),
   simulate: (payload) => request("/promotions/admin/simulate", { method: "POST", body: JSON.stringify(payload) }),
   create: (payload) => request("/promotions/admin", { method: "POST", body: JSON.stringify(payload) }),
   update: (id, payload) => request(`/promotions/admin/${id}`, { method: "PUT", body: JSON.stringify(payload) }),

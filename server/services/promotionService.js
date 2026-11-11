@@ -89,9 +89,7 @@ export async function calculatePromotions({ items, code = "", customerId = null,
   let shippingDiscountTotal = 0;
   if (codePromotion) {
     if (["free_shipping", "shipping_amount"].includes(codePromotion.discount_type)) {
-      const activeAutomatic = pricedItems.map((item) => item.automaticPromotion).filter(Boolean);
-      const shippingCanStack = activeAutomatic.length === 0 || (["allowed", "shipping_only"].includes(codePromotion.stacking_policy) && activeAutomatic.every((promotion) => ["allowed", "shipping_only"].includes(promotion.stacking_policy)));
-      if (!shippingCanStack) throw new Error("Mã vận chuyển không thể kết hợp với khuyến mãi hiện tại.");
+      // Shipping incentives are independent from product-price discounts.
       shippingDiscountTotal = codePromotion.discount_type === "free_shipping" ? shippingFee : Math.min(shippingFee, roundMoney(codePromotion.discount_value));
     } else {
       const eligible = pricedItems.filter((item) => hasPromotionStockHeadroom(item) && targetMatches(codePromotion, item) && (!item.automaticPromotion || (codePromotion.stacking_policy === "allowed" && item.automaticPromotion.stacking_policy === "allowed")));
@@ -105,9 +103,14 @@ export async function calculatePromotions({ items, code = "", customerId = null,
       let allocated = 0;
       eligible.forEach((item, index) => {
         const base = item.originalLineTotal - item.automaticDiscount;
-        const share = index === eligible.length - 1 ? codeDiscountTotal - allocated : Math.floor(codeDiscountTotal * base / eligibleTotal);
+        const rawShare = index === eligible.length - 1 ? codeDiscountTotal - allocated : Math.floor(codeDiscountTotal * base / eligibleTotal);
+        const effectiveCapPercent = Math.min(35, Number(codePromotion.max_effective_discount || 25), Number(item.automaticPromotion?.max_effective_discount || 35));
+        const effectiveHeadroom = Math.max(0, Math.floor(item.originalLineTotal * effectiveCapPercent / 100) - item.automaticDiscount);
+        const floorHeadroomForItem = Number(item.floorPrice || 0) > 0 ? Math.max(0, base - Number(item.floorPrice) * item.quantity) : rawShare;
+        const share = Math.min(rawShare, effectiveHeadroom, floorHeadroomForItem);
         item.orderDiscountAllocated = share; allocated += share;
       });
+      codeDiscountTotal = allocated;
     }
   }
   const finalItems = pricedItems.map((item) => ({ ...item, finalLineTotal: item.originalLineTotal - item.automaticDiscount - item.orderDiscountAllocated }));

@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import BackToTop from "../BackToTop";
 import "./AdminLayout.css";
 
 export default function AdminLayout() {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -15,7 +18,7 @@ export default function AdminLayout() {
     <div className="admin-shell" style={{ display: "flex", minHeight: "100vh", backgroundColor: "#F8F5F0" }}>
       {/* Dedicated Executive Admin Sidebar */}
       <aside
-        className="admin-sidebar"
+        className={`admin-sidebar ${sidebarOpen ? "is-open" : ""}`}
         style={{
           width: "280px",
           minWidth: "280px",
@@ -89,7 +92,7 @@ export default function AdminLayout() {
         </div>
 
         {/* Sidebar Navigation */}
-        <nav className="admin-sidebar-nav" style={{ padding: "20px 14px", flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: "6px" }}>
+        <nav onClick={(event) => { if (event.target.closest("a")) setSidebarOpen(false); }} className="admin-sidebar-nav" style={{ padding: "20px 14px", flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: "6px" }}>
           <NavLink
             to="/admin"
             end
@@ -276,6 +279,7 @@ export default function AdminLayout() {
           </button>
         </div>
       </aside>
+      {sidebarOpen && <button className="portal-sidebar-backdrop" aria-label="Đóng menu" onClick={() => setSidebarOpen(false)} />}
 
       {/* Main Workspace Canvas */}
       <main className="admin-main" style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflowX: "hidden" }}>
@@ -291,6 +295,7 @@ export default function AdminLayout() {
             alignItems: "center",
           }}
         >
+          <button className="portal-sidebar-toggle" type="button" aria-label="Mở menu quản trị" onClick={() => setSidebarOpen(true)}><i className="fas fa-bars" /></button>
           <div style={{ fontSize: "13px", color: "#6B5A4B" }}>
             Hệ thống quản trị doanh nghiệp • <strong>Cổng Quản Trị Cấp Cao (Admin Portal)</strong>
           </div>
@@ -304,6 +309,7 @@ export default function AdminLayout() {
         <div className="admin-workspace-body" style={{ padding: "30px 35px", flex: 1, maxWidth: "1400px", width: "100%", boxSizing: "border-box" }}>
           <Outlet />
         </div>
+        <BackToTop />
       </main>
     </div>
   );

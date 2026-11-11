@@ -238,3 +238,25 @@
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* One-level responsive navigation. The content never becomes a horizontal menu. */
+@media (min-width: 981px) {
+  .staff-sidebar { width:260px!important; min-width:260px!important; }
+}
+.portal-sidebar-toggle{display:none;width:38px;height:38px;flex:0 0 38px;align-items:center;justify-content:center;border:1px solid #d8cec1;border-radius:6px;background:#fff;color:#3d2b23;cursor:pointer}
+.portal-sidebar-backdrop{display:none}
+@media (max-width: 980px) {
+  .staff-shell{display:block!important}
+  .staff-sidebar{position:fixed!important;inset:0 auto 0 0!important;width:min(290px,86vw)!important;min-width:0!important;height:100dvh!important;max-height:100dvh!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;overflow:hidden!important;transform:translateX(-102%);transition:transform .24s ease;z-index:1002!important;border-right:1px solid #4e342e!important;border-bottom:0!important;box-shadow:8px 0 28px rgba(0,0,0,.22)!important}
+  .staff-sidebar.is-open{transform:translateX(0)}
+  .staff-sidebar-brand{display:block!important;width:auto!important;min-width:0!important;padding:22px 20px!important;border-right:0!important;border-bottom:1px solid rgba(232,225,214,.12)!important}
+  .staff-user-card{display:block!important;padding:16px 20px!important}
+  .staff-sidebar-nav{order:initial!important;width:auto!important;min-height:0!important;display:flex!important;flex:1!important;flex-direction:column!important;align-items:stretch!important;gap:5px!important;padding:16px 12px!important;overflow-x:hidden!important;overflow-y:auto!important}
+  .staff-sidebar-nav a{min-width:0!important;white-space:normal}
+  .staff-sidebar-footer{position:static!important;display:block!important;padding:14px!important;border-top:1px solid rgba(232,225,214,.12)!important;border-left:0!important}
+  .staff-sidebar-footer button{width:100%!important;min-width:0!important;height:auto!important;color:#ff9e9b!important;overflow:visible!important}
+  .portal-sidebar-toggle{display:inline-flex}
+  .portal-sidebar-backdrop{display:block;position:fixed;inset:0;z-index:1001;border:0;background:rgba(20,16,14,.48);cursor:pointer}
+  .staff-workspace-header{position:sticky!important;top:0;z-index:30;justify-content:flex-start!important}
+  .staff-workspace-header>div:last-child{margin-left:auto}
+}

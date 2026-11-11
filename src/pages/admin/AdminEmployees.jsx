@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { employeeAPI } from "../../services/api";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
+import AdminPagination from "../../components/AdminPagination";
+
+const PAGE_SIZE = 10;
 
 function formatDate(isoStr) {
   if (!isoStr) return "";
@@ -22,6 +25,7 @@ export default function AdminEmployees() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
+  const [page, setPage] = useState(1);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -64,6 +68,11 @@ export default function AdminEmployees() {
       (s.phone && s.phone.includes(term))
     );
   });
+  const totalPages = Math.max(1, Math.ceil(filteredStaff.length / PAGE_SIZE));
+  const pagedStaff = filteredStaff.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => setPage(1), [searchTerm]);
+  useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
 
   const handleOpenAdd = () => {
     setFormData({ name: "", email: "", phone: "", password: "staff" + Math.floor(100 + Math.random() * 900) });
@@ -303,7 +312,7 @@ export default function AdminEmployees() {
                   </td>
                 </tr>
               ) : (
-                filteredStaff.map((staff, idx) => {
+                pagedStaff.map((staff, idx) => {
                   const isActive = staff.is_active !== false && staff.active !== false;
 
                   return (
@@ -422,6 +431,7 @@ export default function AdminEmployees() {
             </tbody>
           </table>
         </div>
+        <AdminPagination page={page} total={filteredStaff.length} pageSize={PAGE_SIZE} onPageChange={setPage} itemLabel="nhân viên" />
       </div>
 
       {/* Add Staff Modal */}

@@ -18,11 +18,13 @@ const empty = {
   excludedValues: "", code: "", codeUsageLimit: "", codeDistribution: "public",
   codeDescription: "", assignedCustomerEmails: "", requiresOverride: false,
   overrideReason: "", approvalStatus: "pending", recommendationSnapshot: null,
+  templateId: null, campaignType: "manual", isPublic: true, publicTitle: "", publicDescription: "", bannerUrl: "", slug: "",
+  maxEffectiveDiscount: 25, deepDiscountReasonCode: "", deepDiscountReasonNote: "", targetDetails: [],
 };
 
 const statusLabels = {
   active: "Đang chạy", scheduled: "Đã lên lịch", paused: "Tạm dừng", draft: "Bản nháp",
-  expired: "Đã kết thúc", exhausted: "Hết lượt/ngân sách", archived: "Đã lưu trữ",
+  expired: "Đã kết thúc", exhausted: "Hết lượt/ngân sách", archived: "Đã lưu trữ", needs_review: "Cần duyệt lại",
 };
 const approvalLabels = { pending: "Chờ duyệt", approved: "Đã duyệt", rejected: "Từ chối" };
 const goalLabels = {
@@ -34,6 +36,15 @@ const toTargets = (form) => [
   ...form.targetValues.split(",").map((value) => value.trim()).filter(Boolean).map((value) => ({ type: form.targetType, value })),
   ...form.excludedValues.split(",").map((value) => value.trim()).filter(Boolean).map((value) => ({ type: form.targetType, value, excluded: true })),
 ];
+const buildTargets = (form) => {
+  const details = new Map((form.targetDetails || []).map((target) => [String(target.value), target]));
+  const targets = toTargets(form);
+  return (targets.length ? targets : [{ type: "store", value: "all" }]).map((target) => ({
+    ...(details.get(String(target.value)) || {}),
+    ...target,
+    selectionSource: target.excluded ? "admin_exclusion" : (details.get(String(target.value))?.selectionSource || "admin"),
+  }));
+};
 
 export default function AdminPromotions() {
   const [rows, setRows] = useState([]);
@@ -49,18 +60,42 @@ export default function AdminPromotions() {
   const [priceEdit, setPriceEdit] = useState(null);
   const [activeView, setActiveView] = useState("recommendations");
   const [expanded, setExpanded] = useState(() => new Set());
+  const [templates, setTemplates] = useState([]);
+  const [catalog, setCatalog] = useState([]);
+  const [suggestionPage, setSuggestionPage] = useState(1);
+  const [selectedSuggestions, setSelectedSuggestions] = useState(() => new Set());
+  const suggestionsPerPage = 10;
 
-  const load = async () => {
-    const [data, stats, proposed] = await Promise.all([
-      promotionAPI.getAll(), promotionAPI.report(), promotionAPI.getSuggestions(),
+  const load = async (forceRefresh = false) => {
+    const [data, stats, proposed, templateData, catalogData] = await Promise.all([
+      promotionAPI.getAll(), promotionAPI.report(), promotionAPI.getSuggestions(forceRefresh), promotionAPI.getTemplates(), productsAPI.getAll(),
     ]);
     setRows(data.promotions || []);
     setReport(stats.report || []);
     setSuggestions(proposed.suggestions || []);
-    setSuggestionMeta({ generatedAt: proposed.generatedAt, methodology: proposed.methodology });
+    setSuggestionMeta({ generatedAt: proposed.generatedAt, methodology: proposed.methodology, refresh: proposed.refresh });
+    setTemplates(templateData.templates || []);
+    setCatalog(catalogData.products || catalogData || []);
   };
 
-  useEffect(() => { load().catch((error) => setMessage(error.message)); }, []);
+  useEffect(() => {
+    load().catch((error) => setMessage(error.message));
+    const hourlyRefresh = window.setInterval(() => load().catch((error) => setMessage(error.message)), 60 * 60 * 1000);
+    return () => window.clearInterval(hourlyRefresh);
+  }, []);
+
+  useEffect(() => {
+    if (!message || !message.startsWith("Đã")) return undefined;
+    const timer = window.setTimeout(() => setMessage(""), 4000);
+    return () => window.clearTimeout(timer);
+  }, [message]);
+
+  const refreshSuggestions = async () => {
+    setBusy(true); setMessage("");
+    try { await load(true); setSuggestionPage(1); setMessage("Đã phân tích lại đề xuất theo dữ liệu mới nhất."); }
+    catch (error) { setMessage(error.message); }
+    finally { setBusy(false); }
+  };
 
   const payload = useMemo(() => ({
     ...form,
@@ -71,7 +106,7 @@ export default function AdminPromotions() {
     usageLimitPerCustomer: form.usageLimitPerCustomer || null,
     codeUsageLimit: form.codeUsageLimit || null,
     endAt: form.endAt || null,
-    targets: toTargets(form).length ? toTargets(form) : [{ type: "store", value: "all" }],
+    targets: buildTargets(form),
   }), [form]);
 
   const patch = (field, value) => setForm((current) => ({ ...current, [field]: value }));
@@ -107,6 +142,8 @@ export default function AdminPromotions() {
       isAutomatic: !asCode,
       codeDistribution: "public",
       codeDescription: `Giảm ${row.recommendedPercent}% cho ${row.name}`,
+      maxEffectiveDiscount: Math.max(25, Number(row.recommendedPercent || 0)),
+      targetDetails: [{ type: "variant", value: row.sku, selectionSource: "system", needScore: row.score, suggestedDiscount: row.recommendedPercent, approvedDiscount: row.recommendedPercent, selectionReason: (row.displayReasons || row.reasons).join(" · ") }],
       recommendationSnapshot: {
         variantId: row.variant_id, sku: row.sku, score: row.score, reasons: row.reasons,
         risks: row.risks, generatedAt: suggestionMeta?.generatedAt, expectedUnits: row.expectedUnits,
@@ -115,6 +152,55 @@ export default function AdminPromotions() {
       },
     });
     setOpen(true);
+  };
+
+  const createFromSelected = (template = null, selectedRows = null) => {
+    const selected = selectedRows || eligibleSuggestions.filter((row) => selectedSuggestions.has(row.variant_id));
+    if (!selected.length) { setMessage("Hãy chọn ít nhất một SKU để tạo đợt sale."); return; }
+    const percent = Math.min(...selected.map((row) => Number(row.recommendedPercent || 5)));
+    const duration = Number(template?.default_duration_days || Math.max(...selected.map((row) => row.durationDays || 7)));
+    setEditing(null); setSimulation(null);
+    setForm({
+      ...empty,
+      name: template?.name ? `${template.name} ${new Date().getFullYear()}` : "Đợt sale theo đề xuất",
+      description: template?.description || `Áp dụng ${selected.length} SKU được hệ thống đề xuất.`,
+      businessGoal: "inventory_clearance", discountValue: percent,
+      budgetTotal: template?.default_budget || selected.reduce((sum, row) => sum + Number(row.estimatedBudget || 0), 0),
+      usageLimitTotal: selected.reduce((sum, row) => sum + Number(row.expectedUnits || 0), 0),
+      usageLimitPerCustomer: 3, startAt: now(), endAt: addDays(duration),
+      targetType: "variant", targetValues: selected.map((row) => row.sku).join(","), isAutomatic: true,
+      templateId: template?.id || null, campaignType: template?.campaign_type || "suggested_sale",
+      publicTitle: template?.public_title || template?.name || "Selected Sale",
+      publicDescription: template?.public_description || "Giá đặc biệt trên số lượng giới hạn.",
+      bannerUrl: template?.banner_url || "", isPublic: true,
+      maxEffectiveDiscount: Math.min(35, Math.max(25, ...selected.map((row) => Number(row.recommendedPercent || 0)))),
+      targetDetails: selected.map((row) => ({ type: "variant", value: row.sku, selectionSource: "system", fitScore: row.campaignFitScores?.[template?.campaign_type] ?? null, needScore: row.score, suggestedDiscount: row.recommendedPercent, approvedDiscount: percent, selectionReason: (row.displayReasons || row.reasons).join(" · ") })),
+      recommendationSnapshot: { generatedAt: suggestionMeta?.generatedAt, variants: selected.map((row) => ({ variantId: row.variant_id, sku: row.sku, score: row.score, reasons: row.displayReasons || row.reasons })) },
+    });
+    setOpen(true);
+  };
+
+  const applyTemplate = async (template) => {
+    if (selectedSuggestions.size) return createFromSelected(template);
+    let source = eligibleSuggestions;
+    const campaignType = String(template.campaign_type || "").toLowerCase();
+    const hasFitData = source.some((row) => row.campaignFitScores && Object.prototype.hasOwnProperty.call(row.campaignFitScores, campaignType));
+    if (!hasFitData) {
+      setBusy(true); setMessage("");
+      try {
+        const refreshed = await promotionAPI.getSuggestions(true);
+        const freshSuggestions = refreshed.suggestions || [];
+        setSuggestions(freshSuggestions);
+        setSuggestionMeta({ generatedAt: refreshed.generatedAt, methodology: refreshed.methodology, refresh: refreshed.refresh });
+        source = freshSuggestions.filter((row) => row.eligible);
+      } catch (error) {
+        setMessage(error.message);
+        return;
+      } finally { setBusy(false); }
+    }
+    const fitted = source.filter((row) => Number(row.campaignFitScores?.[campaignType] || 0) >= Number(template.minimum_fit_score || 65));
+    if (fitted.length) return createFromSelected(template, fitted);
+    setMessage(`Hiện chưa có SKU đạt tối thiểu ${Number(template.minimum_fit_score || 65)} điểm phù hợp với ${template.name}.`);
   };
 
   const runSimulation = async () => {
@@ -145,6 +231,9 @@ export default function AdminPromotions() {
     const entries = String(row.targets || "store:all").split(", ").map((entry) => {
       const index = entry.indexOf(":"); return [entry.slice(0, index), entry.slice(index + 1)];
     });
+    const excludedEntries = String(row.excluded_targets || "").split(", ").filter(Boolean).map((entry) => {
+      const index = entry.indexOf(":"); return [entry.slice(0, index), entry.slice(index + 1)];
+    });
     setEditing(row.id); setSimulation(null);
     setForm({
       ...empty, name: row.name, description: row.description || "", businessGoal: row.business_goal || "revenue_growth",
@@ -155,7 +244,9 @@ export default function AdminPromotions() {
       usageLimitPerCustomer: row.usage_limit_per_customer || "", startAt: new Date(row.start_at).toISOString().slice(0, 16),
       endAt: row.end_at ? new Date(row.end_at).toISOString().slice(0, 16) : "", targetType: entries[0]?.[0] || "store",
       targetValues: entries.map((entry) => entry[1]).join(","), code: "", requiresOverride: Boolean(row.requires_override),
+      excludedValues: excludedEntries.map((entry) => entry[1]).join(","),
       overrideReason: row.override_reason || "", approvalStatus: row.approval_status,
+      maxEffectiveDiscount: Number(row.max_effective_discount || 25), deepDiscountReasonCode: row.deep_discount_reason_code || "", deepDiscountReasonNote: row.deep_discount_reason_note || "", targetDetails: [],
     });
     setOpen(true);
   };
@@ -166,6 +257,8 @@ export default function AdminPromotions() {
 
   const totalDiscount = report.reduce((sum, row) => sum + Number(row.discount_total) + Number(row.shipping_discount_total), 0);
   const eligibleSuggestions = suggestions.filter((row) => row.eligible);
+  const suggestionPages = Math.max(1, Math.ceil(eligibleSuggestions.length / suggestionsPerPage));
+  const pagedSuggestions = eligibleSuggestions.slice((suggestionPage - 1) * suggestionsPerPage, suggestionPage * suggestionsPerPage);
   const codeRows = rows.filter((row) => row.codes);
 
   return <div className="promotion-admin">
@@ -174,7 +267,7 @@ export default function AdminPromotions() {
       <div className="promotion-header-actions"><button onClick={() => openNew(true)}>Tạo mã giảm giá</button><button className="btn-primary" onClick={() => openNew(false)}>Tạo chương trình tự động</button></div>
     </header>
 
-    {message && <p className="admin-insights__error">{message}</p>}
+    {message && <div className={`promotion-toast ${message.startsWith("Đã") ? "promotion-toast--success" : "promotion-toast--error"}`} role="status"><span>{message}</span><button type="button" aria-label="Đóng thông báo" onClick={() => setMessage("")}>×</button></div>}
 
     <div className="promotion-metrics">
       <article><span>Đang chạy</span><strong>{rows.filter((row) => row.effective_status === "active").length}</strong></article>
@@ -187,24 +280,27 @@ export default function AdminPromotions() {
       <button className={activeView === "recommendations" ? "active" : ""} onClick={() => setActiveView("recommendations")}>Đề xuất ({eligibleSuggestions.length})</button>
       <button className={activeView === "programs" ? "active" : ""} onClick={() => setActiveView("programs")}>Chương trình ({rows.filter((row) => !row.is_archived).length})</button>
       <button className={activeView === "codes" ? "active" : ""} onClick={() => setActiveView("codes")}>Mã giảm giá ({codeRows.length})</button>
+      <button className={activeView === "templates" ? "active" : ""} onClick={() => setActiveView("templates")}>Mẫu đợt sale ({templates.length})</button>
     </nav>
 
     {activeView === "recommendations" && <section className="promotion-suggestions">
       <div className="promotion-suggestions__heading">
         <div><p className="eyebrow">Đề xuất theo dữ liệu</p><h2>Sản phẩm nên xem xét khuyến mãi</h2><p>Hệ thống đã tính phần chi phí phía sau. Admin chỉ cần xem kết quả, điều chỉnh và quyết định.</p></div>
-        <div><strong>{eligibleSuggestions.length} SKU phù hợp</strong><small>Cập nhật {suggestionMeta?.generatedAt ? new Date(suggestionMeta.generatedAt).toLocaleString("vi-VN") : "—"}</small></div>
+        <div className="promotion-refresh-summary"><strong>{eligibleSuggestions.length} SKU phù hợp</strong><small>Cập nhật {suggestionMeta?.generatedAt ? new Date(suggestionMeta.generatedAt).toLocaleString("vi-VN") : "—"}</small>{suggestionMeta?.refresh?.pendingChanges > 0 && <small>{suggestionMeta.refresh.pendingChanges} thay đổi đã được xử lý</small>}<small>Tự làm mới mỗi 1 giờ</small><button type="button" disabled={busy} onClick={refreshSuggestions}>{busy ? "Đang phân tích…" : "Làm mới đề xuất"}</button></div>
       </div>
 
+      <div className="promotion-bulk-bar"><label><input type="checkbox" checked={eligibleSuggestions.length > 0 && selectedSuggestions.size === eligibleSuggestions.length} onChange={(event) => setSelectedSuggestions(event.target.checked ? new Set(eligibleSuggestions.map((row) => row.variant_id)) : new Set())} /> Chọn toàn bộ {eligibleSuggestions.length} SKU</label><strong>Đã chọn {selectedSuggestions.size}</strong><button className="btn-primary" disabled={!selectedSuggestions.size} onClick={() => createFromSelected()}>Tạo đợt sale</button></div>
+
       <div className="promotion-decision-list">
-        {eligibleSuggestions.slice(0, 12).map((row) => {
+        {pagedSuggestions.map((row) => {
           const finance = row.financialSummary;
           const isOpen = expanded.has(row.variant_id);
-          return <article className="promotion-decision-card" key={row.variant_id}>
+          return <article className="promotion-decision-card" key={row.variant_id}><label className="promotion-select-suggestion"><input type="checkbox" checked={selectedSuggestions.has(row.variant_id)} onChange={(event) => setSelectedSuggestions((current) => { const next = new Set(current); if (event.target.checked) next.add(row.variant_id); else next.delete(row.variant_id); return next; })} /> Chọn SKU</label>
             <div className="promotion-decision-card__top">
               <div><span className={`promotion-recommendation promotion-recommendation--${finance?.netBenefitVsBaseline > 0 ? "positive" : "caution"}`}>{row.recommendationLabel}</span><h3>{row.name}</h3><p>{row.sku} · {row.color_name}/{row.size_name}</p></div>
               <div className="promotion-proposed-price"><small>Giá đề xuất</small><strong>{money(row.proposedPrice)}</strong><span>Giảm {row.recommendedPercent}% trong {row.durationDays} ngày</span></div>
             </div>
-            <div className="promotion-reason-block"><strong>Vì sao được đề xuất?</strong><ul>{row.reasons.slice(0, 4).map((reason) => <li key={reason}>{reason}</li>)}</ul></div>
+            <div className="promotion-reason-block"><strong>Lý do đề xuất</strong><ul>{(row.displayReasons?.length ? row.displayReasons : row.reasons).slice(0, 4).map((reason) => <li key={reason}>{reason}</li>)}</ul></div>
             <div className="promotion-decision-summary">
               <div><span>Doanh thu dự kiến</span><strong>{money(finance?.promotion?.revenueRange?.low)} – {money(finance?.promotion?.revenueRange?.high)}</strong></div>
               <div><span>Chi phí ưu đãi tối đa</span><strong>{money(finance?.promotion?.discountCost)}</strong></div>
@@ -227,33 +323,59 @@ export default function AdminPromotions() {
           </article>;
         })}
       </div>
+      <div className="promotion-pagination"><button disabled={suggestionPage <= 1} onClick={() => setSuggestionPage((page) => page - 1)}>← Trước</button><span>Trang {suggestionPage}/{suggestionPages} · {eligibleSuggestions.length} SKU</span><button disabled={suggestionPage >= suggestionPages} onClick={() => setSuggestionPage((page) => page + 1)}>Sau →</button></div>
       {eligibleSuggestions.length === 0 && <p className="promotion-empty">Hiện chưa có SKU đủ điều kiện khuyến mãi theo tồn kho, giá sàn và lịch sử bán.</p>}
       <details className="promotion-exclusions"><summary>{suggestions.filter((row) => !row.eligible).length} SKU chưa nên khuyến mãi</summary>{suggestions.filter((row) => !row.eligible).slice(0, 20).map((row) => <p key={row.variant_id}><strong>{row.sku}</strong>: {(row.exclusionReasons.length ? row.exclusionReasons : ["Chưa có tín hiệu kinh doanh đủ mạnh"]).join(" · ")}</p>)}</details>
     </section>}
 
     {activeView === "programs" && <ProgramTable rows={rows} beginEdit={beginEdit} act={act} openNew={openNew} />}
     {activeView === "codes" && <CodeTable rows={codeRows} openNew={openNew} />}
+    {activeView === "templates" && <TemplateGallery templates={templates} applyTemplate={applyTemplate} selectedCount={selectedSuggestions.size} />}
 
     {priceEdit && <PriceModal priceEdit={priceEdit} setPriceEdit={setPriceEdit} setBusy={setBusy} busy={busy} setMessage={setMessage} load={load} />}
-    {open && <PromotionModal form={form} patch={patch} setForm={setForm} editing={editing} setOpen={setOpen} save={save} busy={busy} runSimulation={runSimulation} simulation={simulation} />}
+    {open && <PromotionModal form={form} patch={patch} setForm={setForm} editing={editing} setOpen={setOpen} save={save} busy={busy} runSimulation={runSimulation} simulation={simulation} catalog={catalog} suggestions={suggestions} />}
   </div>;
 }
 
+function TemplateGallery({ templates, applyTemplate, selectedCount }) {
+  return <section className="promotion-management-section"><div className="promotion-section-heading"><div><p className="eyebrow">Chiến dịch dựng sẵn</p><h2>Mẫu đợt sale</h2><p>Chọn SKU ở tab Đề xuất rồi áp dụng nhanh một mẫu, hoặc mở mẫu để tự chọn phạm vi.</p></div></div><div className="promotion-template-grid">{templates.map((template) => <article key={template.id}><span>{template.campaign_type.replaceAll("_", " ")}</span><h3>{template.name}</h3><p>{template.description}</p><strong>Giảm mặc định {Number(template.default_discount_percent)}% · {template.default_duration_days} ngày</strong><button className="btn-primary" onClick={() => applyTemplate(template)}>{selectedCount ? `Áp dụng cho ${selectedCount} SKU` : "Sử dụng mẫu"}</button></article>)}</div></section>;
+}
+
 function ProgramTable({ rows, beginEdit, act, openNew }) {
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("all");
+  const [page, setPage] = useState(1);
+  const pageSize = 8;
+  const visibleRows = rows.filter((row) => {
+    const matchesQuery = !query.trim() || `${row.name} ${row.codes || ""}`.toLowerCase().includes(query.trim().toLowerCase());
+    const matchesStatus = status === "all" || row.effective_status === status || row.approval_status === status;
+    return matchesQuery && matchesStatus;
+  });
+  const pages = Math.max(1, Math.ceil(visibleRows.length / pageSize));
+  const pagedRows = visibleRows.slice((page - 1) * pageSize, page * pageSize);
   return <section className="promotion-management-section">
     <div className="promotion-section-heading"><div><p className="eyebrow">Vận hành</p><h2>Chương trình khuyến mãi</h2></div><button className="btn-primary" onClick={() => openNew(false)}>Tạo chương trình</button></div>
+    <div className="promotion-program-toolbar"><label>Tìm chương trình<input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Tên hoặc mã giảm giá" /></label><label>Trạng thái<select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }}><option value="all">Tất cả trạng thái</option><option value="active">Đang chạy</option><option value="draft">Bản nháp</option><option value="scheduled">Đã lên lịch</option><option value="paused">Tạm dừng</option><option value="needs_review">Cần duyệt lại</option><option value="pending">Chờ duyệt</option><option value="expired">Đã kết thúc</option></select></label><strong>{visibleRows.length} chương trình</strong></div>
     <div className="admin-insights__table-wrap"><table className="admin-insights__table"><thead><tr><th>Chương trình</th><th>Mục tiêu</th><th>Ưu đãi</th><th>Ngân sách</th><th>Phê duyệt</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>
-      {rows.map((row) => <tr key={row.id}><td><strong>{row.name}</strong><small>{row.codes || (row.is_automatic ? "Tự động áp dụng" : "Chưa có mã")}</small><small>{row.targets || "Toàn cửa hàng"}</small></td><td>{goalLabels[row.business_goal] || row.business_goal}</td><td>{row.discount_type === "percentage" ? `Giảm ${Number(row.discount_value)}%` : `${row.discount_type} · ${money(row.discount_value)}`}<small>Đơn tối thiểu {money(row.minimum_order_value)}</small></td><td>{row.budget_total ? <><strong>{money(Number(row.budget_reserved) + Number(row.budget_spent))} / {money(row.budget_total)}</strong><small>Giữ {money(row.budget_reserved)} · Đã chi {money(row.budget_spent)}</small></> : "Không giới hạn"}</td><td><span className={`promotion-status promotion-approval--${row.approval_status}`}>{approvalLabels[row.approval_status] || "Chờ duyệt"}</span></td><td><span className={`promotion-status promotion-status--${row.effective_status}`}>{statusLabels[row.effective_status]}</span></td><td><div className="promotion-actions"><button onClick={() => beginEdit(row)} disabled={Number(row.used_count) > 0}>Sửa</button>{row.approval_status === "pending" && !row.is_archived && <><button onClick={() => act(() => promotionAPI.approve(row.id, "approved", "Đã kiểm tra doanh thu, chi phí, phạm vi và ngân sách."))}>Duyệt</button><button onClick={() => act(() => promotionAPI.approve(row.id, "rejected", "Cần điều chỉnh chương trình."))}>Từ chối</button></>}{row.approval_status === "approved" && !row.is_archived && <button className={row.status === "active" ? "" : "btn-primary"} onClick={() => act(() => promotionAPI.setStatus(row.id, row.status === "active" ? "paused" : "active"))}>{row.status === "active" ? "Tạm dừng" : "Kích hoạt"}</button>}{!row.is_archived && <button onClick={() => window.confirm("Lưu trữ mềm chương trình này?") && act(() => promotionAPI.archive(row.id))}>Lưu trữ</button>}</div></td></tr>)}
-      {rows.length === 0 && <tr><td colSpan="7" className="promotion-table-empty">Chưa có chương trình. Hãy tạo từ đề xuất hoặc tạo mới.</td></tr>}
+      {pagedRows.map((row) => <tr key={row.id}><td className="promotion-program-name"><strong>{row.name}</strong><small>{row.codes || (row.is_automatic ? "Tự động áp dụng" : "Chưa có mã")}</small><small>{new Date(row.start_at).toLocaleDateString("vi-VN")} – {row.end_at ? new Date(row.end_at).toLocaleDateString("vi-VN") : "Không giới hạn"}</small><TargetSummary targets={row.targets} reservedCount={row.reserved_sku_count} /></td><td>{goalLabels[row.business_goal] || row.business_goal}</td><td>{row.discount_type === "percentage" ? `Giảm ${Number(row.discount_value)}%` : `${row.discount_type} · ${money(row.discount_value)}`}<small>Đơn tối thiểu {money(row.minimum_order_value)}</small></td><td>{row.budget_total ? <><strong>{money(Number(row.budget_reserved) + Number(row.budget_spent))} / {money(row.budget_total)}</strong><small>Giữ {money(row.budget_reserved)} · Đã chi {money(row.budget_spent)}</small></> : "Không giới hạn"}</td><td><span className={`promotion-status promotion-approval--${row.approval_status}`}>{approvalLabels[row.approval_status] || "Chờ duyệt"}</span></td><td><span className={`promotion-status promotion-status--${row.effective_status}`}>{statusLabels[row.effective_status]}</span></td><td><div className="promotion-actions"><button onClick={() => beginEdit(row)} disabled={Number(row.used_count) > 0}>Sửa</button>{row.approval_status === "pending" && !row.is_archived && <><button onClick={() => act(() => promotionAPI.approve(row.id, "approved", "Đã kiểm tra doanh thu, chi phí, phạm vi và ngân sách."))}>Duyệt</button><button onClick={() => act(() => promotionAPI.approve(row.id, "rejected", "Cần điều chỉnh chương trình."))}>Từ chối</button></>}{row.approval_status === "approved" && !row.is_archived && <button className={row.status === "active" ? "" : "btn-primary"} onClick={() => act(() => promotionAPI.setStatus(row.id, row.status === "active" ? "paused" : "active"))}>{row.status === "active" ? "Tạm dừng" : "Kích hoạt"}</button>}{!row.is_archived && <button onClick={() => window.confirm("Lưu trữ mềm chương trình này?") && act(() => promotionAPI.archive(row.id))}>Lưu trữ</button>}</div></td></tr>)}
+      {pagedRows.length === 0 && <tr><td colSpan="7" className="promotion-table-empty">Không có chương trình phù hợp với bộ lọc.</td></tr>}
     </tbody></table></div>
+    {pages > 1 && <div className="promotion-pagination"><button disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>← Trước</button><span>Trang {page}/{pages}</span><button disabled={page >= pages} onClick={() => setPage((value) => value + 1)}>Sau →</button></div>}
   </section>;
+}
+
+function TargetSummary({ targets, reservedCount }) {
+  const entries = String(targets || "store:all").split(", ").filter(Boolean);
+  const isStorewide = entries.some((entry) => entry === "store:all");
+  if (isStorewide) return <small className="promotion-target-count">Áp dụng toàn cửa hàng</small>;
+  return <details className="promotion-target-details"><summary>{entries.length} SKU được chọn{Number(reservedCount) > 0 ? ` · giữ ${reservedCount}` : ""}</summary><div>{entries.map((entry) => <span key={entry}>{entry.replace(/^variant:/, "")}</span>)}</div></details>;
 }
 
 function CodeTable({ rows, openNew }) {
   return <section className="promotion-management-section">
     <div className="promotion-section-heading"><div><p className="eyebrow">Phân phối ưu đãi</p><h2>Mã giảm giá</h2><p>Mã công khai, mã riêng cho khách hàng hoặc mã nội bộ đều được quản lý tại đây.</p></div><button className="btn-primary" onClick={() => openNew(true)}>Tạo mã giảm giá</button></div>
     <div className="admin-insights__table-wrap"><table className="admin-insights__table"><thead><tr><th>Mã giảm giá</th><th>Chương trình</th><th>Ưu đãi</th><th>Đã sử dụng</th><th>Thời hạn</th><th>Trạng thái</th></tr></thead><tbody>
-      {rows.map((row) => <tr key={row.id}><td><strong>{row.codes}</strong></td><td>{row.name}</td><td>{row.discount_type === "percentage" ? `${Number(row.discount_value)}%` : money(row.discount_value)}</td><td>{Number(row.used_count || 0)}{row.usage_limit_total ? ` / ${row.usage_limit_total}` : ""}</td><td>{new Date(row.start_at).toLocaleDateString("vi-VN")} – {row.end_at ? new Date(row.end_at).toLocaleDateString("vi-VN") : "Không giới hạn"}</td><td><span className={`promotion-status promotion-status--${row.effective_status}`}>{statusLabels[row.effective_status]}</span></td></tr>)}
+      {rows.map((row) => { const codeExhausted = row.code_usage_limit && Number(row.code_used_count) >= Number(row.code_usage_limit); return <tr key={row.id}><td><strong>{row.codes}</strong></td><td>{row.name}</td><td>{row.discount_type === "percentage" ? `${Number(row.discount_value)}%` : money(row.discount_value)}</td><td>{Number(row.code_used_count || 0)}{row.code_usage_limit ? ` / ${row.code_usage_limit}` : " / Không giới hạn"}</td><td>{new Date(row.start_at).toLocaleDateString("vi-VN")} – {row.end_at ? new Date(row.end_at).toLocaleDateString("vi-VN") : "Không giới hạn"}</td><td><span className={`promotion-status promotion-status--${codeExhausted ? "exhausted" : row.effective_status}`}>{codeExhausted ? "Đã hết lượt" : statusLabels[row.effective_status]}</span></td></tr>; })}
       {rows.length === 0 && <tr><td colSpan="6" className="promotion-table-empty">Chưa có mã giảm giá nào.</td></tr>}
     </tbody></table></div>
   </section>;
@@ -268,20 +390,82 @@ function PriceModal({ priceEdit, setPriceEdit, setBusy, busy, setMessage, load }
   }} onClick={(event) => event.stopPropagation()}><button type="button" className="promotion-close" onClick={() => setPriceEdit(null)}>×</button><h2>Thiết lập giá SKU</h2><p><strong>{priceEdit.sku}</strong> · Giá bán {money(priceEdit.price)}</p><label>Giá vốn<input required type="number" min="0" value={priceEdit.costPrice} onChange={(event) => setPriceEdit({ ...priceEdit, costPrice: event.target.value })} /></label><label>Giá sàn<input required type="number" min={priceEdit.costPrice || 0} max={priceEdit.price} value={priceEdit.floorPrice} onChange={(event) => setPriceEdit({ ...priceEdit, floorPrice: event.target.value })} /></label><small>Điều kiện: giá vốn ≤ giá sàn ≤ giá bán.</small><div className="promotion-modal-actions"><button type="button" onClick={() => setPriceEdit(null)}>Hủy</button><button className="btn-primary" disabled={busy}>Lưu giá</button></div></form></div>;
 }
 
-function PromotionModal({ form, patch, setForm, editing, setOpen, save, busy, runSimulation, simulation }) {
+function PromotionModal({ form, patch, setForm, editing, setOpen, save, busy, runSimulation, simulation, catalog, suggestions }) {
   return <div className="promotion-modal" onClick={() => setOpen(false)}><form onSubmit={save} onClick={(event) => event.stopPropagation()}>
     <button type="button" className="promotion-close" onClick={() => setOpen(false)}>×</button><h2>{editing ? "Chỉnh sửa bản nháp" : form.isAutomatic ? "Tạo chương trình tự động" : "Tạo mã giảm giá"}</h2><p className="promotion-step-note">Lưu bản nháp, kiểm tra kết quả, sau đó duyệt và kích hoạt trong danh sách chương trình.</p>
     <div className="promotion-form-grid">
       <label className="full">Tên chương trình<input required value={form.name} onChange={(event) => patch("name", event.target.value)} /></label><label className="full">Mô tả<textarea value={form.description} onChange={(event) => patch("description", event.target.value)} /></label>
       <label>Mục tiêu kinh doanh<select value={form.businessGoal} onChange={(event) => patch("businessGoal", event.target.value)}>{Object.entries(goalLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label>Loại ưu đãi<select value={form.discountType} onChange={(event) => patch("discountType", event.target.value)}><option value="percentage">Giảm phần trăm</option><option value="fixed_amount">Giảm số tiền</option><option value="free_shipping">Miễn phí vận chuyển</option><option value="shipping_amount">Giảm phí vận chuyển</option></select></label>
       <label>Giá trị ưu đãi<input type="number" min="0" max={form.discountType === "percentage" ? 100 : undefined} value={form.discountValue} onChange={(event) => patch("discountValue", event.target.value)} /></label><label>Giảm tối đa<input type="number" min="0" value={form.maximumDiscount} onChange={(event) => patch("maximumDiscount", event.target.value)} /></label><label>Đơn hàng tối thiểu<input type="number" min="0" value={form.minimumOrderValue} onChange={(event) => patch("minimumOrderValue", event.target.value)} /></label><label>Tối đa trên một đơn<input type="number" min="0" value={form.maxDiscountPerOrder} onChange={(event) => patch("maxDiscountPerOrder", event.target.value)} /></label><label>Ngân sách chương trình<input type="number" min="1" value={form.budgetTotal} onChange={(event) => patch("budgetTotal", event.target.value)} /></label>
-      <label>Phạm vi<select value={form.targetType} onChange={(event) => patch("targetType", event.target.value)}><option value="store">Toàn cửa hàng</option><option value="audience">Đối tượng</option><option value="category">Danh mục</option><option value="product">Mã sản phẩm</option><option value="variant">SKU biến thể</option></select></label><label>Giá trị được áp dụng<input value={form.targetValues} onChange={(event) => patch("targetValues", event.target.value)} placeholder="Nhiều giá trị cách nhau bằng dấu phẩy" /></label><label className="full">Giá trị bị loại trừ<input value={form.excludedValues} onChange={(event) => patch("excludedValues", event.target.value)} placeholder="SKU/sản phẩm không áp dụng" /></label>
+      <label>Phạm vi<select value={form.targetType} onChange={(event) => { patch("targetType", event.target.value); patch("targetValues", event.target.value === "store" ? "all" : ""); patch("excludedValues", ""); }}><option value="store">Toàn cửa hàng</option><option value="audience">Đối tượng</option><option value="category">Danh mục</option><option value="product">Sản phẩm</option><option value="variant">SKU biến thể</option></select></label>{form.targetType === "store" ? <div className="promotion-scope-store">Áp dụng cho toàn bộ sản phẩm đủ điều kiện trong cửa hàng.</div> : ["product","variant"].includes(form.targetType) ? <ScopePicker catalog={catalog} suggestions={suggestions} type={form.targetType} selected={form.targetValues} excluded={form.excludedValues} onSelected={(value)=>patch("targetValues",value)} onExcluded={(value)=>patch("excludedValues",value)} /> : <><label>Giá trị được áp dụng<input value={form.targetValues} onChange={(event) => patch("targetValues", event.target.value)} placeholder={form.targetType === "audience" ? "men, women hoặc kids" : "Tên danh mục"} /></label><label className="full">Giá trị bị loại trừ<input value={form.excludedValues} onChange={(event) => patch("excludedValues", event.target.value)} placeholder="Giá trị không áp dụng" /></label></>}
       <label>Bắt đầu<input required type="datetime-local" value={form.startAt} onChange={(event) => patch("startAt", event.target.value)} /></label><label>Kết thúc<input type="datetime-local" value={form.endAt} onChange={(event) => patch("endAt", event.target.value)} /></label><label>Tổng lượt sử dụng<input type="number" min="1" value={form.usageLimitTotal} onChange={(event) => patch("usageLimitTotal", event.target.value)} /></label><label>Lượt mỗi khách<input type="number" min="1" value={form.usageLimitPerCustomer} onChange={(event) => patch("usageLimitPerCustomer", event.target.value)} /></label>
       <label>Chính sách kết hợp<select value={form.stackingPolicy} onChange={(event) => patch("stackingPolicy", event.target.value)}><option value="none">Không kết hợp</option><option value="allowed">Cho phép kết hợp</option><option value="shipping_only">Chỉ mã vận chuyển</option></select></label><label>Điều kiện khách hàng<select value={form.customerRequirement} onChange={(event) => patch("customerRequirement", event.target.value)}><option value="any">Mọi khách hàng</option><option value="authenticated">Phải đăng nhập</option></select></label>
+      <label>Trần tổng mức giảm hiệu dụng<select value={form.maxEffectiveDiscount} onChange={(event) => patch("maxEffectiveDiscount", Number(event.target.value))}><option value="25">25% — mức thông thường</option><option value="30">30% — giảm sâu</option><option value="35">35% — trần tuyệt đối</option></select></label>
+      {Number(form.maxEffectiveDiscount) > 25 && <><label>Lý do giảm sâu<select required value={form.deepDiscountReasonCode} onChange={(event) => patch("deepDiscountReasonCode", event.target.value)}><option value="">Chọn lý do</option><option value="aged_inventory">Hàng tồn kho lâu ngày</option><option value="overstock">Tồn vượt mức tối đa</option><option value="slow_sales">Sản phẩm bán chậm</option><option value="end_of_season">Kết thúc mùa hoặc bộ sưu tập</option><option value="low_conversion">Nhiều quan tâm nhưng tỷ lệ mua thấp</option><option value="major_event">Chương trình ngày lễ lớn</option><option value="broken_assortment">SKU tồn không đồng đều màu/kích cỡ</option><option value="other">Lý do khác</option></select></label>{form.deepDiscountReasonCode === "other" && <label className="full">Mô tả lý do khác<textarea required value={form.deepDiscountReasonNote} onChange={(event) => patch("deepDiscountReasonNote", event.target.value)} /></label>}</>}
       {!form.isAutomatic && <><label>Mã giảm giá<input required={!editing} disabled={editing} value={form.code} onChange={(event) => patch("code", event.target.value.toUpperCase())} placeholder="Ví dụ: MAISON15" /></label><label>Giới hạn riêng của mã<input disabled={editing} type="number" min="1" value={form.codeUsageLimit} onChange={(event) => patch("codeUsageLimit", event.target.value)} /></label>{!editing && <><label>Cách phân phối<select value={form.codeDistribution} onChange={(event) => patch("codeDistribution", event.target.value)}><option value="public">Công khai cho mọi khách</option><option value="targeted">Gán riêng theo khách hàng</option><option value="private">Riêng tư, không hiển thị</option></select></label><label>Mô tả hiển thị<input value={form.codeDescription} onChange={(event) => patch("codeDescription", event.target.value)} placeholder="Điều kiện ngắn gọn cho khách hàng" /></label>{form.codeDistribution === "targeted" && <label className="full">Email khách hàng được nhận<textarea required value={form.assignedCustomerEmails} onChange={(event) => patch("assignedCustomerEmails", event.target.value)} placeholder="customer@gmail.com; customer2@gmail.com" /></label>}</>}</>}
       <label className="promotion-check"><input type="checkbox" checked={form.isAutomatic} onChange={(event) => setForm({ ...form, isAutomatic: event.target.checked, code: event.target.checked ? "" : form.code })} /> Tự động áp dụng, không cần nhập mã</label><label className="full">Lý do ngoại lệ giá sàn<textarea value={form.overrideReason} onChange={(event) => patch("overrideReason", event.target.value)} placeholder="Chỉ điền khi mô phỏng cảnh báo vượt ngưỡng" /></label>
     </div>
     {simulation && <section className={`promotion-simulation ${simulation.requiresOverride || simulation.overBudget ? "has-warning" : "is-safe"}`}><h3>Kết quả kiểm tra trước khi lưu</h3><div className="promotion-simulation-summary"><span>{simulation.productCount} sản phẩm</span><span>{simulation.variantCount} SKU</span><span>Chi phí tối đa: {money(simulation.estimatedExposure)}</span></div>{simulation.overBudget && <p>Chi phí dự kiến đang vượt ngân sách.</p>}{simulation.forecast && <div className="promotion-simulation-scenarios"><section><strong>Giữ nguyên giá</strong><span>Doanh thu {money(simulation.forecast.baseline.projectedRevenue)}</span><span>Lợi nhuận {money(simulation.forecast.baseline.projectedGrossProfit)}</span><span>Tồn cuối kỳ {simulation.forecast.baseline.projectedEndingStock}</span></section><section><strong>Mở khuyến mãi</strong><span>Doanh thu {money(simulation.forecast.promotion.projectedRevenue)}</span><span>Lợi nhuận {money(simulation.forecast.promotion.projectedGrossProfit)}</span><span>Tồn cuối kỳ {simulation.forecast.promotion.projectedEndingStock}</span></section></div>}{simulation.aiStrategicCommentary && <p className="promotion-ai-summary">{simulation.aiStrategicCommentary}</p>}{simulation.warnings.map((warning) => <p key={warning}>{warning}</p>)}</section>}
     <div className="promotion-modal-actions"><button type="button" onClick={() => setOpen(false)}>Hủy</button><button type="button" onClick={runSimulation} disabled={busy}>{busy ? "Đang kiểm tra" : "Xem kết quả dự kiến"}</button><button className="btn-primary" type="submit" disabled={busy}>{busy ? "Đang lưu" : "Lưu bản nháp"}</button></div>
   </form></div>;
+}
+
+function ScopePicker({ catalog, suggestions, type, selected, excluded, onSelected, onExcluded }) {
+  const [query, setQuery] = useState("");
+  const [view, setView] = useState("selected");
+  const [page, setPage] = useState(1);
+  const [detail, setDetail] = useState(null);
+  const [referenceTime] = useState(() => Date.now());
+  const pageSize = 12;
+  const chosen = new Set(String(selected || "").split(",").map((value) => value.trim()).filter(Boolean));
+  const blocked = new Set(String(excluded || "").split(",").map((value) => value.trim()).filter(Boolean));
+  const suggestionBySku = new Map((suggestions || []).map((row) => [String(row.sku), row]));
+  const suggestionsByProduct = new Map();
+  (suggestions || []).forEach((row) => {
+    const key = String(row.product_id);
+    if (!suggestionsByProduct.has(key)) suggestionsByProduct.set(key, []);
+    suggestionsByProduct.get(key).push(row);
+  });
+  const options = (catalog || []).flatMap((product) => {
+    const launchedAt = product.launched_at ? new Date(product.launched_at) : null;
+    const isNew = launchedAt && !Number.isNaN(launchedAt.getTime()) && referenceTime - launchedAt.getTime() < 60 * 86400000;
+    const protectedReason = product.is_classic ? "Sản phẩm Classic không áp dụng giảm giá" : product.is_bestseller ? "Best seller được bảo vệ khỏi giảm giá" : isNew ? "Sản phẩm mới ra mắt chưa đủ 60 ngày" : "";
+    if (type === "product") {
+      const productSuggestions = suggestionsByProduct.get(String(product.id)) || [];
+      const recommended = productSuggestions.filter((row) => row.eligible).sort((a, b) => Number(b.score) - Number(a.score))[0];
+      const stock = (product.variants || []).reduce((sum, variant) => sum + Number(variant.stock || 0), 0);
+      return [{ key: String(product.id), product, image: product.images?.[0], label: product.name, code: product.productCode || product.product_code, stock, recommendation: recommended, relatedSuggestions: productSuggestions, hardBlock: protectedReason || (stock <= 0 ? "Sản phẩm đã hết hàng" : "") }];
+    }
+    return (product.variants || []).map((variant) => {
+      const recommendation = suggestionBySku.get(String(variant.sku));
+      const stock = Number(variant.stock || 0);
+      const threshold = Number(variant.lowStockThreshold || 0);
+      const missingPrice = Number(variant.price || 0) <= 0 || Number(variant.floorPrice || variant.floor_price || 0) <= 0;
+      return { key: String(variant.sku || variant.id), product, variant, image: (product.colorImages?.[variant.color] || product.images || [])[0], label: product.name, code: variant.sku, stock, recommendation, hardBlock: protectedReason || (stock <= 0 ? "SKU đã hết hàng" : stock <= threshold ? "Tồn kho đang ở mức tối thiểu" : missingPrice ? "SKU chưa có đủ giá bán và giá sàn" : "") };
+    });
+  });
+  const optionMap = new Map(options.map((item) => [item.key, item]));
+  const matches = (item) => `${item.label} ${item.code || ""} ${item.variant?.color || ""} ${item.variant?.size || ""}`.toLowerCase().includes(query.trim().toLowerCase());
+  const selectedItems = [...chosen].map((key) => optionMap.get(key) || { key, label: key, code: key }).filter(matches);
+  const availableItems = options.filter((item) => !chosen.has(item.key) && !blocked.has(item.key) && matches(item));
+  const excludedItems = [...blocked].map((key) => optionMap.get(key) || { key, label: key, code: key }).filter(matches);
+  const currentItems = view === "selected" ? selectedItems : view === "available" ? availableItems : excludedItems;
+  const pages = Math.max(1, Math.ceil(currentItems.length / pageSize));
+  const shown = currentItems.slice((page - 1) * pageSize, page * pageSize);
+  useEffect(() => { setPage(1); }, [query, view]);
+  const commit = (nextChosen, nextBlocked) => { onSelected([...nextChosen].join(",")); onExcluded([...nextBlocked].join(",")); };
+  const applyItem = (item) => { if (item.hardBlock) return; const nextChosen = new Set(chosen); const nextBlocked = new Set(blocked); nextChosen.add(item.key); nextBlocked.delete(item.key); commit(nextChosen, nextBlocked); };
+  const excludeItem = (item) => { const nextChosen = new Set(chosen); const nextBlocked = new Set(blocked); nextChosen.delete(item.key); nextBlocked.add(item.key); commit(nextChosen, nextBlocked); };
+  const restoreItem = (item) => { const nextChosen = new Set(chosen); const nextBlocked = new Set(blocked); nextBlocked.delete(item.key); nextChosen.add(item.key); commit(nextChosen, nextBlocked); };
+  const reasonList = (item) => item.recommendation?.displayReasons || item.recommendation?.reasons || item.relatedSuggestions?.flatMap((row) => row.displayReasons || row.reasons || []).slice(0, 5) || [];
+  const itemMeta = (item) => item.variant ? `${item.code} · ${item.variant.color}/${item.variant.size} · tồn ${item.stock}` : `${item.code || "Mã sản phẩm"} · ${item.stock} sản phẩm trong kho`;
+  return <div className="promotion-scope-picker">
+    <div className="promotion-scope-summary"><div><strong>{chosen.size} {type === "variant" ? "SKU" : "sản phẩm"} sẽ áp dụng</strong><small>{blocked.size ? `${blocked.size} mục bị loại trừ riêng khỏi chương trình này` : "Chưa có mục bị loại trừ"}</small></div></div>
+    <div className="promotion-scope-tabs"><button type="button" className={view === "selected" ? "active" : ""} onClick={() => setView("selected")}>Sẽ áp dụng ({chosen.size})</button><button type="button" className={view === "available" ? "active" : ""} onClick={() => setView("available")}>Sản phẩm khác ({availableItems.length})</button><button type="button" className={view === "excluded" ? "active" : ""} onClick={() => setView("excluded")}>Đã loại trừ ({blocked.size})</button></div>
+    <div className="promotion-scope-toolbar"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm tên sản phẩm, SKU, màu hoặc size"/><span>{currentItems.length} kết quả</span></div>
+    <div className="promotion-scope-list">{shown.map((item) => <article key={item.key} className={item.hardBlock ? "is-blocked" : ""} onClick={() => setDetail(item)}><img src={item.image ? `/${String(item.image).replace(/^\//, "")}` : "/image/placeholder.webp"} alt=""/><div className="promotion-scope-identity"><strong>{item.label}</strong><small>{itemMeta(item)}</small><span className={item.recommendation?.eligible ? "is-system" : "is-manual"}>{item.recommendation?.eligible ? `Hệ thống đề xuất · ${item.recommendation.score} điểm` : chosen.has(item.key) ? "Admin thêm thủ công" : "Chưa được hệ thống đề xuất"}</span></div>{item.recommendation?.recommendedPercent > 0 && <div className="promotion-scope-discount"><small>Mức đề xuất</small><strong>{item.recommendation.recommendedPercent}%</strong></div>}{view === "selected" && <button type="button" className="exclude" onClick={(event) => { event.stopPropagation(); excludeItem(item); }}>Loại trừ</button>}{view === "available" && <button type="button" className="apply" disabled={Boolean(item.hardBlock)} title={item.hardBlock} onClick={(event) => { event.stopPropagation(); applyItem(item); }}>{item.hardBlock ? "Không thể thêm" : "Thêm áp dụng"}</button>}{view === "excluded" && <button type="button" className="restore" onClick={(event) => { event.stopPropagation(); restoreItem(item); }}>Hoàn tác loại trừ</button>}</article>)}</div>
+    {!shown.length && <div className="promotion-scope-empty">Không có sản phẩm phù hợp với danh sách và bộ lọc hiện tại.</div>}
+    {pages > 1 && <div className="promotion-pagination"><button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>← Trước</button><span>Trang {page}/{pages}</span><button type="button" disabled={page >= pages} onClick={() => setPage((value) => value + 1)}>Sau →</button></div>}
+    {detail && <div className="promotion-scope-detail-backdrop" onClick={() => setDetail(null)}><section className="promotion-scope-detail" onClick={(event) => event.stopPropagation()}><button type="button" className="promotion-close" onClick={() => setDetail(null)}>×</button><div className="promotion-scope-detail-head"><img src={detail.image ? `/${String(detail.image).replace(/^\//, "")}` : "/image/placeholder.webp"} alt=""/><div><p className="eyebrow">PHẠM VI KHUYẾN MÃI</p><h3>{detail.label}</h3><span>{itemMeta(detail)}</span></div></div><div className="promotion-scope-detail-grid"><div><small>Giá hiện tại</small><strong>{money(detail.recommendation?.price || detail.variant?.price || detail.product?.price)}</strong></div><div><small>Tồn kho</small><strong>{detail.stock} sản phẩm</strong></div><div><small>Mức giảm đề xuất</small><strong>{detail.recommendation?.recommendedPercent ? `${detail.recommendation.recommendedPercent}%` : "Chưa có"}</strong></div><div><small>Trạng thái</small><strong>{detail.hardBlock || (detail.recommendation?.eligible ? "Đủ điều kiện" : "Cần admin xem xét")}</strong></div></div><h4>Vì sao hệ thống đánh giá như vậy?</h4>{reasonList(detail).length ? <ul>{reasonList(detail).map((reason) => <li key={reason}>{reason}</li>)}</ul> : <p>SKU này chưa có tín hiệu đủ mạnh để hệ thống chủ động đề xuất. Admin vẫn có thể thêm nếu không vướng điều kiện bắt buộc.</p>}{detail.recommendation?.risks?.length > 0 && <div className="promotion-scope-warning"><strong>Lưu ý</strong><p>{detail.recommendation.risks.join(" · ")}</p></div>}<div className="promotion-modal-actions"><button type="button" onClick={() => setDetail(null)}>Đóng</button>{chosen.has(detail.key) ? <button type="button" className="exclude" onClick={() => { excludeItem(detail); setDetail(null); }}>Loại khỏi chương trình</button> : <button type="button" className="btn-primary" disabled={Boolean(detail.hardBlock)} onClick={() => { applyItem(detail); setDetail(null); }}>Thêm áp dụng</button>}</div></section></div>}
+  </div>;
 }

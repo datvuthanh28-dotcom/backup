@@ -62,6 +62,7 @@ export default function StaffLayout() {
   const [newOrderCount, setNewOrderCount] = useState(0);
   const [syncError, setSyncError] = useState("");
   const [showBellDropdown, setShowBellDropdown] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSoundEnabled, setIsSoundEnabled] = useState(() => {
     return localStorage.getItem("staff_bell_sound") !== "false";
   });
@@ -159,7 +160,7 @@ export default function StaffLayout() {
     <div className="staff-shell" style={{ display: "flex", minHeight: "100vh", backgroundColor: "#F8F5F0" }}>
       {/* Dedicated Operational Sidebar */}
       <aside
-        className="staff-sidebar"
+        className={`staff-sidebar ${sidebarOpen ? "is-open" : ""}`}
         style={{
           width: "270px",
           minWidth: "270px",
@@ -233,7 +234,7 @@ export default function StaffLayout() {
         </div>
 
         {/* Sidebar Navigation */}
-        <nav className="staff-sidebar-nav" style={{ padding: "20px 14px", flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: "6px" }}>
+        <nav onClick={(event) => { if (event.target.closest("a")) setSidebarOpen(false); }} className="staff-sidebar-nav" style={{ padding: "20px 14px", flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: "6px" }}>
           <NavLink
             to="/staff"
             end
@@ -330,6 +331,19 @@ export default function StaffLayout() {
             <i className="fas fa-undo-alt" style={{ width: "18px" }}></i>
             <span>Đổi Trả & Hoàn Tiền</span>
           </NavLink>
+
+          <NavLink
+            to="/staff/reviews"
+            style={({ isActive }) => ({
+              display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px",
+              borderRadius: "6px", textDecoration: "none", fontSize: "13.5px",
+              fontWeight: isActive ? "600" : "400", backgroundColor: isActive ? "#4E342E" : "transparent",
+              color: isActive ? "#FFF" : "#D8CEC1", transition: "background 0.2s, color 0.2s",
+            })}
+          >
+            <i className="fas fa-comment-dots" style={{ width: "18px" }}></i>
+            <span>Đánh Giá Khách Hàng</span>
+          </NavLink>
         </nav>
 
         {/* Sidebar Footer */}
@@ -356,6 +370,7 @@ export default function StaffLayout() {
           </button>
         </div>
       </aside>
+      {sidebarOpen && <button className="portal-sidebar-backdrop" aria-label="Đóng menu" onClick={() => setSidebarOpen(false)} />}
 
       {/* Main Workspace Canvas */}
       <main className="staff-main" style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflowX: "hidden" }}>
@@ -411,6 +426,7 @@ export default function StaffLayout() {
             position: "relative",
           }}
         >
+          <button className="portal-sidebar-toggle" type="button" aria-label="Mở menu vận hành" onClick={() => setSidebarOpen(true)}><i className="fas fa-bars" /></button>
           {/* Left indicator */}
           <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13px", color: "#5A4A3E" }}>
             <span style={{ fontWeight: "600", letterSpacing: "0.5px" }}>PORTAL VẬN HÀNH</span>

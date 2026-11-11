@@ -28,6 +28,9 @@
     "db:metrics": "node server/db/refresh-sku-daily-metrics.js",
     "db:seed-analytics": "node server/db/seed-analytics-orders.js",
     "db:promotion-distribution": "node server/db/apply-promotion-distribution-migration.js",
+    "db:normalize-promotions": "node server/db/normalize-promotion-data.js",
+    "db:campaigns": "node server/db/apply-promotion-campaign-migration.js",
+    "db:review-replies": "node server/db/apply-review-replies-migration.js",
     "db:cart": "node server/db/apply-cart-migration.js",
     "db:spec": "node server/db/apply-codex-spec-migration.js",
     "test": "node server/test-rbac-workflow.js"
