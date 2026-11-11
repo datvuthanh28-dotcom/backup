@@ -1,5 +1,7 @@
 import { db } from "../config/db.js";
 
+const revenuePeriodKey = ({ period = "all", from, to }) => period === "custom" ? `custom:${from || ""}:${to || ""}` : period;
+
 export async function getRevenueReport(req, res) {
   try {
     const { period = "all", from: fromQuery, to: toQuery } = req.query;
@@ -40,10 +42,26 @@ export async function getRevenueReport(req, res) {
     const previousFrom = duration ? new Date(from.getTime() - duration) : null;
     const previousTo = duration ? from : null;
     const report = await db.getRevenueReport({ from, to, previousFrom, previousTo });
+    report.target = await db.getRevenueTarget(revenuePeriodKey({ period, from: fromQuery, to: toQuery }));
     return res.json({ success: true, report });
   } catch (err) {
     console.error("[Revenue Report] Error:", err);
     return res.status(500).json({ success: false, error: "Không thể lấy báo cáo doanh thu." });
+  }
+}
+
+export async function updateRevenueTarget(req, res) {
+  try {
+    const { period = "all", from, to, periodLabel, targetRevenue, targetGrossProfit, note } = req.body || {};
+    const revenue = Number(targetRevenue);
+    const profit = targetGrossProfit === "" || targetGrossProfit == null ? null : Number(targetGrossProfit);
+    if (!Number.isFinite(revenue) || revenue <= 0) return res.status(400).json({ success: false, error: "Mục tiêu doanh thu phải lớn hơn 0." });
+    if (profit != null && (!Number.isFinite(profit) || profit < 0 || profit > revenue)) return res.status(400).json({ success: false, error: "Mục tiêu lợi nhuận phải từ 0 đến mục tiêu doanh thu." });
+    const target = await db.upsertRevenueTarget({ periodKey: revenuePeriodKey({ period, from, to }), periodLabel, targetRevenue: revenue, targetGrossProfit: profit, note, updatedBy: req.user?.id });
+    return res.json({ success: true, target });
+  } catch (err) {
+    console.error("[Revenue Target] Error:", err);
+    return res.status(500).json({ success: false, error: "Không thể lưu mục tiêu doanh thu." });
   }
 }
 
