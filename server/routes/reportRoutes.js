@@ -1,5 +1,10 @@
 import { Router } from "express";
-import { getRevenueReport, updateRevenueTarget } from "../controllers/reportController.js";
+import {
+  getRevenueReport,
+  listEmailNotifications,
+  retryEmailNotification,
+  updateRevenueTarget,
+} from "../controllers/reportController.js";
 import {
   getAdminReviews,
   getProductInsights,
@@ -33,5 +38,9 @@ router.get("/reviews/history", authenticateToken, requireRole("admin"), getRevie
 router.patch("/reviews/:id", authenticateToken, requireRole("admin"), moderateReview);
 router.patch("/reviews/:id/decision", authenticateToken, requireRole("admin"), decideReview);
 router.post("/reviews/bulk-decision", authenticateToken, requireRole("admin"), bulkDecideReviews);
+
+// Transactional Email Ledger & Retry (Resend - Admin Only)
+router.get("/email-notifications", authenticateToken, requireRole("admin"), listEmailNotifications);
+router.post("/email-notifications/:id/retry", authenticateToken, requireRole("admin"), retryEmailNotification);
 
 export default router;

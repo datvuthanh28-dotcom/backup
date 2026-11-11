@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
 import { returnsAPI } from "../../services/api";
-import { sendReturnApprovalEmail } from "../../services/returnService";
 import AdminPagination from "../../components/AdminPagination";
 
 const PAGE_SIZE = 8;
@@ -69,26 +68,6 @@ export default function AdminReturns({ isStaffView = false }) {
     setBusyId(request.id); setError("");
     try {
       await returnsAPI.update(request.id, { action, note, refundReference: refundReferences[request.id] || "" });
-      if (action === "refund") {
-        try {
-          await sendReturnApprovalEmail({
-            id: request.id,
-            order_id: request.order_id,
-            customer_email: request.customer_email,
-            customer_name: request.customer_name,
-            product_name: request.product_name,
-            selected_color: request.selected_color,
-            selected_size: request.selected_size,
-            reason_code: request.reason_code,
-            reason_detail: request.reason_detail,
-            note,
-            refund_reference: refundReferences[request.id] || "",
-            amount: request.requested_amount,
-          });
-        } catch (emailErr) {
-          console.warn("[EmailJS] Gửi email thông báo hoàn tiền thất bại:", emailErr);
-        }
-      }
       await load();
     }
     catch (err) { setError(err.message || "Unable to update this request."); }

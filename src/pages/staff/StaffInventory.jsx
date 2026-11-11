@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useStore } from "../../context/StoreContext";
 import { productsAPI } from "../../services/api";
-import { sendLowStockAlertEmail } from "../../services/emailService";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
 import "./StaffInventory.css";
 
@@ -227,18 +226,6 @@ export default function StaffInventory() {
     if (res.success) {
       const variant = editProduct.variants?.find((item) => String(item.id) === String(selectedVariantId));
       showToast(`Đã cập nhật ${variant?.color || "màu"} / ${variant?.size || "size"} thành ${stockNum} sản phẩm.`);
-
-      if (stockNum <= minStockNum) {
-        sendLowStockAlertEmail({
-          productName: editProduct.name,
-          sku: variant?.sku || editProduct.productCode,
-          variantInfo: `${variant?.color || ""} - ${variant?.size || ""}`.trim(),
-          currentStock: stockNum,
-          minStock: minStockNum,
-          note: `Staff manually updated inventory on system to warning threshold (${stockNum}/${minStockNum} units).`,
-        }).catch((e) => console.warn("[EmailService] Inventory alert failed:", e));
-      }
-
       setEditProduct(null);
     } else {
       alert(res.error || "Không thể cập nhật tồn kho.");

@@ -1,23 +1,38 @@
 import { spawn } from "child_process";
+import fs from "fs";
 import process from "node:process";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const backendWatchTargets = [
+  "server/config",
+  "server/controllers",
+  "server/middleware",
+  "server/routes",
+  "server/services",
+  "server/index.js",
+  ".env",
+]
+  .filter((target) => fs.existsSync(path.join(root, target)))
+  .map((target) => `--watch-path=${target}`);
+
 const processes = [
   {
     name: "Backend",
+    nodeArgs: [...backendWatchTargets, "--watch-preserve-output"],
     script: path.join(root, "server", "index.js"),
     args: [],
   },
   {
     name: "Frontend",
+    nodeArgs: [],
     script: path.join(root, "node_modules", "vite", "bin", "vite.js"),
     args: ["--host"],
   },
-].map(({ name, script, args = [] }) => ({
+].map(({ name, nodeArgs = [], script, args = [] }) => ({
   name,
-  process: spawn(process.execPath, [script, ...args], {
+  process: spawn(process.execPath, [...nodeArgs, script, ...args], {
     cwd: root,
     stdio: "inherit",
   }),

@@ -57,13 +57,21 @@ export async function initializeStandardCosts() {
           .input("cost", sql.Decimal(18, 0), proposedCost)
           .input("floor", sql.Decimal(18, 0), proposedFloor)
           .query(`
+            DECLARE @out TABLE (
+              old_cost DECIMAL(18, 0),
+              new_cost DECIMAL(18, 0),
+              old_floor DECIMAL(18, 0),
+              new_floor DECIMAL(18, 0)
+            );
             UPDATE ProductVariants
             SET cost_price = CASE WHEN cost_price IS NULL OR cost_price = 0 THEN @cost ELSE cost_price END,
                 floor_price = CASE WHEN floor_price IS NULL OR floor_price = 0 OR floor_price < @floor THEN @floor ELSE floor_price END,
                 updated_at = GETDATE()
-            OUTPUT deleted.cost_price old_cost, inserted.cost_price new_cost,
-                   deleted.floor_price old_floor, inserted.floor_price new_floor
+            OUTPUT deleted.cost_price, inserted.cost_price,
+                   deleted.floor_price, inserted.floor_price
+            INTO @out (old_cost, new_cost, old_floor, new_floor)
             WHERE id = @id;
+            SELECT old_cost, new_cost, old_floor, new_floor FROM @out;
           `);
         const row = result.recordset[0];
         if (row && Number(row.old_cost || 0) === 0 && Number(row.new_cost || 0) > 0) updatedCosts += 1;
