@@ -16,6 +16,7 @@
     "images:manifest": "node scripts/build-catalog-media-manifest.js",
     "db:sync-media": "node server/db/sync-catalog-media.js",
     "server": "node server/index.js",
+    "email:test": "node scripts/send-test-email.js",
     "db:migrate": "node server/db/migrate.js",
     "db:create": "node server/db/create-database.js",
     "db:seed": "node server/db/seed.js",
@@ -36,7 +37,6 @@
     "test": "node server/test-rbac-workflow.js"
   },
   "dependencies": {
-    "@emailjs/browser": "^4.4.1",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -46,7 +46,8 @@
     "mssql": "^11.0.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-router-dom": "^7.1.0"
+    "react-router-dom": "^7.1.0",
+    "resend": "^6.38.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

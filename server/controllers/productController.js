@@ -1,4 +1,5 @@
 import { db } from "../config/db.js";
+import { sendLowStockAlertEmail } from "../services/emailService.js";
 
 // Helper to sanitize costPrice for public/customer viewers
 function sanitizeForViewer(product, isStaffOrAdmin) {
@@ -86,6 +87,23 @@ export async function updateVariantStock(req, res) {
     }
     const performedBy = `${req.user.name} (${req.user.role.toUpperCase()})`;
     const result = await db.updateVariantStock(req.params.id, req.params.variantId, Number(stock), Number(minStock), Number(maxStock), performedBy, note.trim());
+
+    if (result?.success && result.stock <= result.minStock) {
+      const todayUtc = new Date().toISOString().slice(0, 10);
+      await sendLowStockAlertEmail(
+        {
+          variantId: result.variantId,
+          sku: result.sku || req.params.id,
+          productName: result.productName || "Maison Rue Product",
+          variantInfo: result.variantInfo || "",
+          currentStock: result.stock,
+          minStock: result.minStock,
+          note: `Staff (${req.user.name}) cập nhật tồn kho trên hệ thống xuống ngưỡng cảnh báo (${result.stock}/${result.minStock} sản phẩm). Lý do: ${note.trim()}`,
+        },
+        { contextKey: `manual:${result.variantId}:${todayUtc}:${result.stock}:${result.minStock}` }
+      ).catch((e) => console.warn("[Email] Inventory alert failed:", e?.message || e));
+    }
+
     return res.json({ success: true, message: "Cập nhật tồn kho biến thể thành công.", ...result });
   } catch (err) {
     console.error("[Update Variant Stock] Error:", err);

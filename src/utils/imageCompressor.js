@@ -2,7 +2,7 @@
  * Tiện ích nén hình ảnh sử dụng HTML5 <canvas>
  * Tự động resize ảnh về chiều rộng tối đa (mặc định 600px) và chất lượng JPEG 0.6.
  * Kết quả tạo ra chuỗi Base64 rất nhẹ (< 30KB), phù hợp lưu trữ LocalStorage / Database
- * và gửi qua EmailJS mà không vượt quá giới hạn 50KB payload.
+ * với kích thước tối ưu.
  */
 export function compressImage(file, maxWidth = 600, quality = 0.6) {
   return new Promise((resolve, reject) => {

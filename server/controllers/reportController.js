@@ -1,4 +1,5 @@
 import { db } from "../config/db.js";
+import { retryEmailNotification as retryEmailDispatch } from "../services/emailService.js";
 
 export async function getRevenueReport(req, res) {
   try {
@@ -44,6 +45,48 @@ export async function getRevenueReport(req, res) {
   } catch (err) {
     console.error("[Revenue Report] Error:", err);
     return res.status(500).json({ success: false, error: "Không thể lấy báo cáo doanh thu." });
+  }
+}
+
+export async function listEmailNotifications(req, res) {
+  try {
+    const { status, eventType, limit } = req.query;
+    const notifications = await db.getEmailNotifications({
+      status: status ? String(status).trim() : undefined,
+      eventType: eventType ? String(eventType).trim() : undefined,
+      limit: limit ? Number(limit) : 50,
+    });
+    return res.json({ success: true, notifications });
+  } catch (err) {
+    console.error("[Email Notifications] List Error:", err?.message || err);
+    return res.status(500).json({ success: false, error: "Không thể lấy nhật ký gửi email." });
+  }
+}
+
+export async function retryEmailNotification(req, res) {
+  try {
+    const result = await retryEmailDispatch(req.params.id);
+    if (result.notFound) {
+      return res.status(404).json({ success: false, error: result.error });
+    }
+    if (result.alreadySent) {
+      return res.json({ success: true, alreadySent: true, notification: result.notification });
+    }
+    if (!result.success) {
+      return res.status(502).json({
+        success: false,
+        error: result.error || "Không thể gửi lại email.",
+        notification: result.notification || null,
+      });
+    }
+    return res.json({
+      success: true,
+      messageId: result.messageId || null,
+      notification: result.notification || null,
+    });
+  } catch (err) {
+    console.error("[Email Notifications] Retry Error:", err?.message || err);
+    return res.status(500).json({ success: false, error: "Lỗi hệ thống khi gửi lại email." });
   }
 }
 

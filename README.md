@@ -67,7 +67,7 @@ DB_PASSWORD=your_local_sql_server_password
 DB_TRUST_SERVER_CERTIFICATE=true
 ```
 
-Các biến Google Maps, EmailJS và chatbot là tùy chọn. Khi chưa cấu hình, website vẫn
+Các biến Google Maps, Resend (email backend) và chatbot là tùy chọn. Khi chưa cấu hình, website vẫn
 chạy được nhưng những tích hợp bên ngoài tương ứng sẽ được bỏ qua.
 
 ### Bước 3: Khởi tạo toàn bộ dữ liệu dự án (chạy một lần trên máy mới)
@@ -259,4 +259,4 @@ erDiagram
 ## 8. Giữ Gìn Bản Sắc Thương Hiệu (Brand Identity)
 - Màu sắc chủ đạo: Nền kem `#F8F5F0`, chữ nâu cà phê đậm `#2B211C`, điểm nhấn vàng kim `#B89B5E`.
 - Typography: Tiêu đề Cormorant Garamond cổ điển sang trọng kết hợp thân bài Inter hiện đại sắc nét.
-- Giữ catalog hiện hành, bộ lọc danh mục, trợ lý thời trang Rue và luồng EmailJS tùy chọn.
+- Giữ catalog hiện hành, bộ lọc danh mục, trợ lý thời trang Rue và luồng email Resend phía backend tùy chọn.

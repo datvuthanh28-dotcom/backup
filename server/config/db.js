@@ -102,12 +102,12 @@ async function restoreReturnedInventory(transaction, returnRequest, performedBy,
   const variantUpdate = await transaction.request()
     .input("variant_id", sql.NVarChar, originalVariant.id)
     .input("qty", sql.Int, quantity)
-    .query("UPDATE ProductVariants SET stock_quantity=stock_quantity+@qty,updated_at=GETDATE() OUTPUT inserted.stock_quantity WHERE id=@variant_id");
+    .query("UPDATE ProductVariants SET stock_quantity=stock_quantity+@qty,updated_at=GETDATE() WHERE id=@variant_id; SELECT stock_quantity FROM ProductVariants WHERE id=@variant_id;");
   const resultingVariantStock = Number(variantUpdate.recordset[0].stock_quantity);
   const productUpdate = await transaction.request()
     .input("product_id", sql.Int, item.product_id)
     .input("qty", sql.Int, quantity)
-    .query("UPDATE Products SET stock=stock+@qty,updated_at=GETDATE() OUTPUT inserted.stock WHERE id=@product_id");
+    .query("UPDATE Products SET stock=stock+@qty,updated_at=GETDATE() WHERE id=@product_id; SELECT stock FROM Products WHERE id=@product_id;");
   if (!productUpdate.recordset[0]) throw new Error("The returned item's product could not be found in inventory.");
   const resultingProductStock = Number(productUpdate.recordset[0].stock);
   await transaction.request()
@@ -303,9 +303,11 @@ export const db = {
         .request()
         .input("product_id", sql.Int, numProductId)
         .input("variant_id", sql.NVarChar, variantId)
-        .query(`SELECT id, sku, color_name, size_name, stock_quantity, low_stock_threshold, max_stock_threshold
-                FROM ProductVariants WITH (UPDLOCK, ROWLOCK)
-                WHERE id=@variant_id AND product_id=@product_id AND is_active=1`);
+        .query(`SELECT pv.id, pv.sku, pv.color_name, pv.size_name, pv.stock_quantity, pv.low_stock_threshold, pv.max_stock_threshold,
+                       p.name AS product_name
+                FROM ProductVariants pv WITH (UPDLOCK, ROWLOCK)
+                JOIN Products p ON p.id = pv.product_id
+                WHERE pv.id=@variant_id AND pv.product_id=@product_id AND pv.is_active=1`);
       const variant = variantRes.recordset[0];
       if (!variant) throw new Error("Không tìm thấy biến thể sản phẩm đang hoạt động.");
 
@@ -345,7 +347,20 @@ export const db = {
                 VALUES (@product_id, @variant_id, @movement_type, @quantity_change, @resulting_stock, @reference_id, @note, @performed_by, GETDATE())`);
 
       await transaction.commit();
-      return { success: true, stock: parsedStock, minStock: parsedMinStock, maxStock: parsedMaxStock, totalStock, variantId, sku: variant.sku };
+      return {
+        success: true,
+        productId: numProductId,
+        productName: variant.product_name,
+        variantInfo: [variant.color_name, variant.size_name].filter(Boolean).join(" - "),
+        previousStock: Number(variant.stock_quantity),
+        previousMinStock: Number(variant.low_stock_threshold),
+        stock: parsedStock,
+        minStock: parsedMinStock,
+        maxStock: parsedMaxStock,
+        totalStock,
+        variantId,
+        sku: variant.sku,
+      };
     } catch (err) {
       await transaction.rollback();
       throw err;
@@ -1125,10 +1140,10 @@ export const db = {
       const replacementUpdate = await tx.request()
         .input("variant_id", sql.NVarChar, replacementVariant.id)
         .input("qty", sql.Int, quantity)
-        .query("UPDATE ProductVariants SET stock_quantity=stock_quantity-@qty,updated_at=GETDATE() OUTPUT inserted.stock_quantity WHERE id=@variant_id");
+        .query("UPDATE ProductVariants SET stock_quantity=stock_quantity-@qty,updated_at=GETDATE() WHERE id=@variant_id; SELECT stock_quantity FROM ProductVariants WHERE id=@variant_id;");
       const replacementStock = Number(replacementUpdate.recordset[0].stock_quantity);
       const productUpdate = await tx.request().input("product_id", sql.Int, item.product_id).input("qty", sql.Int, quantity)
-        .query("UPDATE Products SET stock=stock-@qty,updated_at=GETDATE() OUTPUT inserted.stock WHERE id=@product_id");
+        .query("UPDATE Products SET stock=stock-@qty,updated_at=GETDATE() WHERE id=@product_id; SELECT stock FROM Products WHERE id=@product_id;");
       const resultingProductStock = Number(productUpdate.recordset[0].stock);
       await tx.request()
         .input("product_id", sql.Int, item.product_id)
@@ -1232,7 +1247,7 @@ export const db = {
 
         if (item.variantId) {
           const varUpdate = await transaction.request().input("variant_id", sql.NVarChar, item.variantId).input("qty", sql.Int, item.quantity)
-            .query("UPDATE ProductVariants SET stock_quantity=stock_quantity-@qty, updated_at=GETDATE() OUTPUT inserted.id, inserted.sku, inserted.stock_quantity, inserted.low_stock_threshold, inserted.color_name, inserted.size_name WHERE id=@variant_id");
+            .query("UPDATE ProductVariants SET stock_quantity=stock_quantity-@qty, updated_at=GETDATE() WHERE id=@variant_id; SELECT id, sku, stock_quantity, low_stock_threshold, color_name, size_name FROM ProductVariants WHERE id=@variant_id;");
           if (varUpdate.recordset && varUpdate.recordset[0]) {
             const v = varUpdate.recordset[0];
             if (v.stock_quantity <= v.low_stock_threshold) {
@@ -1806,5 +1821,159 @@ export const db = {
     } : null;
     report.period = { from: from?.toISOString() || null, to: to?.toISOString() || null };
     return report;
+  },
+
+  // --- Email Notifications Ledger & Idempotency ---
+  async getEmailNotificationByEventKey(eventKey) {
+    const p = await getActivePool();
+    const result = await p
+      .request()
+      .input("event_key", sql.NVarChar(180), String(eventKey || ""))
+      .query("SELECT TOP 1 * FROM EmailNotifications WHERE event_key = @event_key");
+    return result.recordset[0] || null;
+  },
+
+  async getEmailNotificationById(id) {
+    const numId = Number(id);
+    if (!Number.isInteger(numId) || numId <= 0) return null;
+    const p = await getActivePool();
+    const result = await p
+      .request()
+      .input("id", sql.Int, numId)
+      .query("SELECT TOP 1 * FROM EmailNotifications WHERE id = @id");
+    return result.recordset[0] || null;
+  },
+
+  async getEmailNotifications({ status, eventType, limit = 50 } = {}) {
+    const p = await getActivePool();
+    const safeLimit = Math.min(200, Math.max(1, Number(limit) || 50));
+    const req = p.request().input("limit", sql.Int, safeLimit);
+    const clauses = [];
+    if (status) {
+      clauses.push("status = @status");
+      req.input("status", sql.NVarChar(20), String(status));
+    }
+    if (eventType) {
+      clauses.push("event_type = @event_type");
+      req.input("event_type", sql.NVarChar(64), String(eventType));
+    }
+    const whereSql = clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "";
+    const result = await req.query(`
+      SELECT TOP (@limit) id, event_key, event_type, entity_type, entity_id, recipient_email, subject,
+             provider, status, provider_message_id, error_message, meta_json, attempts,
+             last_attempt_at, sent_at, created_at, updated_at
+      FROM EmailNotifications
+      ${whereSql}
+      ORDER BY created_at DESC, id DESC
+    `);
+    return result.recordset;
+  },
+
+  async reserveEmailNotification({
+    eventKey,
+    eventType,
+    entityType,
+    entityId,
+    recipientEmail,
+    subject,
+    provider = "resend",
+    metaJson = null,
+    allowRetry = false,
+  }) {
+    const p = await getActivePool();
+    const safeMeta = metaJson ? String(metaJson).slice(0, 2000) : null;
+    const safeRecipients = String(recipientEmail || "").slice(0, 500);
+    const safeSubject = String(subject || "").slice(0, 255);
+    const safeEventKey = String(eventKey || "").slice(0, 180);
+
+    try {
+      const insertRes = await p
+        .request()
+        .input("event_key", sql.NVarChar(180), safeEventKey)
+        .input("event_type", sql.NVarChar(64), String(eventType))
+        .input("entity_type", sql.NVarChar(64), String(entityType))
+        .input("entity_id", sql.NVarChar(128), String(entityId))
+        .input("recipient_email", sql.NVarChar(500), safeRecipients)
+        .input("subject", sql.NVarChar(255), safeSubject)
+        .input("provider", sql.NVarChar(32), String(provider))
+        .input("meta_json", sql.NVarChar(2000), safeMeta)
+        .query(`
+          INSERT INTO EmailNotifications (
+            event_key, event_type, entity_type, entity_id, recipient_email, subject, provider,
+            status, meta_json, attempts, last_attempt_at, created_at, updated_at
+          )
+          OUTPUT INSERTED.*
+          VALUES (
+            @event_key, @event_type, @entity_type, @entity_id, @recipient_email, @subject, @provider,
+            'pending', @meta_json, 1, SYSUTCDATETIME(), SYSUTCDATETIME(), SYSUTCDATETIME()
+          )
+        `);
+      return { reserved: true, notification: insertRes.recordset[0] };
+    } catch (err) {
+      const errNum = err?.number || err?.originalError?.info?.number;
+      if (errNum !== 2627 && errNum !== 2601) throw err;
+
+      const existing = await this.getEmailNotificationByEventKey(safeEventKey);
+      if (!existing) {
+        return { reserved: false, reason: "conflict", notification: null };
+      }
+      if (existing.status === "sent") {
+        return { reserved: false, reason: "already_sent", notification: existing };
+      }
+      if (existing.status === "pending") {
+        return { reserved: false, reason: "in_progress", notification: existing };
+      }
+      if (!allowRetry) {
+        return { reserved: false, reason: `already_${existing.status}`, notification: existing };
+      }
+
+      const updateRes = await p
+        .request()
+        .input("id", sql.Int, existing.id)
+        .input("recipient_email", sql.NVarChar(500), safeRecipients)
+        .input("subject", sql.NVarChar(255), safeSubject)
+        .input("meta_json", sql.NVarChar(2000), safeMeta || existing.meta_json)
+        .query(`
+          UPDATE EmailNotifications
+          SET status = 'pending',
+              attempts = attempts + 1,
+              recipient_email = @recipient_email,
+              subject = @subject,
+              meta_json = @meta_json,
+              error_message = NULL,
+              last_attempt_at = SYSUTCDATETIME(),
+              updated_at = SYSUTCDATETIME()
+          OUTPUT INSERTED.*
+          WHERE id = @id AND status IN ('failed', 'skipped')
+        `);
+      if (updateRes.recordset.length === 0) {
+        const latest = await this.getEmailNotificationById(existing.id);
+        return { reserved: false, reason: "retry_race", notification: latest };
+      }
+      return { reserved: true, notification: updateRes.recordset[0] };
+    }
+  },
+
+  async markEmailNotificationResult(id, { status, providerMessageId = null, errorMessage = null }) {
+    const p = await getActivePool();
+    const safeError = errorMessage ? String(errorMessage).slice(0, 1000) : null;
+    const safeMsgId = providerMessageId ? String(providerMessageId).slice(0, 128) : null;
+    const result = await p
+      .request()
+      .input("id", sql.Int, Number(id))
+      .input("status", sql.NVarChar(20), String(status))
+      .input("provider_message_id", sql.NVarChar(128), safeMsgId)
+      .input("error_message", sql.NVarChar(1000), safeError)
+      .query(`
+        UPDATE EmailNotifications
+        SET status = @status,
+            provider_message_id = COALESCE(@provider_message_id, provider_message_id),
+            error_message = @error_message,
+            sent_at = CASE WHEN @status = 'sent' THEN COALESCE(sent_at, SYSUTCDATETIME()) ELSE sent_at END,
+            updated_at = SYSUTCDATETIME()
+        OUTPUT INSERTED.*
+        WHERE id = @id
+      `);
+    return result.recordset[0] || null;
   },
 };

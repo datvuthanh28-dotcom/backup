@@ -1,5 +1,6 @@
 import { db } from "../config/db.js";
 import { evaluateReturnRequest } from "../services/returnPolicyService.js";
+import { sendReturnAuthorizedEmail, sendReturnRefundedEmail } from "../services/emailService.js";
 
 const id = () => `RET-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
 
@@ -56,6 +57,11 @@ export async function submitReturnRequest(req, res) {
       status: result.status === "auto_approved" ? "return_authorized" : result.status,
       decisionReason: result.decisionReason, deadline: result.deadline || null,
     });
+    if (row?.status === "return_authorized") {
+      await sendReturnAuthorizedEmail(row).catch((e) =>
+        console.warn("[Email] Return auto-authorization failed:", e?.message || e)
+      );
+    }
     return res.status(201).json({ success: true, request: row, decision: result.status, message: result.decisionReason });
   } catch (err) {
     console.error("[Return Request]", err);
@@ -113,7 +119,13 @@ export async function updateReturnRequest(req, res) {
         throw new Error("Vui lòng cung cấp mã tham chiếu đối soát hoàn tiền (chuyển khoản hoặc cổng thanh toán).");
       }
       await db.processReturnRefund({ requestId: existing.id, refundedBy: staffName, refundReference: String(refundReference).trim(), note });
-      return res.json({ success: true, request: await db.getReturnRequestById(existing.id) });
+      const refundedRequest = await db.getReturnRequestById(existing.id);
+      if (refundedRequest?.status === "refunded") {
+        await sendReturnRefundedEmail(refundedRequest, note).catch((e) =>
+          console.warn("[Email] Return refund confirmation failed:", e?.message || e)
+        );
+      }
+      return res.json({ success: true, request: refundedRequest });
     } else if (action === "exchange") {
       if (existing.status !== "inspection_passed" || existing.request_type !== "exchange") throw new Error("Exchange can be completed only after inspection passes for an exchange request.");
       await db.processReturnExchange({ requestId: existing.id, processedBy: staffName, note: String(note || "Exchange arranged by Maison Rue.").trim() });
@@ -128,7 +140,13 @@ export async function updateReturnRequest(req, res) {
       if (existing.status !== "return_authorized") throw new Error("Only an authorised return can be marked in transit.");
       fields = { status: "in_transit" };
     } else throw new Error("Unknown return action.");
-    return res.json({ success: true, request: await db.updateReturnRequest(existing.id, fields) });
+    const updatedRequest = await db.updateReturnRequest(existing.id, fields);
+    if (action === "manual_authorize" && updatedRequest?.status === "return_authorized") {
+      await sendReturnAuthorizedEmail(updatedRequest).catch((e) =>
+        console.warn("[Email] Return manual authorization failed:", e?.message || e)
+      );
+    }
+    return res.json({ success: true, request: updatedRequest });
   } catch (err) {
     return res.status(400).json({ success: false, error: err.message });
   }

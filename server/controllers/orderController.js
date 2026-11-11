@@ -1,6 +1,12 @@
 import { db } from "../config/db.js";
 import { calculatePromotions } from "../services/promotionService.js";
 import { verifyDeliveryAddress } from "../services/addressVerificationService.js";
+import {
+  sendOrderConfirmationEmail,
+  sendOrderStatusEmail,
+  sendOrderRefundedEmail,
+  sendLowStockAlertEmail,
+} from "../services/emailService.js";
 
 export async function getAllOrders(req, res) {
   try {
@@ -126,6 +132,17 @@ export async function createOrder(req, res) {
       promotionData: pricing,
     });
 
+    await sendOrderConfirmationEmail(newOrder).catch((e) =>
+      console.warn("[Email] Order confirmation failed:", e?.message || e)
+    );
+    if (Array.isArray(newOrder?.lowStockAlerts) && newOrder.lowStockAlerts.length > 0) {
+      for (const alertItem of newOrder.lowStockAlerts) {
+        await sendLowStockAlertEmail(alertItem, {
+          contextKey: `order:${newOrder.id}:${alertItem.sku || alertItem.variantId || "sku"}`,
+        }).catch((e) => console.warn("[Email] Order low-stock alert failed:", e?.message || e));
+      }
+    }
+
     return res.status(201).json({ success: true, order: newOrder });
   } catch (err) {
     console.error("[Create Order] Error:", err);
@@ -154,12 +171,17 @@ export async function updateOrderStatus(req, res) {
     };
 
     const updatedBy = `${req.user.name} (${req.user.role.toUpperCase()})`;
+    const appliedNote = normalizedNote || automaticNotes[status] || "Staff cập nhật trạng thái đơn hàng.";
     const updatedOrder = await db.updateOrderStatusWithValidation({
       orderId,
       newStatus: status,
-      note: normalizedNote || automaticNotes[status] || "Staff cập nhật trạng thái đơn hàng.",
+      note: appliedNote,
       updatedBy,
     });
+
+    await sendOrderStatusEmail(updatedOrder, status, appliedNote).catch((e) =>
+      console.warn("[Email] Order status update failed:", e?.message || e)
+    );
 
     return res.json({ success: true, order: updatedOrder, message: "Cập nhật trạng thái đơn hàng thành công." });
   } catch (err) {
@@ -192,12 +214,17 @@ export async function cancelOrder(req, res) {
     }
 
     const cancelledBy = `${req.user.name} (${req.user.role.toUpperCase()})`;
+    const cancelNote = note || "Khách hàng yêu cầu hủy đơn hàng.";
     const updatedOrder = await db.updateOrderStatusWithValidation({
       orderId,
       newStatus: "cancelled",
-      note: note || "Khách hàng yêu cầu hủy đơn hàng.",
+      note: cancelNote,
       updatedBy: cancelledBy,
     });
+
+    await sendOrderStatusEmail(updatedOrder, "cancelled", cancelNote).catch((e) =>
+      console.warn("[Email] Order cancel notification failed:", e?.message || e)
+    );
 
     return res.json({
       success: true,
@@ -277,6 +304,12 @@ export async function processOrderRefund(req, res) {
       note,
       refundedBy,
     });
+
+    if (updatedOrder?.payment?.payment_status === "refunded") {
+      await sendOrderRefundedEmail(updatedOrder, note).catch((e) =>
+        console.warn("[Email] Order refund email failed:", e?.message || e)
+      );
+    }
 
     return res.json({
       success: true,
