@@ -67,6 +67,11 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const publicPath = path.resolve(__dirname, "..", "public");
+app.use(express.static(publicPath));
+
 // Request logger
 app.use((req, res, next) => {
   console.log(`[HTTP] ${req.method} ${req.originalUrl}`);
@@ -79,6 +84,8 @@ app.get("/api/health", (req, res) => {
   if (connected) {
     return res.json({
       status: "healthy",
+      apiVersion: "2026.11.11",
+      capabilities: ["revenue-v2", "promotions-v2", "promotion-suggestions", "promotion-templates", "product-image-upload"],
       database: `Microsoft SQL Server (${process.env.DB_NAME || "MaisonRueDB"})`,
       timestamp: new Date().toISOString(),
       uptimeSeconds: Math.floor(process.uptime()),
@@ -107,8 +114,6 @@ app.use("/api/returns", returnRoutes);
 app.use("/api/chat", chatRoutes);
 
 // Phục vụ frontend static build (SPA) khi deploy production
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const distPath = path.resolve(__dirname, "..", "dist");
 
 if (fs.existsSync(distPath)) {

@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, raw } from "express";
 import {
   getAllProducts,
   getProductById,
@@ -15,6 +15,7 @@ import {
   updateVariantAdmin,
   softDeleteVariantAdmin,
   restoreVariantAdmin,
+  uploadProductImage,
 } from "../controllers/productController.js";
 import { authenticateToken, optionalAuthenticateToken, requireRole } from "../middleware/auth.js";
 
@@ -29,6 +30,7 @@ router.get("/inventory/movements", authenticateToken, requireRole("staff", "admi
 // (Must be defined BEFORE /:id parameterized routes)
 // ==========================================
 router.get("/admin/all", authenticateToken, requireRole("admin"), getAllProductsAdmin);
+router.post("/admin/images/upload", authenticateToken, requireRole("admin"), raw({ type: ["image/webp", "image/jpeg", "image/png"], limit: "8mb" }), uploadProductImage);
 router.post("/admin", authenticateToken, requireRole("admin"), createProductAdmin);
 router.put("/admin/:id", authenticateToken, requireRole("admin"), updateProductAdmin);
 router.delete("/admin/:id", authenticateToken, requireRole("admin"), softDeleteProductAdmin);

@@ -67,15 +67,31 @@ export default function AdminPromotions() {
   const suggestionsPerPage = 10;
 
   const load = async (forceRefresh = false) => {
-    const [data, stats, proposed, templateData, catalogData] = await Promise.all([
+    const results = await Promise.allSettled([
       promotionAPI.getAll(), promotionAPI.report(), promotionAPI.getSuggestions(forceRefresh), promotionAPI.getTemplates(), productsAPI.getAll(),
     ]);
-    setRows(data.promotions || []);
-    setReport(stats.report || []);
-    setSuggestions(proposed.suggestions || []);
-    setSuggestionMeta({ generatedAt: proposed.generatedAt, methodology: proposed.methodology, refresh: proposed.refresh });
-    setTemplates(templateData.templates || []);
-    setCatalog(catalogData.products || catalogData || []);
+    const [programsResult, reportResult, suggestionsResult, templatesResult, catalogResult] = results;
+    if (programsResult.status === "fulfilled") setRows(programsResult.value.promotions || []);
+    if (reportResult.status === "fulfilled") setReport(reportResult.value.report || []);
+    if (suggestionsResult.status === "fulfilled") {
+      const proposed = suggestionsResult.value;
+      setSuggestions(proposed.suggestions || []);
+      setSuggestionMeta({ generatedAt: proposed.generatedAt, methodology: proposed.methodology, refresh: proposed.refresh });
+    }
+    if (templatesResult.status === "fulfilled") setTemplates(templatesResult.value.templates || []);
+    if (catalogResult.status === "fulfilled") setCatalog(catalogResult.value.products || catalogResult.value || []);
+
+    const failures = results.map((result, index) => result.status === "rejected" ? {
+      label: ["chương trình", "báo cáo ưu đãi", "đề xuất", "mẫu đợt sale", "danh mục sản phẩm"][index],
+      error: result.reason,
+    } : null).filter(Boolean);
+    if (failures.length) {
+      const hasNotFound = failures.some((failure) => failure.error?.status === 404);
+      const details = failures.map((failure) => failure.label).join(", ");
+      throw new Error(hasNotFound
+        ? `Backend chưa đồng bộ API khuyến mãi (${details}). Hãy dừng tiến trình cũ, pull đúng nhánh, chạy migration rồi khởi động lại npm run dev.`
+        : `Không thể tải: ${details}. ${failures[0].error?.message || "Vui lòng thử lại."}`);
+    }
   };
 
   useEffect(() => {

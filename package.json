@@ -7,6 +7,7 @@
     "dev": "node scripts/dev.js",
     "client": "vite",
     "setup": "node scripts/setup-project.js",
+    "doctor": "node scripts/check-environment.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",

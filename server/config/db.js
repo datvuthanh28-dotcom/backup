@@ -417,6 +417,32 @@ export const db = {
     if (!name || !price || !category || !gender || !productCode) {
       throw new Error("Vui lòng cung cấp đầy đủ tên, giá, danh mục, đối tượng và mã sản phẩm (MR-xxx).");
     }
+    if (!Array.isArray(variants) || variants.length === 0) {
+      throw new Error("Sản phẩm phải có ít nhất một SKU được khai báo rõ ràng.");
+    }
+
+    const normalizedVariants = variants.map((variant, index) => {
+      const color = String(variant.color || "").trim();
+      const size = String(variant.size || "").trim();
+      const sku = String(variant.sku || "").trim().toUpperCase();
+      const variantPrice = Number(variant.price);
+      const costPrice = Number(variant.costPrice);
+      const floorPrice = Number(variant.floorPrice);
+      const stock = Number(variant.stock);
+      const minStock = Number(variant.minStock);
+      const maxStock = Number(variant.maxStock);
+      if (!sku || !color || !size) throw new Error(`SKU dòng ${index + 1} phải có mã SKU, màu sắc và kích cỡ.`);
+      if (!(variantPrice > 0) || costPrice < 0 || floorPrice < costPrice || floorPrice > variantPrice) {
+        throw new Error(`SKU ${sku}: giá phải thỏa mãn 0 ≤ giá vốn ≤ giá sàn ≤ giá bán.`);
+      }
+      if (![stock, minStock, maxStock].every(Number.isInteger) || stock < 0 || minStock < 0 || maxStock <= minStock) {
+        throw new Error(`SKU ${sku}: tồn kho phải là số nguyên không âm và mức tối đa phải lớn hơn mức tối thiểu.`);
+      }
+      return { ...variant, sku, color, size, price: variantPrice, costPrice, floorPrice, stock, minStock, maxStock };
+    });
+    if (new Set(normalizedVariants.map((variant) => variant.sku)).size !== normalizedVariants.length) {
+      throw new Error("Danh sách có mã SKU trùng nhau.");
+    }
 
     const checkCode = await p.request().input("code", sql.NVarChar, productCode.trim().toUpperCase()).query("SELECT id FROM Products WHERE product_code = @code");
     if (checkCode.recordset.length) {
@@ -429,7 +455,7 @@ export const db = {
       const nextIdRes = await transaction.request().query("SELECT COALESCE(MAX(id), 100) + 1 AS next_id FROM Products");
       const nextId = nextIdRes.recordset[0].next_id;
 
-      const totalStock = variants.reduce((sum, v) => sum + Math.max(0, parseInt(v.stock || 0, 10)), 0);
+      const totalStock = normalizedVariants.reduce((sum, v) => sum + v.stock, 0);
 
       await transaction.request()
         .input("id", sql.Int, nextId)
@@ -454,18 +480,18 @@ export const db = {
           VALUES (@id, @product_code, @name, @price, @category, @gender, @description, @material, @collection_name, @collections_json, @images_json, @colors_json, @color_images_json, @stock, @min_alert, @is_active, @created_by, GETDATE(), GETDATE())
         `);
 
-      for (let i = 0; i < variants.length; i++) {
-        const v = variants[i];
-        const color = (v.color || "Standard").trim();
-        const size = (v.size || "M").trim();
+      for (let i = 0; i < normalizedVariants.length; i++) {
+        const v = normalizedVariants[i];
+        const color = v.color;
+        const size = v.size;
         const variantId = v.id || `v-${nextId}-${color.toLowerCase().replace(/[^a-z0-9]/g, "")}-${size.toLowerCase()}`;
-        const sku = v.sku || `${productCode.trim().toUpperCase()}-${color.toUpperCase().replace(/[^A-Z0-9]/g, "")}-${size.toUpperCase()}`;
-        const vStock = Math.max(0, parseInt(v.stock || 0, 10));
-        const vMin = Math.max(0, parseInt(v.minStock || 3, 10));
-        const vMax = Math.max(vMin + 1, parseInt(v.maxStock || 50, 10));
-        const vPrice = Number(v.price || price);
-        const vCost = v.costPrice != null ? Number(v.costPrice) : null;
-        const vFloor = v.floorPrice != null ? Number(v.floorPrice) : null;
+        const sku = v.sku;
+        const vStock = v.stock;
+        const vMin = v.minStock;
+        const vMax = v.maxStock;
+        const vPrice = v.price;
+        const vCost = v.costPrice;
+        const vFloor = v.floorPrice;
 
         await transaction.request()
           .input("id", sql.NVarChar, variantId)

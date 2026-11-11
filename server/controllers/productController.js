@@ -1,4 +1,28 @@
 import { db } from "../config/db.js";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const controllerDir = path.dirname(fileURLToPath(import.meta.url));
+const productUploadDir = path.resolve(controllerDir, "../../public/image/catalog/uploads");
+const uploadTypes = new Map([["image/webp", ".webp"], ["image/jpeg", ".jpg"], ["image/png", ".png"]]);
+
+export async function uploadProductImage(req, res) {
+  try {
+    const extension = uploadTypes.get(req.headers["content-type"]?.split(";")[0]);
+    if (!extension) return res.status(415).json({ success: false, error: "Chỉ hỗ trợ ảnh WebP, JPEG hoặc PNG." });
+    if (!Buffer.isBuffer(req.body) || req.body.length === 0) return res.status(400).json({ success: false, error: "Tệp ảnh trống hoặc không hợp lệ." });
+    const productCode = String(req.headers["x-product-code"] || "product").toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 40) || "PRODUCT";
+    const originalBase = String(req.headers["x-file-name"] || "image").replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9-_]/g, "-").replace(/-+/g, "-").slice(0, 60) || "image";
+    const fileName = `${productCode.toLowerCase()}-${Date.now()}-${originalBase.toLowerCase()}${extension}`;
+    await fs.mkdir(productUploadDir, { recursive: true });
+    await fs.writeFile(path.join(productUploadDir, fileName), req.body, { flag: "wx" });
+    return res.status(201).json({ success: true, path: `/image/catalog/uploads/${fileName}`, fileName });
+  } catch (err) {
+    console.error("[Upload Product Image] Error:", err);
+    return res.status(500).json({ success: false, error: "Không thể lưu ảnh sản phẩm." });
+  }
+}
 
 // Helper to sanitize costPrice for public/customer viewers
 function sanitizeForViewer(product, isStaffOrAdmin) {

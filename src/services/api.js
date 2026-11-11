@@ -104,6 +104,17 @@ export const productsAPI = {
   getAllAdmin: () => request("/products/admin/all"),
   createProductAdmin: (payload) => request("/products/admin", { method: "POST", body: JSON.stringify(payload) }),
   updateProductAdmin: (id, payload) => request(`/products/admin/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
+  uploadImage: async (file, productCode = "product") => {
+    const response = await fetch(`${API_BASE}/products/admin/images/upload`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": file.type, "X-Product-Code": productCode, "X-File-Name": file.name },
+      body: file,
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || `Không thể tải ảnh lên (${response.status}).`);
+    return data;
+  },
   softDeleteProductAdmin: (id, reason) => request(`/products/admin/${id}`, { method: "DELETE", body: JSON.stringify({ reason }) }),
   restoreProductAdmin: (id) => request(`/products/admin/${id}/restore`, { method: "POST" }),
 
