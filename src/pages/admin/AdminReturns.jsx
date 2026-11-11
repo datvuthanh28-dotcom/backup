@@ -21,6 +21,21 @@ const labels = {
   cancelled: "Cancelled",
 };
 
+const requestTypeLabels = { refund: "Refund", exchange: "Exchange" };
+const reasonLabels = {
+  changed_mind: "Changed mind",
+  wrong_item: "Wrong item received",
+  defective: "Product defect",
+  damaged: "Damaged in transit",
+  not_as_described: "Not as described",
+  sizing: "Size or fit issue",
+  quality: "Quality concern",
+  late_delivery: "Late delivery",
+  other: "Other reason",
+};
+
+const readableReason = (value) => reasonLabels[value] || String(value || "Not specified").replaceAll("_", " ");
+
 const money = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
 
 export default function AdminReturns({ isStaffView = false }) {
@@ -94,8 +109,8 @@ export default function AdminReturns({ isStaffView = false }) {
     <nav className="return-admin-filters" aria-label="Filter return requests">{statuses.map((status) => <button key={status} className={filter === status ? "active" : ""} onClick={() => setFilter(status)}>{status === "all" ? `All (${requests.length})` : `${labels[status]} (${requests.filter((r) => r.status === status).length})`}</button>)}</nav>
     {loading ? <p className="return-admin-empty">Loading requests…</p> : visible.length === 0 ? <p className="return-admin-empty">No requests in this view.</p> : <><div className="return-admin-list">{pagedRequests.map((request) => <article className="return-admin-request" key={request.id}>
       <div className="return-admin-request-head"><div><span className="return-admin-id">{request.id}</span><span className={`return-admin-status status-${request.status}`}>{labels[request.status] || request.status}</span></div><span>{new Date(request.created_at).toLocaleString("en-GB")}</span></div>
-      <div className="return-admin-grid"><section><p className="eyebrow">CUSTOMER & ITEM</p><h2>{request.product_name} · {request.selected_color} · {request.selected_size}</h2><p>{request.customer_name} · {request.customer_email}</p><p>Order <strong>{request.order_id}</strong> · Quantity {request.requested_quantity} · Requested {money(request.requested_amount)}</p><p>Type: {request.request_type} · Reason: {request.reason_code}</p>{request.reason_detail && <p className="return-admin-detail">{request.reason_detail}</p>}<p className="return-admin-decision">System decision: {request.decision_reason}</p>{request.return_deadline && <small>Request deadline: {new Date(request.return_deadline).toLocaleDateString("en-GB")}</small>}</section>
-      <section className="return-admin-workflow"><label>Inspection / resolution note<textarea value={notes[request.id] ?? request.inspection_note ?? request.resolution_note ?? ""} onChange={(event) => setNotes((previous) => ({ ...previous, [request.id]: event.target.value }))} placeholder="Record parcel condition and inspection result" /></label><div className="return-admin-actions">
+      <div className="return-admin-grid"><section><p className="eyebrow">CUSTOMER & ITEM</p><h2>{request.product_name} · {request.selected_color} · {request.selected_size}</h2><p>{request.customer_name} · {request.customer_email}</p><p>Order <strong>{request.order_id}</strong> · Quantity {request.requested_quantity} · Requested {money(request.requested_amount)}</p><div className="return-admin-facts"><div><span>Request type</span><strong>{requestTypeLabels[request.request_type] || request.request_type || "—"}</strong></div><div><span>Customer reason</span><strong>{readableReason(request.reason_code)}</strong></div></div>{request.reason_detail && <div className="return-admin-detail return-admin-customer-note"><span>Customer note</span><p>{request.reason_detail}</p></div>}<div className="return-admin-decision"><span>System decision</span><p>{request.decision_reason || "No automated decision note."}</p></div>{request.return_deadline && <small>Request deadline: {new Date(request.return_deadline).toLocaleDateString("en-GB")}</small>}</section>
+      <section className="return-admin-workflow"><label>Inspection / resolution note<textarea value={notes[request.id] ?? request.inspection_note ?? request.resolution_note ?? ""} onChange={(event) => setNotes((previous) => ({ ...previous, [request.id]: event.target.value }))} placeholder={request.request_type === "refund" ? "State item condition, refund decision and payment details…" : "State item condition, exchange decision and replacement details…"} /></label><div className="return-admin-actions">
         {isAdmin && request.status === "manual_review" && <button disabled={busyId === request.id} onClick={() => act(request, "manual_authorize")}>Authorise return</button>}
         {(request.status === "return_authorized" || request.status === "in_transit") && <button disabled={busyId === request.id} onClick={() => act(request, "receive")}>Mark received</button>}
         {request.status === "received" && <><button disabled={busyId === request.id} onClick={() => act(request, "pass_inspection")}>Pass inspection</button><button className="secondary" disabled={busyId === request.id} onClick={() => act(request, "fail_inspection")}>Fail inspection</button></>}
