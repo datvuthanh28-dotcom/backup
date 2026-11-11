@@ -107,6 +107,4 @@ export async function updateRevenueTarget(req, res) {
     return res.status(500).json({ success: false, error: "Không thể lưu mục tiêu doanh thu." });
   }
 }
-  }
-}
 

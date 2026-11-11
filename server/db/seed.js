@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { connectDB, db } from "../config/db.js";
 import { allProducts } from "../../src/data/products.js";
 import { initialVariantStock } from "./catalog-stock-policy.js";
+import { isLegacyProductCode } from "../utils/productLifecycle.js";
 
 const DEFAULT_USERS = [
   {
@@ -157,6 +158,10 @@ export async function runSeed() {
   // 2. Seed Products
   console.log("[Seed] Checking & seeding catalog products...");
   for (const [productIndex, p] of allProducts.entries()) {
+    if (isLegacyProductCode(p.productCode)) {
+      console.log(`[Seed] Skipping archived legacy product: ${p.productCode}`);
+      continue;
+    }
     const variantStocks = p.variants.map((_, variantIndex) => initialVariantStock(productIndex, variantIndex));
     const stock = variantStocks.reduce((sum, value) => sum + value, 0);
     await pool.request()

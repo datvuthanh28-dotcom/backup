@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useStore, STATUS_LABELS } from "../../context/StoreContext";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
 import OrderItemLine from "../../components/OrderItemLine";
@@ -47,6 +47,7 @@ export default function AdminOrders() {
   const [loadingPayment, setLoadingPayment] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [page, setPage] = useState(1);
+  const toastTimerRef = useRef(null);
 
   useEffect(() => {
     if (!selectedOrder && !paymentModalOrder) return undefined;
@@ -60,9 +61,18 @@ export default function AdminOrders() {
   }, [selectedOrder, paymentModalOrder, loadingPayment]);
 
   const showToast = (msg) => {
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current);
+    }
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(""), 4500);
+    toastTimerRef.current = window.setTimeout(() => setToastMessage(""), 4500);
   };
+
+  useEffect(() => () => {
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current);
+    }
+  }, []);
 
   const handleOpenPaymentConfirm = (order) => {
     setPaymentModalOrder(order);

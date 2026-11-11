@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { employeeAPI } from "../../services/api";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
 import AdminPagination from "../../components/AdminPagination";
@@ -26,6 +26,7 @@ export default function AdminEmployees() {
   const [editingStaff, setEditingStaff] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
   const [page, setPage] = useState(1);
+  const toastTimerRef = useRef(null);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -37,9 +38,18 @@ export default function AdminEmployees() {
   const [formErrors, setFormErrors] = useState({});
 
   const showToast = (msg) => {
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current);
+    }
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(""), 4000);
+    toastTimerRef.current = window.setTimeout(() => setToastMessage(""), 4000);
   };
+
+  useEffect(() => () => {
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current);
+    }
+  }, []);
 
   const fetchStaff = useCallback(async () => {
     try {

@@ -101,7 +101,7 @@ export const promotionAPI = {
 export const productsAPI = {
   getAll: () => request("/products"),
   getById: (id) => request(`/products/${id}`),
-  getAllAdmin: () => request("/products/admin/all"),
+  getAllAdmin: (scope = "current") => request(`/products/admin/all?scope=${encodeURIComponent(scope)}`),
   createProductAdmin: (payload) => request("/products/admin", { method: "POST", body: JSON.stringify(payload) }),
   updateProductAdmin: (id, payload) => request(`/products/admin/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
   uploadImage: async (file, productCode = "product") => {
