@@ -7,6 +7,7 @@
     "dev": "node scripts/dev.js",
     "client": "vite",
     "setup": "node scripts/setup-project.js",
+    "doctor": "node scripts/check-environment.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -32,6 +33,7 @@
     "db:normalize-promotions": "node server/db/normalize-promotion-data.js",
     "db:campaigns": "node server/db/apply-promotion-campaign-migration.js",
     "db:review-replies": "node server/db/apply-review-replies-migration.js",
+    "db:revenue-targets": "node server/db/apply-revenue-targets-migration.js",
     "db:cart": "node server/db/apply-cart-migration.js",
     "db:spec": "node server/db/apply-codex-spec-migration.js",
     "test": "node server/test-rbac-workflow.js"

@@ -102,6 +102,22 @@ Mở trình duyệt truy cập:
 - **Staff Portal Login:** `http://localhost:5173/staff/login`
 - **Admin Portal Login:** `http://localhost:5173/admin/login`
 
+### Sau khi pull code mới
+
+Git chỉ đồng bộ mã nguồn và ảnh đã commit, không đồng bộ dữ liệu bên trong SQL Server của từng máy.
+Sau khi pull, hãy dừng hoàn toàn tiến trình `npm run dev` cũ rồi chạy:
+
+```bash
+npm install
+npm run setup
+npm run doctor
+npm run dev
+```
+
+`npm run doctor` phải hiển thị Database: OK và số lượng Products, Orders, Units sold.
+Nếu giao diện mới nhưng API trả 404, backend cũ vẫn đang chạy hoặc Terminal đang đứng ở repository/nhánh khác.
+Kiểm tra `http://localhost:5000/api/health`: backend đúng phải trả `apiVersion` và danh sách `capabilities`.
+
 ### Các lệnh bổ sung cho Database:
 ```bash
 # Chỉ dùng khi phát triển từng phần; cài máy mới nên dùng npm run setup
