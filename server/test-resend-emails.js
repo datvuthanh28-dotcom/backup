@@ -261,7 +261,7 @@ async function runTests() {
     const authEmail = sentCalls.find((c) => c.options.idempotencyKey === `return-authorized:${returnId}`);
     const prematureRefundEmail = sentCalls.find((c) => c.options.idempotencyKey === `return-refunded:${returnId}`);
     assert(Boolean(authEmail) && authEmail.payload.to[0] === "vudat9532@gmail.com", "return_authorized email sent to return account snapshot");
-    assert(authEmail.payload.html.includes("chưa phải thông báo đã hoàn tiền"), "Authorization email clearly distinguishes authorization from refund");
+    assert(authEmail.payload.html.includes("not a refund confirmation"), "Authorization email clearly distinguishes authorization from refund");
     assert(!prematureRefundEmail, "CRITICAL: Return authorization did NOT send refund completion email");
 
     await makeRequest("PATCH", `/api/returns/${returnId}`, { action: "receive", note: "Đã nhận kiện hoàn" }, staffCookie);

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { approvePromotion, archivePromotion, catalogPromotionPrices, createPromotion, listPromotions, listPromotionTemplates, myPromotionOffers, previewPromotion, promotionReport, promotionSuggestions, publicCampaigns, savePromotionTemplate, simulatePromotion, updatePromotion, updatePromotionStatus } from "../controllers/promotionController.js";
+import { approvePromotion, archivePromotion, catalogPromotionPrices, createPromotion, getPromotionEmailAudience, listPromotions, listPromotionTemplates, myPromotionOffers, previewPromotion, promotionReport, promotionSuggestions, publicCampaigns, savePromotionTemplate, sendPromotionEmailCampaign, simulatePromotion, updatePromotion, updatePromotionStatus } from "../controllers/promotionController.js";
 import { authenticateToken, optionalAuthenticateToken, requireRole } from "../middleware/auth.js";
 
 const router = Router();
@@ -20,4 +20,6 @@ router.patch("/admin/:id/status", authenticateToken, requireRole("admin"), updat
 router.patch("/admin/:id/approval", authenticateToken, requireRole("admin"), approvePromotion);
 router.delete("/admin/:id", authenticateToken, requireRole("admin"), archivePromotion);
 router.get("/admin-report", authenticateToken, requireRole("admin"), safe(promotionReport));
+router.get("/admin/email-audience", authenticateToken, requireRole("admin"), safe(getPromotionEmailAudience));
+router.post("/admin/send-email", authenticateToken, requireRole("admin"), safe(sendPromotionEmailCampaign));
 export default router;

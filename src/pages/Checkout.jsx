@@ -47,6 +47,16 @@ export default function Checkout() {
   const [addressVerificationStatus, setAddressVerificationStatus] = useState("");
 
   useEffect(() => {
+    if (!currentUser) return;
+    setFormData((previous) => ({
+      ...previous,
+      name: previous.name || currentUser.name || "",
+      email: currentUser.role === "customer" ? (currentUser.email || previous.email) : (previous.email || currentUser.email || ""),
+      phone: previous.phone || currentUser.phone || "",
+    }));
+  }, [currentUser]);
+
+  useEffect(() => {
     if (currentUser?.role !== "customer") return;
     customerAPI.getAccount().then((result) => {
       const addresses = result.addresses || [];
@@ -390,8 +400,12 @@ export default function Checkout() {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
+                  readOnly={currentUser?.role === "customer"}
                   placeholder="Email for order updates"
                 />
+                {currentUser?.role === "customer" && (
+                  <p className="checkout-address-note">Order notifications are sent to your signed-in account email.</p>
+                )}
                 {errors.email && <span className="error">{errors.email}</span>}
               </div>
             </div>

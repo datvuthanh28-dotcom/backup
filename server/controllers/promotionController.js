@@ -2,6 +2,7 @@ import sql from "mssql";
 import { db, getPool } from "../config/db.js";
 import { calculatePromotions, normalizeCode } from "../services/promotionService.js";
 import { activeProductSql } from "../utils/productLifecycle.js";
+import { normalizeRecipients, sendPromotionCampaignEmail } from "../services/emailService.js";
 
 const effectiveStatus = (row) => row.is_archived ? "archived" : row.requires_reapproval ? "needs_review" : row.status === "paused" ? "paused" : row.status === "draft" ? "draft" : new Date(row.start_at) > new Date() ? "scheduled" : row.end_at && new Date(row.end_at) <= new Date() ? "expired" : (row.usage_limit_total && row.used_count >= row.usage_limit_total) || (row.budget_total && Number(row.budget_reserved) + Number(row.budget_spent) >= Number(row.budget_total)) ? "exhausted" : "active";
 const slugify = (value) => String(value || "sale").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 150);
@@ -910,4 +911,150 @@ export async function promotionReport(req, res) {
     OUTER APPLY (SELECT SUM(COALESCE(oi.unit_cost_snapshot,0)*oi.quantity) cost_total FROM OrderItems oi WHERE oi.order_id=o.id) costs
     GROUP BY p.id,p.name,p.discount_type,p.used_count,p.budget_total,p.budget_reserved,p.budget_spent ORDER BY discount_total DESC`);
   return res.json({ success: true, report: result.recordset });
+}
+
+export async function getPromotionEmailAudience(req, res) {
+  const [subscribers, customers] = await Promise.all([
+    db.getActiveNewsletterSubscribers(),
+    db.getActiveCustomerEmails(),
+  ]);
+  const combined = normalizeRecipients([
+    ...subscribers.map((s) => s.email),
+    ...customers.map((c) => c.email),
+  ]);
+  return res.json({
+    success: true,
+    audience: {
+      newsletterCount: subscribers.length,
+      customerCount: customers.length,
+      combinedCount: combined.length,
+      newsletterEmails: subscribers.map((s) => s.email),
+      customerEmails: customers.map((c) => c.email),
+    },
+  });
+}
+
+function formatPromotionEmailDefaults(promoRow) {
+  if (!promoRow) {
+    return {
+      promoTitle: "An Exclusive Privilege From Maison Rue",
+      promoDescription: "Enjoy a curated private privilege across our latest luxury collections.",
+      discountLabel: "Exclusive Promotional Privilege",
+      minimumOrderText: "",
+      validUntilText: "",
+    };
+  }
+  const value = Number(promoRow.discount_value || 0);
+  const discountLabel =
+    promoRow.discount_type === "percentage"
+      ? `${value}% OFF`
+      : promoRow.discount_type === "free_shipping"
+      ? "Complimentary Shipping"
+      : `${value.toLocaleString("en-US")} VND OFF`;
+  const minOrder = Number(promoRow.minimum_order_value || 0);
+  const minimumOrderText = minOrder > 0 ? `Minimum order of ${minOrder.toLocaleString("en-US")} VND` : "No minimum order required";
+  const validUntilText = promoRow.end_at
+    ? new Date(promoRow.end_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+    : "While supplies last";
+
+  return {
+    promoTitle: promoRow.public_title || promoRow.name || "An Exclusive Privilege From Maison Rue",
+    promoDescription:
+      promoRow.display_description ||
+      promoRow.public_description ||
+      promoRow.description ||
+      "Enjoy a curated private privilege across our latest luxury collections.",
+    discountLabel,
+    minimumOrderText,
+    validUntilText,
+  };
+}
+
+export async function sendPromotionEmailCampaign(req, res) {
+  const body = req.body || {};
+  const promoCode = normalizeCode(body.promoCode || body.code || "");
+  if (!promoCode) {
+    return res.status(400).json({ success: false, error: "Vui lòng nhập hoặc chọn mã ưu đãi (Promotion Code)." });
+  }
+
+  const audience = String(body.audience || "both").trim().toLowerCase();
+  const rawCustom = String(body.customEmails || "")
+    .split(/[\s,;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  let recipientList = [];
+  if (audience === "newsletter" || audience === "both") {
+    const subscribers = await db.getActiveNewsletterSubscribers();
+    recipientList.push(...subscribers.map((s) => s.email));
+  }
+  if (audience === "customers" || audience === "both") {
+    const customers = await db.getActiveCustomerEmails();
+    recipientList.push(...customers.map((c) => c.email));
+  }
+  if (audience === "custom" || rawCustom.length > 0) {
+    recipientList.push(...rawCustom);
+  }
+
+  const recipients = normalizeRecipients(recipientList);
+  if (recipients.length === 0) {
+    return res.status(400).json({
+      success: false,
+      error: "Không có email người nhận hợp lệ. Hãy kiểm tra danh sách Newsletter, Khách hàng hoặc nhập email nhận.",
+    });
+  }
+
+  const promoLookup = await getPool()
+    .request()
+    .input("code", sql.NVarChar(80), promoCode)
+    .query(`
+      SELECT TOP 1 pc.code, pc.display_description, p.name, p.description, p.public_title, p.public_description,
+        p.discount_type, p.discount_value, p.minimum_order_value, p.end_at
+      FROM PromotionCodes pc
+      JOIN Promotions p ON p.id = pc.promotion_id
+      WHERE UPPER(pc.code) = @code
+      ORDER BY pc.id DESC
+    `);
+
+  const defaults = formatPromotionEmailDefaults(promoLookup.recordset[0] || null);
+  const promoTitle = String(body.promoTitle || "").trim() || defaults.promoTitle;
+  const promoDescription = String(body.promoDescription || "").trim() || defaults.promoDescription;
+  const discountLabel = String(body.discountLabel || "").trim() || defaults.discountLabel;
+  const minimumOrderText = String(body.minimumOrderText || "").trim() || defaults.minimumOrderText;
+  const validUntilText = String(body.validUntilText || "").trim() || defaults.validUntilText;
+
+  let sentCount = 0;
+  let failedCount = 0;
+  const failedRecipients = [];
+
+  for (const recipientEmail of recipients) {
+    const result = await sendPromotionCampaignEmail({
+      recipientEmail,
+      promoCode,
+      promoTitle,
+      promoDescription,
+      discountLabel,
+      minimumOrderText,
+      validUntilText,
+    });
+    if (result?.success) {
+      sentCount++;
+    } else {
+      failedCount++;
+      failedRecipients.push({ email: recipientEmail, error: result?.error || "Send failed" });
+    }
+  }
+
+  return res.json({
+    success: sentCount > 0,
+    promoCode,
+    totalRecipients: recipients.length,
+    sentCount,
+    failedCount,
+    failedRecipients,
+    message:
+      failedCount === 0
+        ? `Đã gửi email mã ưu đãi ${promoCode} thành công tới ${sentCount} khách hàng.`
+        : `Đã gửi ${sentCount}/${recipients.length} email (${failedCount} email thất bại).`,
+  });
 }

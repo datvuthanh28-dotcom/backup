@@ -194,10 +194,14 @@ export const db = {
     if (fields.password_hash !== undefined) {
       req.input("password_hash", sql.NVarChar, fields.password_hash);
       updates.push("password_hash = @password_hash");
+      updates.push("token_version = ISNULL(token_version, 1) + 1");
     }
     if (fields.is_active !== undefined) {
       req.input("is_active", sql.Bit, fields.is_active ? 1 : 0);
       updates.push("is_active = @is_active");
+      if (!fields.is_active) {
+        updates.push("token_version = ISNULL(token_version, 1) + 1");
+      }
     }
     if (updates.length > 0) {
       updates.push("updated_at = GETDATE()");
@@ -2116,5 +2120,159 @@ export const db = {
         WHEN NOT MATCHED THEN INSERT(period_key,period_label,target_revenue,target_gross_profit,note,updated_by) VALUES(@period_key,@period_label,@target_revenue,@target_gross_profit,@note,@updated_by);
       `);
     return this.getRevenueTarget(periodKey);
+  },
+
+  async createPasswordResetOtp({ userId, email, otpHash, expiresInMinutes = 15, maxAttempts = 5 }) {
+    const p = await getActivePool();
+    const safeEmail = String(email || "").trim().toLowerCase();
+    await p
+      .request()
+      .input("user_id", sql.NVarChar(50), String(userId))
+      .query("UPDATE PasswordResetOtps SET used_at = SYSUTCDATETIME() WHERE user_id = @user_id AND used_at IS NULL");
+
+    const res = await p
+      .request()
+      .input("user_id", sql.NVarChar(50), String(userId))
+      .input("email", sql.NVarChar(150), safeEmail)
+      .input("otp_hash", sql.NVarChar(128), String(otpHash))
+      .input("max_attempts", sql.Int, Number(maxAttempts))
+      .input("expires_minutes", sql.Int, Number(expiresInMinutes))
+      .query(`
+        INSERT INTO PasswordResetOtps (user_id, email, otp_hash, max_attempts, expires_at, created_at)
+        OUTPUT INSERTED.*
+        VALUES (@user_id, @email, @otp_hash, @max_attempts, DATEADD(MINUTE, @expires_minutes, SYSUTCDATETIME()), SYSUTCDATETIME())
+      `);
+    return res.recordset[0] || null;
+  },
+
+  async getLatestActivePasswordResetOtp(email) {
+    const p = await getActivePool();
+    const safeEmail = String(email || "").trim().toLowerCase();
+    const res = await p
+      .request()
+      .input("email", sql.NVarChar(150), safeEmail)
+      .query(`
+        SELECT TOP 1 *
+        FROM PasswordResetOtps
+        WHERE LOWER(email) = @email
+          AND used_at IS NULL
+          AND expires_at > SYSUTCDATETIME()
+        ORDER BY created_at DESC, id DESC
+      `);
+    return res.recordset[0] || null;
+  },
+
+  async incrementPasswordResetOtpAttempts(id) {
+    const p = await getActivePool();
+    const res = await p
+      .request()
+      .input("id", sql.Int, Number(id))
+      .query(`
+        UPDATE PasswordResetOtps
+        SET attempts = attempts + 1,
+            used_at = CASE WHEN attempts + 1 >= max_attempts THEN SYSUTCDATETIME() ELSE used_at END
+        OUTPUT INSERTED.*
+        WHERE id = @id
+      `);
+    return res.recordset[0] || null;
+  },
+
+  async completePasswordResetWithOtp({ otpId, userId, passwordHash }) {
+    const p = await getActivePool();
+    const transaction = new sql.Transaction(p);
+    await transaction.begin();
+    try {
+      const otpUpdate = await transaction
+        .request()
+        .input("otp_id", sql.Int, Number(otpId))
+        .query(`
+          UPDATE PasswordResetOtps
+          SET used_at = SYSUTCDATETIME()
+          OUTPUT INSERTED.id
+          WHERE id = @otp_id AND used_at IS NULL AND expires_at > SYSUTCDATETIME()
+        `);
+      if (otpUpdate.recordset.length === 0) {
+        await transaction.rollback();
+        return { completed: false, reason: "otp_already_used_or_expired" };
+      }
+
+      const userUpdate = await transaction
+        .request()
+        .input("user_id", sql.NVarChar(50), String(userId))
+        .input("password_hash", sql.NVarChar(255), String(passwordHash))
+        .query(`
+          UPDATE Users
+          SET password_hash = @password_hash,
+              token_version = ISNULL(token_version, 1) + 1,
+              updated_at = GETDATE()
+          OUTPUT INSERTED.id, INSERTED.email, INSERTED.token_version
+          WHERE id = @user_id AND is_active = 1
+        `);
+
+      if (userUpdate.recordset.length === 0) {
+        await transaction.rollback();
+        return { completed: false, reason: "user_not_found_or_inactive" };
+      }
+
+      await transaction.commit();
+      return { completed: true, user: userUpdate.recordset[0] };
+    } catch (err) {
+      try { await transaction.rollback(); } catch { /* ignore */ }
+      throw err;
+    }
+  },
+
+  async subscribeNewsletter(email, source = "footer") {
+    const p = await getActivePool();
+    const safeEmail = String(email || "").trim().toLowerCase();
+    const existing = await p
+      .request()
+      .input("email", sql.NVarChar(150), safeEmail)
+      .query("SELECT TOP 1 * FROM NewsletterSubscribers WHERE LOWER(email) = @email");
+
+    if (existing.recordset[0]) {
+      const row = existing.recordset[0];
+      const alreadyActive = Boolean(row.is_active);
+      const updated = await p
+        .request()
+        .input("id", sql.Int, row.id)
+        .input("source", sql.NVarChar(64), String(source || "footer").slice(0, 64))
+        .query(`
+          UPDATE NewsletterSubscribers
+          SET is_active = 1,
+              source = @source,
+              updated_at = SYSUTCDATETIME()
+          OUTPUT INSERTED.*
+          WHERE id = @id
+        `);
+      return { subscriber: updated.recordset[0], created: !alreadyActive };
+    }
+
+    const inserted = await p
+      .request()
+      .input("email", sql.NVarChar(150), safeEmail)
+      .input("source", sql.NVarChar(64), String(source || "footer").slice(0, 64))
+      .query(`
+        INSERT INTO NewsletterSubscribers (email, is_active, source, subscribed_at, updated_at)
+        OUTPUT INSERTED.*
+        VALUES (@email, 1, @source, SYSUTCDATETIME(), SYSUTCDATETIME())
+      `);
+    return { subscriber: inserted.recordset[0], created: true };
+  },
+
+  async getActiveNewsletterSubscribers() {
+    const p = await getActivePool();
+    const res = await p
+      .request()
+      .query("SELECT id, email, source, subscribed_at FROM NewsletterSubscribers WHERE is_active = 1 ORDER BY subscribed_at DESC");
+    return res.recordset;
+  },
+
+  async getActiveCustomerEmails() {
+    const p = await getActivePool();
+    const res = await p
+      .request()
+      .query("SELECT id, name, email FROM Users WHERE role = 'customer' AND is_active = 1 AND email IS NOT NULL ORDER BY created_at DESC");
+    return res.recordset;
   },
 };

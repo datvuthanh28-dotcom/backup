@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import { db } from "../config/db.js";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -6,6 +7,8 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 let cachedApiKey = null;
 let cachedResendClient = null;
 let mockResendClient = null;
+let cachedSmtpKey = null;
+let cachedSmtpTransporter = null;
 
 /**
  * Allows automated tests to inject a mock Resend client without live network calls.
@@ -38,16 +41,57 @@ export function escapeHtml(value) {
  */
 export function redactSecrets(input) {
   if (!input) return "";
-  return String(input)
+  let text = String(input)
     .replace(/re_[A-Za-z0-9_]{8,}/g, "re_[REDACTED]")
     .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer [REDACTED]")
-    .replace(/(password|pwd|api_?key|secret|token)\s*[:=]\s*[^\s,;]+/gi, "$1=[REDACTED]");
+    .replace(/(password|passwd|pwd|api_?key|secret|token)\s*[:=]\s*[^\s,;]+/gi, "$1=[REDACTED]");
+  const smtpPass = (process.env.SMTP_PASS || "").replace(/\s+/g, "").trim();
+  if (smtpPass) {
+    text = text.split(smtpPass).join("[REDACTED]");
+  }
+  return text;
 }
 
 export function getResendConfig() {
   const apiKey = (process.env.RESEND_API_KEY || "").trim();
   const from = (process.env.RESEND_FROM_EMAIL || "").trim();
   return { apiKey, from };
+}
+
+export function getSmtpConfig() {
+  const user = (process.env.SMTP_USER || "").trim();
+  const pass = (process.env.SMTP_PASS || "").replace(/\s+/g, "").trim();
+  const host = (process.env.SMTP_HOST || "smtp.gmail.com").trim();
+  const port = Number(process.env.SMTP_PORT || 465);
+  const secure = process.env.SMTP_SECURE ? process.env.SMTP_SECURE === "true" : port === 465;
+  const from = (process.env.SMTP_FROM || (user ? `MAISON RUE <${user}>` : "")).trim();
+  return { host, port, secure, user, pass, from };
+}
+
+export function getActiveEmailProvider() {
+  if (mockResendClient) return "resend";
+  const smtp = getSmtpConfig();
+  if (smtp.user && smtp.pass) return "smtp";
+  return "resend";
+}
+
+function getSmtpTransporter() {
+  const smtp = getSmtpConfig();
+  if (!smtp.user || !smtp.pass) return null;
+  const cacheKey = `${smtp.host}:${smtp.port}:${smtp.secure}:${smtp.user}:${smtp.pass}`;
+  if (!cachedSmtpTransporter || cachedSmtpKey !== cacheKey) {
+    cachedSmtpTransporter = nodemailer.createTransport({
+      host: smtp.host,
+      port: smtp.port,
+      secure: smtp.secure,
+      auth: {
+        user: smtp.user,
+        pass: smtp.pass,
+      },
+    });
+    cachedSmtpKey = cacheKey;
+  }
+  return cachedSmtpTransporter;
 }
 
 export function normalizeRecipients(input) {
@@ -86,7 +130,7 @@ function getResendClient() {
 }
 
 function formatVnd(amount) {
-  return `${Number(amount || 0).toLocaleString("vi-VN")} VNĐ`;
+  return `${Number(amount || 0).toLocaleString("en-US")} VND`;
 }
 
 function formatPaymentMethod(method) {
@@ -131,7 +175,7 @@ function formatOrderItems(items = []) {
 
 function wrapBrandedHtml({ headerTitle, subtitle, bodyHtml }) {
   return `<!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
@@ -147,8 +191,8 @@ function wrapBrandedHtml({ headerTitle, subtitle, bodyHtml }) {
       ${bodyHtml}
     </div>
     <div style="padding:18px 32px;background:#faf8f5;border-top:1px solid #ece5dc;font-size:12px;color:#7a7068;text-align:center;">
-      MAISON RUE Luxury Atelier &bull; Email tự động từ hệ thống đơn hàng &amp; CSKH.<br/>
-      Vui lòng giữ lại mã đơn hàng hoặc mã yêu cầu để tra cứu trực tiếp trên website.
+      MAISON RUE Luxury Atelier &bull; Automated Order &amp; Client Services Notification.<br/>
+      Please retain your reference number to track updates directly on our website.
     </div>
   </div>
 </body>
@@ -175,6 +219,7 @@ export async function dispatchResendEmail({
   const recipientSummary = normalizedRecipients.length > 0 ? normalizedRecipients.join(",") : "(none)";
   const metaJson = meta ? JSON.stringify(meta) : null;
 
+  const provider = getActiveEmailProvider();
   let reservation;
   try {
     reservation = await db.reserveEmailNotification({
@@ -184,7 +229,7 @@ export async function dispatchResendEmail({
       entityId,
       recipientEmail: recipientSummary,
       subject,
-      provider: "resend",
+      provider,
       metaJson,
       allowRetry,
     });
@@ -216,14 +261,54 @@ export async function dispatchResendEmail({
     return { success: false, error: msg, notification: updated };
   }
 
-  // Prevent test runs against MaisonRueDB_Test from hitting the live Resend API unless mocked or opted in.
+  // Prevent test runs against MaisonRueDB_Test from hitting live email providers unless mocked or opted in.
   if (!mockResendClient && process.env.DB_NAME === "MaisonRueDB_Test" && process.env.RESEND_ALLOW_TEST_DB !== "true") {
-    const msg = "Skipped live Resend call during MaisonRueDB_Test run";
+    const msg = "Skipped live email call during MaisonRueDB_Test run";
     const updated = await db.markEmailNotificationResult(notification.id, {
       status: "skipped",
       errorMessage: msg,
     });
     return { success: true, skipped: true, reason: "test_db_disabled", notification: updated };
+  }
+
+  if (provider === "smtp") {
+    const smtp = getSmtpConfig();
+    const transporter = getSmtpTransporter();
+    if (!transporter || !smtp.from) {
+      const msg = "SMTP configuration missing: SMTP_USER, SMTP_PASS, or SMTP_FROM";
+      const updated = await db.markEmailNotificationResult(notification.id, {
+        status: "failed",
+        errorMessage: msg,
+      });
+      console.warn(`[Email] Not sent ${eventType} (${eventKey}): ${msg}`);
+      return { success: false, error: msg, notification: updated };
+    }
+
+    try {
+      const info = await transporter.sendMail({
+        from: smtp.from,
+        to: normalizedRecipients.join(", "),
+        subject,
+        html,
+        text,
+      });
+      const messageId = info?.messageId || null;
+      const updated = await db.markEmailNotificationResult(notification.id, {
+        status: "sent",
+        providerMessageId: messageId,
+        errorMessage: null,
+      });
+      console.log(`[Email/SMTP] Sent ${eventType} (${eventKey}) id=${messageId || "ok"}`);
+      return { success: true, messageId, notification: updated };
+    } catch (err) {
+      const errMsg = redactSecrets(err?.message || String(err));
+      const updated = await db.markEmailNotificationResult(notification.id, {
+        status: "failed",
+        errorMessage: errMsg,
+      });
+      console.warn(`[Email/SMTP] Exception sending ${eventType} (${eventKey}): ${errMsg}`);
+      return { success: false, error: errMsg, notification: updated };
+    }
   }
 
   const { apiKey, from } = getResendConfig();
@@ -305,39 +390,39 @@ export async function sendOrderConfirmationEmail(order, options = {}) {
     headerTitle: "Order Confirmation",
     subtitle: "Order Confirmation",
     bodyHtml: `
-      <p style="margin-top:0;">Kính chào <strong>${escapeHtml(customerName)}</strong>,</p>
-      <p>Cảm ơn Quý khách đã đặt hàng tại <strong>MAISON RUE</strong>. Đơn hàng của Quý khách đã được hệ thống ghi nhận thành công.</p>
+      <p style="margin-top:0;">Dear <strong>${escapeHtml(customerName)}</strong>,</p>
+      <p>Thank you for choosing <strong>MAISON RUE</strong>. Your order has been successfully placed and recorded by our concierge team.</p>
       <div style="background:#faf8f5;border:1px solid #ede6dd;padding:18px 20px;margin:20px 0;">
-        <p style="margin:0 0 6px;"><strong>Mã đơn hàng:</strong> ${escapeHtml(orderId)}</p>
-        <p style="margin:0 0 6px;"><strong>Phương thức thanh toán:</strong> ${escapeHtml(formatPaymentMethod(paymentMethod))}</p>
-        <p style="margin:0 0 6px;"><strong>Địa chỉ giao hàng:</strong> ${escapeHtml(shippingAddress)}</p>
-        <p style="margin:0;"><strong>Số điện thoại nhận hàng:</strong> ${escapeHtml(shippingPhone)}</p>
+        <p style="margin:0 0 6px;"><strong>Order Number:</strong> ${escapeHtml(orderId)}</p>
+        <p style="margin:0 0 6px;"><strong>Payment Method:</strong> ${escapeHtml(formatPaymentMethod(paymentMethod))}</p>
+        <p style="margin:0 0 6px;"><strong>Delivery Address:</strong> ${escapeHtml(shippingAddress)}</p>
+        <p style="margin:0;"><strong>Contact Phone:</strong> ${escapeHtml(shippingPhone)}</p>
       </div>
-      <h3 style="font-size:14px;letter-spacing:0.08em;text-transform:uppercase;color:#6c625b;margin:22px 0 10px;">Chi tiết sản phẩm</h3>
+      <h3 style="font-size:14px;letter-spacing:0.08em;text-transform:uppercase;color:#6c625b;margin:22px 0 10px;">Order Items</h3>
       ${itemsBlock.html}
       <div style="margin-top:16px;padding-top:14px;border-top:2px solid #1a1615;font-size:14px;">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Phí vận chuyển:</span><strong>${escapeHtml(formatVnd(shippingFee))}</strong></div>
-        ${discountAmount > 0 ? `<div style="display:flex;justify-content:space-between;margin-bottom:4px;color:#7c5b2b;"><span>Giảm giá:</span><strong>-${escapeHtml(formatVnd(discountAmount))}</strong></div>` : ""}
-        <div style="display:flex;justify-content:space-between;font-size:16px;margin-top:8px;"><span>Tổng thanh toán:</span><strong>${escapeHtml(formatVnd(totalAmount))}</strong></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Shipping Fee:</span><strong>${escapeHtml(formatVnd(shippingFee))}</strong></div>
+        ${discountAmount > 0 ? `<div style="display:flex;justify-content:space-between;margin-bottom:4px;color:#7c5b2b;"><span>Discount:</span><strong>-${escapeHtml(formatVnd(discountAmount))}</strong></div>` : ""}
+        <div style="display:flex;justify-content:space-between;font-size:16px;margin-top:8px;"><span>Total Amount:</span><strong>${escapeHtml(formatVnd(totalAmount))}</strong></div>
       </div>
     `,
   });
 
   const text = [
-    `MAISON RUE — XAC NHAN DON HANG #${orderId}`,
+    `MAISON RUE — ORDER CONFIRMATION #${orderId}`,
     ``,
-    `Kinh chao ${customerName},`,
-    `Don hang #${orderId} cua Quy khach da duoc he thong ghi nhan.`,
-    `Phuong thuc thanh toan: ${formatPaymentMethod(paymentMethod)}`,
-    `Dia chi giao hang: ${shippingAddress}`,
-    `So dien thoai: ${shippingPhone}`,
+    `Dear ${customerName},`,
+    `Thank you for your order with MAISON RUE. Your order #${orderId} has been recorded.`,
+    `Payment Method: ${formatPaymentMethod(paymentMethod)}`,
+    `Delivery Address: ${shippingAddress}`,
+    `Contact Phone: ${shippingPhone}`,
     ``,
-    `Chi tiet san pham:`,
+    `Order Items:`,
     itemsBlock.text,
     ``,
-    `Phi van chuyen: ${formatVnd(shippingFee)}`,
-    discountAmount > 0 ? `Giam gia: -${formatVnd(discountAmount)}` : null,
-    `Tong thanh toan: ${formatVnd(totalAmount)}`,
+    `Shipping Fee: ${formatVnd(shippingFee)}`,
+    discountAmount > 0 ? `Discount: -${formatVnd(discountAmount)}` : null,
+    `Total Amount: ${formatVnd(totalAmount)}`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -406,13 +491,13 @@ export async function sendOrderStatusEmail(order, newStatus, note = "", options 
     subtitle: `Order Status • ${cfg.badge}`,
     bodyHtml: `
       <div style="display:inline-block;padding:4px 10px;background:${cfg.accent};color:#ffffff;font-size:11px;letter-spacing:0.1em;font-weight:700;margin-bottom:14px;">${escapeHtml(cfg.badge)}</div>
-      <p style="margin-top:0;">Kính chào <strong>${escapeHtml(customerName)}</strong>,</p>
+      <p style="margin-top:0;">Dear <strong>${escapeHtml(customerName)}</strong>,</p>
       <p>${escapeHtml(cfg.headline)}</p>
       <div style="background:#faf8f5;border:1px solid #ede6dd;padding:16px 20px;margin:18px 0;">
-        <p style="margin:0 0 6px;"><strong>Mã đơn hàng:</strong> ${escapeHtml(orderId)}</p>
-        <p style="margin:0 0 6px;"><strong>Trạng thái hiện tại:</strong> ${escapeHtml(cfg.badge)}</p>
-        <p style="margin:0 0 6px;"><strong>Giá trị đơn hàng:</strong> ${escapeHtml(totalAmount)}</p>
-        ${cleanNote ? `<p style="margin:8px 0 0;"><strong>Ghi chú vận hành:</strong> ${escapeHtml(cleanNote)}</p>` : ""}
+        <p style="margin:0 0 6px;"><strong>Order Number:</strong> ${escapeHtml(orderId)}</p>
+        <p style="margin:0 0 6px;"><strong>Current Status:</strong> ${escapeHtml(cfg.badge)}</p>
+        <p style="margin:0 0 6px;"><strong>Order Total:</strong> ${escapeHtml(totalAmount)}</p>
+        ${cleanNote ? `<p style="margin:8px 0 0;"><strong>Concierge Note:</strong> ${escapeHtml(cleanNote)}</p>` : ""}
       </div>
       ${itemsBlock.html}
     `,
@@ -421,11 +506,11 @@ export async function sendOrderStatusEmail(order, newStatus, note = "", options 
   const text = [
     `MAISON RUE — ${cfg.subjectPrefix} (#${orderId})`,
     ``,
-    `Kinh chao ${customerName},`,
+    `Dear ${customerName},`,
     cfg.headline,
-    `Trang thai: ${cfg.badge}`,
-    `Gia tri don hang: ${totalAmount}`,
-    cleanNote ? `Ghi chu: ${cleanNote}` : null,
+    `Current Status: ${cfg.badge}`,
+    `Order Total: ${totalAmount}`,
+    cleanNote ? `Note: ${cleanNote}` : null,
     ``,
     itemsBlock.text,
   ]
@@ -463,27 +548,27 @@ export async function sendOrderRefundedEmail(order, note = "", options = {}) {
     headerTitle: "Refund Completed",
     subtitle: "Financial Refund Confirmation",
     bodyHtml: `
-      <p style="margin-top:0;">Kính chào <strong>${escapeHtml(customerName)}</strong>,</p>
-      <p>Hệ thống tài chính của <strong>MAISON RUE</strong> xác nhận đã <strong>hoàn tiền thành công</strong> cho đơn hàng <strong>#${escapeHtml(orderId)}</strong>.</p>
+      <p style="margin-top:0;">Dear <strong>${escapeHtml(customerName)}</strong>,</p>
+      <p><strong>MAISON RUE</strong> Finance confirms that your refund for order <strong>#${escapeHtml(orderId)}</strong> has been <strong>completed</strong>.</p>
       <div style="background:#faf8f5;border:1px solid #ede6dd;padding:18px 20px;margin:18px 0;">
-        <p style="margin:0 0 6px;"><strong>Mã đơn hàng:</strong> ${escapeHtml(orderId)}</p>
-        <p style="margin:0 0 6px;"><strong>Số tiền hoàn lại:</strong> ${escapeHtml(amount)}</p>
-        <p style="margin:0 0 6px;"><strong>Mã giao dịch hoàn tiền:</strong> ${escapeHtml(refundRef)}</p>
-        ${cleanNote ? `<p style="margin:6px 0 0;"><strong>Ghi chú:</strong> ${escapeHtml(cleanNote)}</p>` : ""}
+        <p style="margin:0 0 6px;"><strong>Order Number:</strong> ${escapeHtml(orderId)}</p>
+        <p style="margin:0 0 6px;"><strong>Refund Amount:</strong> ${escapeHtml(amount)}</p>
+        <p style="margin:0 0 6px;"><strong>Refund Reference:</strong> ${escapeHtml(refundRef)}</p>
+        ${cleanNote ? `<p style="margin:6px 0 0;"><strong>Note:</strong> ${escapeHtml(cleanNote)}</p>` : ""}
       </div>
-      <p style="font-size:13px;color:#555;">Khoản tiền sẽ hiển thị về phương thức thanh toán ban đầu của Quý khách trong vòng 3–5 ngày làm việc tùy ngân hàng phát hành.</p>
+      <p style="font-size:13px;color:#555;">The refunded amount will appear on your original payment method within 3–5 business days depending on your issuing bank.</p>
     `,
   });
 
   const text = [
-    `MAISON RUE — DA HOAN TIEN DON HANG #${orderId}`,
+    `MAISON RUE — REFUND COMPLETED FOR ORDER #${orderId}`,
     ``,
-    `Kinh chao ${customerName},`,
-    `He thong MAISON RUE xac nhan da hoan tien thanh cong cho don hang #${orderId}.`,
-    `So tien hoan: ${amount}`,
-    `Ma giao dich hoan tien: ${refundRef}`,
-    cleanNote ? `Ghi chu: ${cleanNote}` : null,
-    `Khoan tien se ve trong 3-5 ngay lam viec tuy ngan hang.`,
+    `Dear ${customerName},`,
+    `MAISON RUE Finance confirms that your refund for order #${orderId} has been completed.`,
+    `Refund Amount: ${amount}`,
+    `Refund Reference: ${refundRef}`,
+    cleanNote ? `Note: ${cleanNote}` : null,
+    `The refunded amount will reflect on your original payment method within 3-5 business days.`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -523,16 +608,16 @@ export async function sendLowStockAlertEmail(alertItem, options = {}) {
     headerTitle: "Low Stock Alert",
     subtitle: "Inventory Operations Notification",
     bodyHtml: `
-      <p style="margin-top:0;">Hệ thống kho vận <strong>MAISON RUE</strong> ghi nhận SKU dưới mức tồn tối thiểu:</p>
+      <p style="margin-top:0;"><strong>MAISON RUE</strong> Inventory Operations has detected an SKU below its minimum stock threshold:</p>
       <div style="background:#fff6f4;border:1px solid #e6c6bf;padding:18px 20px;margin:18px 0;">
-        <p style="margin:0 0 6px;"><strong>Sản phẩm:</strong> ${escapeHtml(productName)}</p>
+        <p style="margin:0 0 6px;"><strong>Product:</strong> ${escapeHtml(productName)}</p>
         <p style="margin:0 0 6px;"><strong>SKU:</strong> ${escapeHtml(sku)}</p>
-        ${variantInfo ? `<p style="margin:0 0 6px;"><strong>Biến thể:</strong> ${escapeHtml(variantInfo)}</p>` : ""}
-        <p style="margin:0 0 6px;"><strong>Tồn kho hiện tại:</strong> <strong style="color:#8c2d2d;">${currentStock}</strong></p>
-        <p style="margin:0 0 6px;"><strong>Ngưỡng cảnh báo tối thiểu:</strong> ${minStock}</p>
-        ${note ? `<p style="margin:8px 0 0;"><strong>Ghi chú:</strong> ${escapeHtml(note)}</p>` : ""}
+        ${variantInfo ? `<p style="margin:0 0 6px;"><strong>Variant:</strong> ${escapeHtml(variantInfo)}</p>` : ""}
+        <p style="margin:0 0 6px;"><strong>Current Stock:</strong> <strong style="color:#8c2d2d;">${currentStock}</strong></p>
+        <p style="margin:0 0 6px;"><strong>Minimum Threshold:</strong> ${minStock}</p>
+        ${note ? `<p style="margin:8px 0 0;"><strong>Note:</strong> ${escapeHtml(note)}</p>` : ""}
       </div>
-      <p style="font-size:13px;color:#555;">Vui lòng kiểm tra kho và lập kế hoạch nhập bổ sung kịp thời.</p>
+      <p style="font-size:13px;color:#555;">Please review inventory levels and schedule replenishment promptly.</p>
     `,
   });
 
@@ -568,38 +653,38 @@ export async function sendReturnAuthorizedEmail(returnReq, options = {}) {
   }
 
   const returnId = String(returnReq.id);
-  const customerName = returnReq.customer_name || "Quý khách";
+  const customerName = returnReq.customer_name || "Valued Customer";
   const deadlineText = returnReq.return_deadline
-    ? new Date(returnReq.return_deadline).toLocaleDateString("vi-VN")
-    : "trong 7 ngày tới";
+    ? new Date(returnReq.return_deadline).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+    : "within the next 7 days";
   const variantText = [returnReq.selected_color, returnReq.selected_size].filter(Boolean).join(" - ");
 
-  const subject = `[Maison Rue] Xác nhận chấp thuận yêu cầu đổi/trả #${returnId}`;
+  const subject = `[Maison Rue] Return Request Authorized #${returnId}`;
   const html = wrapBrandedHtml({
-    headerTitle: "Yêu cầu đổi/trả đã được chấp thuận",
+    headerTitle: "Return Request Authorized",
     subtitle: "Return Authorization Approved",
     bodyHtml: `
-      <p style="margin-top:0;">Kính chào <strong>${escapeHtml(customerName)}</strong>,</p>
-      <p>Yêu cầu đổi/trả hàng <strong>#${escapeHtml(returnId)}</strong> thuộc đơn hàng <strong>#${escapeHtml(returnReq.order_id)}</strong> đã được <strong>chấp thuận tiếp nhận</strong>.</p>
+      <p style="margin-top:0;">Dear <strong>${escapeHtml(customerName)}</strong>,</p>
+      <p>Your return/exchange request <strong>#${escapeHtml(returnId)}</strong> for order <strong>#${escapeHtml(returnReq.order_id)}</strong> has been <strong>authorized for physical return</strong>.</p>
       <div style="background:#faf8f5;border:1px solid #ede6dd;padding:18px 20px;margin:18px 0;">
-        <p style="margin:0 0 6px;"><strong>Mã yêu cầu:</strong> ${escapeHtml(returnId)}</p>
-        <p style="margin:0 0 6px;"><strong>Sản phẩm:</strong> ${escapeHtml(returnReq.product_name || "Sản phẩm Maison Rue")}${variantText ? ` (${escapeHtml(variantText)})` : ""}</p>
-        <p style="margin:0 0 6px;"><strong>Số lượng yêu cầu:</strong> ${Number(returnReq.requested_quantity || 1)}</p>
-        <p style="margin:0;"><strong>Hạn gửi hàng hoàn về kho:</strong> ${escapeHtml(deadlineText)}</p>
+        <p style="margin:0 0 6px;"><strong>Request ID:</strong> ${escapeHtml(returnId)}</p>
+        <p style="margin:0 0 6px;"><strong>Product:</strong> ${escapeHtml(returnReq.product_name || "Maison Rue Item")}${variantText ? ` (${escapeHtml(variantText)})` : ""}</p>
+        <p style="margin:0 0 6px;"><strong>Requested Quantity:</strong> ${Number(returnReq.requested_quantity || 1)}</p>
+        <p style="margin:0;"><strong>Return Shipment Deadline:</strong> ${escapeHtml(deadlineText)}</p>
       </div>
-      <p><strong>Lưu ý quan trọng:</strong> Đây là xác nhận chấp thuận gửi hoàn hàng, <strong>chưa phải thông báo đã hoàn tiền</strong>. Sau khi kho nhận kiện hàng và kiểm định chất lượng (QC) đạt yêu cầu, quản trị viên sẽ thực hiện bước hoàn tiền hoặc xuất đổi sản phẩm và gửi email xác nhận riêng.</p>
+      <p><strong>Important Notice:</strong> This is an authorization to return your item for inspection and is <strong>not a refund confirmation</strong>. Once our warehouse receives the package and completes quality control (QC), our team will issue your refund or dispatch your exchange and send a separate confirmation email.</p>
     `,
   });
 
   const text = [
-    `MAISON RUE — CHAP THUAN YEU CAU DOI/TRA #${returnId}`,
+    `MAISON RUE — RETURN REQUEST AUTHORIZED #${returnId}`,
     ``,
-    `Kinh chao ${customerName},`,
-    `Yeu cau doi/tra #${returnId} (don hang #${returnReq.order_id}) da duoc chap thuan tiep nhan.`,
-    `San pham: ${returnReq.product_name || "San pham"}${variantText ? ` (${variantText})` : ""}`,
-    `Han gui hang ve kho: ${deadlineText}`,
+    `Dear ${customerName},`,
+    `Your return/exchange request #${returnId} (Order #${returnReq.order_id}) has been authorized.`,
+    `Product: ${returnReq.product_name || "Maison Rue Item"}${variantText ? ` (${variantText})` : ""}`,
+    `Return Shipment Deadline: ${deadlineText}`,
     ``,
-    `Luu y: Day la xac nhan chap thuan gui hang hoan ve, chua phai thong bao da hoan tien. Kho se kiem dinh chat luong (QC) truoc khi hoan tien hoac xuat doi.`,
+    `Important Notice: This is an authorization to return your item for inspection and is not a refund confirmation. Our warehouse will perform quality control (QC) before issuing a refund or exchange.`,
   ].join("\n");
 
   return dispatchResendEmail({
@@ -621,41 +706,41 @@ export async function sendReturnRefundedEmail(returnReq, note = "", options = {}
   }
 
   const returnId = String(returnReq.id);
-  const customerName = returnReq.customer_name || "Quý khách";
+  const customerName = returnReq.customer_name || "Valued Customer";
   const variantText = [returnReq.selected_color, returnReq.selected_size].filter(Boolean).join(" - ");
   const cleanNote = String(note || returnReq.staff_note || "").trim();
   const refundRef = returnReq.refund_reference || "N/A";
   const amount = formatVnd(returnReq.requested_amount || 0);
 
-  const subject = `[Maison Rue] Thông báo: Đã hoàn tiền thành công cho yêu cầu #${returnId}`;
+  const subject = `[Maison Rue] Refund Completed for Return Request #${returnId}`;
   const html = wrapBrandedHtml({
-    headerTitle: "Hoàn tiền thành công",
+    headerTitle: "Return Refund Completed",
     subtitle: "Return Refund Completed",
     bodyHtml: `
-      <p style="margin-top:0;">Kính chào <strong>${escapeHtml(customerName)}</strong>,</p>
-      <p><strong>MAISON RUE</strong> xin trân trọng thông báo quá trình kiểm định đã đạt và bộ phận tài chính đã <strong>hoàn tiền thành công</strong> cho yêu cầu trả hàng <strong>#${escapeHtml(returnId)}</strong>.</p>
+      <p style="margin-top:0;">Dear <strong>${escapeHtml(customerName)}</strong>,</p>
+      <p><strong>MAISON RUE</strong> is pleased to confirm that quality inspection has passed and our finance team has <strong>completed your refund</strong> for return request <strong>#${escapeHtml(returnId)}</strong>.</p>
       <div style="background:#faf8f5;border:1px solid #ede6dd;padding:18px 20px;margin:18px 0;">
-        <p style="margin:0 0 6px;"><strong>Mã yêu cầu:</strong> ${escapeHtml(returnId)}</p>
-        <p style="margin:0 0 6px;"><strong>Mã đơn hàng:</strong> ${escapeHtml(returnReq.order_id)}</p>
-        <p style="margin:0 0 6px;"><strong>Sản phẩm:</strong> ${escapeHtml(returnReq.product_name || "Sản phẩm Maison Rue")}${variantText ? ` (${escapeHtml(variantText)})` : ""}</p>
-        <p style="margin:0 0 6px;"><strong>Số tiền đã hoàn:</strong> <strong style="color:#8b6d2e;">${escapeHtml(amount)}</strong></p>
-        <p style="margin:0 0 6px;"><strong>Mã tham chiếu giao dịch:</strong> ${escapeHtml(refundRef)}</p>
-        ${cleanNote ? `<p style="margin:6px 0 0;"><strong>Ghi chú xử lý:</strong> ${escapeHtml(cleanNote)}</p>` : ""}
+        <p style="margin:0 0 6px;"><strong>Request ID:</strong> ${escapeHtml(returnId)}</p>
+        <p style="margin:0 0 6px;"><strong>Order Number:</strong> ${escapeHtml(returnReq.order_id)}</p>
+        <p style="margin:0 0 6px;"><strong>Product:</strong> ${escapeHtml(returnReq.product_name || "Maison Rue Item")}${variantText ? ` (${escapeHtml(variantText)})` : ""}</p>
+        <p style="margin:0 0 6px;"><strong>Refunded Amount:</strong> <strong style="color:#8b6d2e;">${escapeHtml(amount)}</strong></p>
+        <p style="margin:0 0 6px;"><strong>Transaction Reference:</strong> ${escapeHtml(refundRef)}</p>
+        ${cleanNote ? `<p style="margin:6px 0 0;"><strong>Processing Note:</strong> ${escapeHtml(cleanNote)}</p>` : ""}
       </div>
-      <p style="font-size:13px;color:#555;">Số tiền hoàn sẽ được chuyển về phương thức thanh toán ban đầu của Quý khách trong 3–5 ngày làm việc tùy theo ngân hàng.</p>
+      <p style="font-size:13px;color:#555;">The refunded amount will be credited to your original payment method within 3–5 business days depending on your bank.</p>
     `,
   });
 
   const text = [
-    `MAISON RUE — DA HOAN TIEN CHO YEU CAU #${returnId}`,
+    `MAISON RUE — RETURN REFUND COMPLETED #${returnId}`,
     ``,
-    `Kinh chao ${customerName},`,
-    `Bo phan tai chinh MAISON RUE da hoan tien thanh cong cho yeu cau #${returnId} (don hang #${returnReq.order_id}).`,
-    `San pham: ${returnReq.product_name || "San pham"}${variantText ? ` (${variantText})` : ""}`,
-    `So tien da hoan: ${amount}`,
-    `Ma tham chieu giao dich: ${refundRef}`,
-    cleanNote ? `Ghi chu: ${cleanNote}` : null,
-    `So tien se ve phuong thuc thanh toan ban dau trong 3-5 ngay lam viec.`,
+    `Dear ${customerName},`,
+    `MAISON RUE Finance has completed your refund for return request #${returnId} (Order #${returnReq.order_id}).`,
+    `Product: ${returnReq.product_name || "Maison Rue Item"}${variantText ? ` (${variantText})` : ""}`,
+    `Refunded Amount: ${amount}`,
+    `Transaction Reference: ${refundRef}`,
+    cleanNote ? `Note: ${cleanNote}` : null,
+    `The refund will be credited to your original payment method within 3-5 business days.`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -750,7 +835,258 @@ export async function retryEmailNotification(notificationId) {
     );
   }
 
+  if (existing.event_type === "promotion_campaign") {
+    return sendPromotionCampaignEmail({
+      recipientEmail: existing.recipient_email,
+      promoCode: meta.promoCode || existing.entity_id,
+      promoTitle: meta.promoTitle || "",
+      promoDescription: meta.promoDescription || "",
+      discountLabel: meta.discountLabel || "",
+      minimumOrderText: meta.minimumOrderText || "",
+      validUntilText: meta.validUntilText || "",
+      eventKey: existing.event_key,
+      allowRetry: true,
+    });
+  }
+
+  if (existing.event_type === "account_created") {
+    const user = await db.findUserById(existing.entity_id);
+    return sendAccountCreatedEmail({
+      userId: user?.id || existing.entity_id,
+      name: user?.name || meta.name || "Valued Client",
+      email: user?.email || existing.recipient_email,
+      eventKey: existing.event_key,
+      allowRetry: true,
+    });
+  }
+
   return { success: false, error: `Unsupported notification event type: ${existing.event_type}` };
+}
+
+export async function sendPasswordResetOtpEmail({ userId, email, name, otp, expiresInMinutes = 15 }) {
+  const safeName = name || "Valued Client";
+  const safeOtp = String(otp || "").trim();
+  const mins = Number(expiresInMinutes || 15);
+  const subject = `[Maison Rue] Password Reset Verification Code`;
+  const html = wrapBrandedHtml({
+    headerTitle: "Password Reset Verification",
+    subtitle: "Account Security Verification",
+    bodyHtml: `
+      <p style="margin-top:0;">Dear <strong>${escapeHtml(safeName)}</strong>,</p>
+      <p>We received a request to reset the password for your <strong>MAISON RUE</strong> client account. Enter the 6-digit verification code below on the website to complete your password reset:</p>
+      <div style="margin:24px 0;padding:20px;background:#faf8f5;border:1px dashed #b89b5e;text-align:center;">
+        <div style="font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:#6c625b;margin-bottom:8px;">One-Time Verification Code</div>
+        <div style="font-family:'Courier New',monospace;font-size:32px;font-weight:700;letter-spacing:10px;color:#1a1615;">${escapeHtml(safeOtp)}</div>
+      </div>
+      <p style="font-size:13px;color:#555;">This code will expire in <strong>${mins} minutes</strong> and can only be used once. Once your password is updated, all active sessions across your devices will be signed out automatically for your security.</p>
+      <p style="font-size:12px;color:#7a7068;margin-bottom:0;">If you did not request a password reset, please disregard this email — your account remains secure.</p>
+    `,
+  });
+
+  const text = [
+    `MAISON RUE — PASSWORD RESET VERIFICATION`,
+    ``,
+    `Dear ${safeName},`,
+    `Your 6-digit verification code is: ${safeOtp}`,
+    `This code expires in ${mins} minutes and can only be used once.`,
+    `After resetting your password, all previous web sessions will be signed out automatically.`,
+  ].join("\n");
+
+  return dispatchResendEmail({
+    eventKey: `password-reset-otp:${userId || email}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
+    eventType: "password_reset_otp",
+    entityType: "user",
+    entityId: String(userId || email),
+    recipients: [email],
+    subject,
+    html,
+    text,
+    meta: { expiresInMinutes: mins },
+  });
+}
+
+export async function sendNewsletterWelcomeEmail({ email }) {
+  const safeEmail = String(email || "").trim().toLowerCase();
+  const subject = `[Maison Rue] Welcome to The Maison Rue Newsletter`;
+  const html = wrapBrandedHtml({
+    headerTitle: "Welcome to Maison Rue",
+    subtitle: "The Maison Rue Newsletter",
+    bodyHtml: `
+      <p style="margin-top:0;">Dear Valued Guest,</p>
+      <p>Thank you for subscribing to <strong>The Maison Rue Newsletter</strong>.</p>
+      <p>You will now be the first to receive seasonal lookbooks, private collection previews, and exclusive promotional codes crafted for our Maison Rue clientele.</p>
+      <div style="background:#faf8f5;border:1px solid #ede6dd;padding:16px 20px;margin:20px 0;">
+        <p style="margin:0;font-size:13px;color:#555;"><strong>Subscribed Address:</strong> ${escapeHtml(safeEmail)}</p>
+      </div>
+      <p style="font-size:13px;color:#555;margin-bottom:0;">We look forward to welcoming you at MAISON RUE.</p>
+    `,
+  });
+
+  const text = [
+    `MAISON RUE — WELCOME TO THE MAISON RUE NEWSLETTER`,
+    ``,
+    `Thank you for subscribing to The Maison Rue Newsletter.`,
+    `Subscribed email: ${safeEmail}`,
+    `You will receive new collection previews and exclusive promotional offers from Maison Rue.`,
+  ].join("\n");
+
+  return dispatchResendEmail({
+    eventKey: `newsletter-welcome:${safeEmail}`,
+    eventType: "newsletter_welcome",
+    entityType: "newsletter",
+    entityId: safeEmail,
+    recipients: [safeEmail],
+    subject,
+    html,
+    text,
+    allowRetry: true,
+  });
+}
+
+export async function sendPromotionCampaignEmail({
+  recipientEmail,
+  promoCode,
+  promoTitle = "",
+  promoDescription = "",
+  discountLabel = "",
+  minimumOrderText = "",
+  validUntilText = "",
+  eventKey = null,
+  allowRetry = false,
+}) {
+  const cleanCode = String(promoCode || "").trim().toUpperCase();
+  if (!cleanCode) {
+    return { success: false, skipped: true, reason: "missing_promo_code" };
+  }
+
+  const title = String(promoTitle || "An Exclusive Privilege From Maison Rue").trim();
+  const description = String(
+    promoDescription || "Enjoy a curated privilege on our luxury collections for a limited time."
+  ).trim();
+  const offerLine = String(discountLabel || "Special Private Offer").trim();
+  const minOrderLine = String(minimumOrderText || "").trim();
+  const validityLine = String(validUntilText || "").trim();
+
+  const subject = `[Maison Rue] Exclusive Offer — Use Code ${cleanCode}`;
+  const html = wrapBrandedHtml({
+    headerTitle: title,
+    subtitle: "Exclusive Client Privilege",
+    bodyHtml: `
+      <p style="margin-top:0;">Dear Valued Client,</p>
+      <p><strong>${escapeHtml(title)}</strong></p>
+      <p>${escapeHtml(description)}</p>
+      <div style="margin:24px 0;padding:22px 20px;background:#faf8f5;border:1px dashed #b89b5e;text-align:center;">
+        <div style="font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:#6c625b;margin-bottom:8px;">Your Promotional Code</div>
+        <div style="font-family:'Courier New',monospace;font-size:28px;font-weight:700;letter-spacing:4px;color:#1a1615;">${escapeHtml(cleanCode)}</div>
+        <div style="margin-top:10px;font-size:14px;font-weight:600;color:#7c5b2b;">${escapeHtml(offerLine)}</div>
+      </div>
+      ${
+        minOrderLine || validityLine
+          ? `<div style="background:#ffffff;border:1px solid #ede6dd;padding:14px 18px;margin:18px 0;font-size:13px;">
+              ${minOrderLine ? `<p style="margin:0 0 4px;"><strong>Eligibility:</strong> ${escapeHtml(minOrderLine)}</p>` : ""}
+              ${validityLine ? `<p style="margin:0;"><strong>Valid Until:</strong> ${escapeHtml(validityLine)}</p>` : ""}
+            </div>`
+          : ""
+      }
+      <p style="font-size:13px;color:#555;margin-bottom:0;">Simply enter code <strong>${escapeHtml(cleanCode)}</strong> at checkout to apply your privilege.</p>
+    `,
+  });
+
+  const text = [
+    `MAISON RUE — EXCLUSIVE OFFER (${cleanCode})`,
+    ``,
+    title,
+    description,
+    ``,
+    `PROMO CODE: ${cleanCode}`,
+    `OFFER: ${offerLine}`,
+    minOrderLine ? `Eligibility: ${minOrderLine}` : null,
+    validityLine ? `Valid Until: ${validityLine}` : null,
+    ``,
+    `Enter code ${cleanCode} at checkout on MAISON RUE.`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const safeRecipient = String(recipientEmail || "").trim().toLowerCase();
+  return dispatchResendEmail({
+    eventKey:
+      eventKey ||
+      `promo-campaign:${cleanCode}:${safeRecipient}:${Date.now()}:${Math.random().toString(36).slice(2, 7)}`,
+    eventType: "promotion_campaign",
+    entityType: "promotion_code",
+    entityId: cleanCode,
+    recipients: [safeRecipient],
+    subject,
+    html,
+    text,
+    meta: {
+      promoCode: cleanCode,
+      promoTitle: title,
+      promoDescription: description,
+      discountLabel: offerLine,
+      minimumOrderText: minOrderLine,
+      validUntilText: validityLine,
+    },
+    allowRetry,
+  });
+}
+
+export async function sendAccountCreatedEmail({
+  userId,
+  name,
+  email,
+  eventKey = null,
+  allowRetry = false,
+}) {
+  const safeEmail = String(email || "").trim().toLowerCase();
+  const safeName = String(name || "").trim() || "Valued Client";
+  if (!safeEmail) {
+    return { success: false, skipped: true, reason: "Missing recipient email address" };
+  }
+
+  const subject = `[Maison Rue] Welcome — Your Client Account Is Ready`;
+  const html = wrapBrandedHtml({
+    headerTitle: "Welcome to Maison Rue",
+    subtitle: "Account Registration Confirmed",
+    bodyHtml: `
+      <p style="margin-top:0;">Dear <strong>${escapeHtml(safeName)}</strong>,</p>
+      <p>Your <strong>MAISON RUE</strong> client account has been created successfully.</p>
+      <div style="background:#faf8f5;border:1px solid #ede6dd;padding:18px 20px;margin:20px 0;">
+        <p style="margin:0 0 6px;"><strong>Account Holder:</strong> ${escapeHtml(safeName)}</p>
+        <p style="margin:0 0 6px;"><strong>Registered Email:</strong> ${escapeHtml(safeEmail)}</p>
+        <p style="margin:0;"><strong>Account Status:</strong> Active</p>
+      </div>
+      <p style="font-size:13px;color:#555;">You can now sign in with <strong>${escapeHtml(safeEmail)}</strong> to track orders, manage delivery addresses, and receive order confirmations and exclusive offers directly at this email address.</p>
+      <p style="font-size:13px;color:#555;margin-bottom:0;">If you did not create this account, please contact Maison Rue Client Services immediately.</p>
+    `,
+  });
+
+  const text = [
+    `MAISON RUE — ACCOUNT REGISTRATION CONFIRMED`,
+    ``,
+    `Dear ${safeName},`,
+    `Your MAISON RUE client account has been created successfully.`,
+    ``,
+    `Account Holder: ${safeName}`,
+    `Registered Email: ${safeEmail}`,
+    `Account Status: Active`,
+    ``,
+    `Order updates and account notifications will be sent to ${safeEmail}.`,
+  ].join("\n");
+
+  return dispatchResendEmail({
+    eventKey: eventKey || `account-created:${userId || safeEmail}:${safeEmail}`,
+    eventType: "account_created",
+    entityType: "user",
+    entityId: String(userId || safeEmail),
+    recipients: [safeEmail],
+    subject,
+    html,
+    text,
+    meta: { name: safeName, email: safeEmail },
+    allowRetry,
+  });
 }
 
 export async function sendTestEmail({ to, initiatedBy = "CLI" }) {
@@ -759,40 +1095,73 @@ export async function sendTestEmail({ to, initiatedBy = "CLI" }) {
     return { success: false, error: "Invalid recipient email address" };
   }
 
+  const provider = getActiveEmailProvider();
+  const smtp = getSmtpConfig();
   const { apiKey, from } = getResendConfig();
-  const effectiveFrom = from || (mockResendClient ? "MAISON RUE <onboarding@resend.dev>" : "");
-  const client = getResendClient();
-  if (!client || (!mockResendClient && !apiKey) || !effectiveFrom) {
-    return {
-      success: false,
-      error: "Missing RESEND_API_KEY or RESEND_FROM_EMAIL in environment configuration.",
-    };
+  const effectiveFrom =
+    provider === "smtp"
+      ? smtp.from
+      : from || (mockResendClient ? "MAISON RUE <onboarding@resend.dev>" : "");
+
+  if (provider === "smtp") {
+    if (!smtp.user || !smtp.pass || !effectiveFrom) {
+      return {
+        success: false,
+        error: "Missing SMTP_USER, SMTP_PASS, or SMTP_FROM in environment configuration.",
+      };
+    }
+  } else {
+    const client = getResendClient();
+    if (!client || (!mockResendClient && !apiKey) || !effectiveFrom) {
+      return {
+        success: false,
+        error: "Missing RESEND_API_KEY or RESEND_FROM_EMAIL in environment configuration.",
+      };
+    }
   }
 
   const nowIso = new Date().toISOString();
-  const subject = "[Maison Rue] Resend Integration Verification Email";
+  const providerLabel = provider === "smtp" ? "Gmail SMTP" : "Resend";
+  const subject = `[Maison Rue] ${providerLabel} Integration Verification Email`;
   const html = wrapBrandedHtml({
-    headerTitle: "Resend SMTP / API Verification",
+    headerTitle: `${providerLabel} Verification`,
     subtitle: "System Diagnostic Email",
     bodyHtml: `
-      <p style="margin-top:0;">Đây là email kiểm thử tích hợp <strong>Resend</strong> từ backend <strong>MAISON RUE</strong>.</p>
+      <p style="margin-top:0;">This is an automated integration verification email sent via <strong>${escapeHtml(providerLabel)}</strong> from the <strong>MAISON RUE</strong> backend.</p>
       <div style="background:#faf8f5;border:1px solid #ede6dd;padding:16px 20px;margin:18px 0;">
-        <p style="margin:0 0 6px;"><strong>Người nhận kiểm thử:</strong> ${escapeHtml(recipients.join(", "))}</p>
-        <p style="margin:0 0 6px;"><strong>Địa chỉ gửi (From):</strong> ${escapeHtml(effectiveFrom)}</p>
-        <p style="margin:0 0 6px;"><strong>Nguồn kích hoạt:</strong> ${escapeHtml(initiatedBy)}</p>
-        <p style="margin:0;"><strong>Thời điểm (UTC):</strong> ${escapeHtml(nowIso)}</p>
+        <p style="margin:0 0 6px;"><strong>Recipient:</strong> ${escapeHtml(recipients.join(", "))}</p>
+        <p style="margin:0 0 6px;"><strong>From:</strong> ${escapeHtml(effectiveFrom)}</p>
+        <p style="margin:0 0 6px;"><strong>Triggered By:</strong> ${escapeHtml(initiatedBy)}</p>
+        <p style="margin:0;"><strong>Timestamp (UTC):</strong> ${escapeHtml(nowIso)}</p>
       </div>
-      <p style="font-size:13px;color:#555;">Nếu bạn nhận được email này, kết nối API Key và địa chỉ gửi trên Resend đã được Resend tiếp nhận và chuyển phát thành công.</p>
+      <p style="font-size:13px;color:#555;">If you received this message, your MAISON RUE email transport configuration is active and delivering normally.</p>
     `,
   });
   const text = [
-    `MAISON RUE — Resend Integration Verification Email`,
+    `MAISON RUE — ${providerLabel} Integration Verification Email`,
     `To: ${recipients.join(", ")}`,
     `From: ${effectiveFrom}`,
     `Initiated by: ${initiatedBy}`,
     `Time (UTC): ${nowIso}`,
   ].join("\n");
 
+  if (provider === "smtp") {
+    try {
+      const transporter = getSmtpTransporter();
+      const info = await transporter.sendMail({
+        from: effectiveFrom,
+        to: recipients.join(", "),
+        subject,
+        html,
+        text,
+      });
+      return { success: true, provider: "smtp", messageId: info?.messageId || null, from: effectiveFrom, to: recipients };
+    } catch (err) {
+      return { success: false, provider: "smtp", from: effectiveFrom, to: recipients, error: redactSecrets(err?.message || String(err)) };
+    }
+  }
+
+  const client = getResendClient();
   try {
     const result = await client.emails.send(
       {
@@ -805,11 +1174,11 @@ export async function sendTestEmail({ to, initiatedBy = "CLI" }) {
       { idempotencyKey: `cli-test:${recipients[0].toLowerCase()}:${nowIso}` }
     );
     if (result?.error) {
-      return { success: false, from: effectiveFrom, to: recipients, error: redactSecrets(result.error.message || JSON.stringify(result.error)) };
+      return { success: false, provider: "resend", from: effectiveFrom, to: recipients, error: redactSecrets(result.error.message || JSON.stringify(result.error)) };
     }
-    return { success: true, messageId: result?.data?.id || null, from: effectiveFrom, to: recipients };
+    return { success: true, provider: "resend", messageId: result?.data?.id || null, from: effectiveFrom, to: recipients };
   } catch (err) {
-    return { success: false, from: effectiveFrom, to: recipients, error: redactSecrets(err?.message || String(err)) };
+    return { success: false, provider: "resend", from: effectiveFrom, to: recipients, error: redactSecrets(err?.message || String(err)) };
   }
 }
 

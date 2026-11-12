@@ -148,6 +148,28 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Forgot Password (request 6-digit OTP)
+  const forgotPassword = async (email) => {
+    try {
+      const res = await authAPI.forgotPassword(email);
+      return { success: true, message: res.message };
+    } catch (err) {
+      return { success: false, error: formatErrorMessage(err) };
+    }
+  };
+
+  // Reset Password with 6-digit OTP (invalidates previous sessions/cookies)
+  const resetPassword = async ({ email, otp, newPassword }) => {
+    try {
+      const res = await authAPI.resetPassword({ email, otp, newPassword });
+      setCurrentUser(null);
+      notifyAuthChange("logout");
+      return { success: true, message: res.message };
+    } catch (err) {
+      return { success: false, error: formatErrorMessage(err) };
+    }
+  };
+
   // Logout
   const logout = async () => {
     try {
@@ -170,6 +192,8 @@ export function AuthProvider({ children }) {
     loginStaff,
     loginAdmin,
     register,
+    forgotPassword,
+    resetPassword,
     logout,
   };
 

@@ -1,6 +1,37 @@
-import { getPool } from "../config/db.js";
+import { db, getPool } from "../config/db.js";
 import sql from "mssql";
 import { verifyDeliveryAddress, getAddressSuggestionsFromGeoapify } from "../services/addressVerificationService.js";
+import { sendNewsletterWelcomeEmail } from "../services/emailService.js";
+
+const NEWSLETTER_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export async function subscribeNewsletter(req, res) {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    if (!email || !NEWSLETTER_EMAIL_REGEX.test(email)) {
+      return res.status(400).json({ success: false, error: "Please enter a valid email address." });
+    }
+
+    const { subscriber, created } = await db.subscribeNewsletter(email, req.body?.source || "footer");
+    if (created) {
+      await sendNewsletterWelcomeEmail({ email: subscriber.email }).catch((err) => {
+        console.warn("[Newsletter] Welcome email failed:", err?.message || err);
+      });
+    }
+
+    return res.status(created ? 201 : 200).json({
+      success: true,
+      alreadySubscribed: !created,
+      subscriber: { email: subscriber.email, subscribed_at: subscriber.subscribed_at },
+      message: created
+        ? "Thank you for subscribing. A confirmation email has been sent."
+        : "You are already subscribed to The Maison Rue Newsletter.",
+    });
+  } catch (err) {
+    console.error("[Newsletter] Subscribe Error:", err);
+    return res.status(500).json({ success: false, error: "Unable to subscribe right now. Please try again." });
+  }
+}
 
 export async function getAccount(req, res) {
   const pool = getPool();

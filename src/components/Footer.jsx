@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { customerAPI } from "../services/api";
 
 const footerGroups = [
   {
@@ -30,11 +31,25 @@ const footerGroups = [
 
 export default function Footer() {
   const [email, setEmail] = useState("");
-  const [subscribed, setSubscribed] = useState(false);
+  const [subscribedMessage, setSubscribedMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubscribe(event) {
+  async function handleSubscribe(event) {
     event.preventDefault();
-    if (email.trim()) setSubscribed(true);
+    const trimmed = email.trim();
+    if (!trimmed) return;
+    setSubmitting(true);
+    setErrorMessage("");
+    try {
+      const res = await customerAPI.subscribeNewsletter(trimmed, "footer");
+      setSubscribedMessage(res.message || "Thank you for subscribing.");
+      setEmail("");
+    } catch (err) {
+      setErrorMessage(err.message || "Unable to subscribe right now.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -43,14 +58,31 @@ export default function Footer() {
         <p className="footer-kicker">Maison Rue — The Art of Quiet Luxury</p>
         <h2 id="footer-newsletter-title">The Maison Rue Newsletter</h2>
         <p className="footer-newsletter-copy">Receive considered stories, new collections and exclusive offers from Maison Rue.</p>
-        {subscribed ? (
-          <p className="footer-success" role="status">Thank you for subscribing.</p>
+        {subscribedMessage ? (
+          <p className="footer-success" role="status">{subscribedMessage}</p>
         ) : (
-          <form className="footer-newsletter-form" onSubmit={handleSubscribe}>
-            <label className="sr-only" htmlFor="footer-email">Email address</label>
-            <input id="footer-email" type="email" placeholder="Enter your email address" value={email} onChange={(event) => setEmail(event.target.value)} required />
-            <button type="submit" aria-label="Subscribe to the newsletter">→</button>
-          </form>
+          <>
+            <form className="footer-newsletter-form" onSubmit={handleSubscribe}>
+              <label className="sr-only" htmlFor="footer-email">Email address</label>
+              <input
+                id="footer-email"
+                type="email"
+                placeholder="Enter your email address"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                disabled={submitting}
+                required
+              />
+              <button type="submit" aria-label="Subscribe to the newsletter" disabled={submitting}>
+                {submitting ? "…" : "→"}
+              </button>
+            </form>
+            {errorMessage && (
+              <p role="alert" style={{ color: "#8c2d2d", fontSize: "13px", marginTop: "10px" }}>
+                {errorMessage}
+              </p>
+            )}
+          </>
         )}
       </section>
 

@@ -1,11 +1,12 @@
 import { Router } from "express";
 import { authenticateToken, optionalAuthenticateToken, requireRole } from "../middleware/auth.js";
-import { getAccount, getAddressSuggestions, verifyAddress, addAddress, updateAddress, deleteAddress, updatePreferences, updateProfile } from "../controllers/customerController.js";
+import { getAccount, getAddressSuggestions, verifyAddress, addAddress, updateAddress, deleteAddress, updatePreferences, updateProfile, subscribeNewsletter } from "../controllers/customerController.js";
 import { deleteReview, getFavorites, getMyReviewEligibility, getReviewEligibility, saveReview, setFavorite } from "../controllers/engagementController.js";
 import { clearCart, getCart, saveCart } from "../controllers/cartController.js";
 const router = Router();
 
-// Public / Guest accessible address utility routes (for checkout autocomplete & evidence verification)
+// Public / Guest accessible routes
+router.post("/newsletter", subscribeNewsletter);
 router.get("/address-suggestions", optionalAuthenticateToken, getAddressSuggestions);
 router.post("/verify-address", optionalAuthenticateToken, verifyAddress);
 

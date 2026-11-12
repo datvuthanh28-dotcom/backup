@@ -5,13 +5,18 @@ import useDocumentTitle from "../hooks/useDocumentTitle";
 
 export default function CustomerLogin() {
   useDocumentTitle("Client Sign In");
-  const { loginCustomer, register, currentUser, role, logout } = useAuth();
+  const { loginCustomer, register, forgotPassword, resetPassword, currentUser, role, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [tab, setTab] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [forgotStep, setForgotStep] = useState("request");
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [resetOtp, setResetOtp] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [errors, setErrors] = useState({});
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
@@ -77,7 +82,73 @@ export default function CustomerLogin() {
   const quickFill = (demoEmail, demoPass) => {
     setEmail(demoEmail);
     setPassword(demoPass);
+    setTab("login");
     setErrors({});
+  };
+
+  const openForgotPassword = () => {
+    setForgotEmail(email.trim());
+    setResetOtp("");
+    setNewPassword("");
+    setConfirmNewPassword("");
+    setForgotStep("request");
+    setNotice("");
+    setErrors({});
+    setTab("forgot");
+  };
+
+  const handleRequestOtp = async (e) => {
+    e.preventDefault();
+    setNotice("");
+    const targetEmail = forgotEmail.trim();
+    if (!targetEmail) {
+      setErrors({ forgotEmail: "Please enter your account email address." });
+      return;
+    }
+    setErrors({});
+    setLoading(true);
+    const result = await forgotPassword(targetEmail);
+    setLoading(false);
+    if (!result.success) {
+      setErrors({ form: result.error });
+      return;
+    }
+    setNotice(result.message || "A 6-digit verification code has been sent to your email.");
+    setForgotStep("verify");
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setNotice("");
+    const errs = {};
+    if (!forgotEmail.trim()) errs.forgotEmail = "Email address is required.";
+    if (!/^\d{6}$/.test(resetOtp.trim())) errs.resetOtp = "Please enter the 6-digit code from your email.";
+    if (!newPassword || newPassword.length < 6) errs.newPassword = "New password must be at least 6 characters.";
+    if (newPassword !== confirmNewPassword) errs.confirmNewPassword = "Passwords do not match.";
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
+    setLoading(true);
+    const result = await resetPassword({
+      email: forgotEmail.trim(),
+      otp: resetOtp.trim(),
+      newPassword,
+    });
+    setLoading(false);
+
+    if (!result.success) {
+      setErrors({ form: result.error });
+      return;
+    }
+
+    setEmail(forgotEmail.trim());
+    setPassword("");
+    setResetOtp("");
+    setNewPassword("");
+    setConfirmNewPassword("");
+    setTab("login");
+    setErrors({});
+    setNotice(result.message || "Password updated. Please sign in with your new password.");
   };
 
   return (
@@ -215,7 +286,14 @@ export default function CustomerLogin() {
                 <label className="remember-me">
                   <input type="checkbox" defaultChecked /> <span>Remember me</span>
                 </label>
-                <a href="#forgot" onClick={(e) => { e.preventDefault(); alert("Please use the demo account below."); }} className="forgot-pass">
+                <a
+                  href="#forgot"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    openForgotPassword();
+                  }}
+                  className="forgot-pass"
+                >
                   Forgot password?
                 </a>
               </div>
@@ -224,6 +302,106 @@ export default function CustomerLogin() {
                 {loading ? "Signing in..." : "SIGN IN"}
               </button>
             </form>
+          ) : tab === "forgot" ? (
+            forgotStep === "request" ? (
+              <form className="auth-form active" onSubmit={handleRequestOtp} noValidate>
+                <p style={{ fontSize: "13px", color: "#6B5A4B", marginTop: 0, marginBottom: "16px", lineHeight: "1.5" }}>
+                  Enter your client account email. We will send a 6-digit verification code to your inbox.
+                </p>
+                <div className="form-group">
+                  <label>Email address *</label>
+                  <input
+                    type="email"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    placeholder="vudat9532@gmail.com"
+                  />
+                  {errors.forgotEmail && <span className="error">{errors.forgotEmail}</span>}
+                </div>
+                <button type="submit" disabled={loading} className="auth-submit-btn">
+                  {loading ? "Sending code..." : "SEND 6-DIGIT CODE"}
+                </button>
+                <div style={{ marginTop: "14px", textAlign: "center" }}>
+                  <a
+                    href="#back-to-login"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setTab("login");
+                      setErrors({});
+                    }}
+                    className="forgot-pass"
+                  >
+                    ← Back to Sign In
+                  </a>
+                </div>
+              </form>
+            ) : (
+              <form className="auth-form active" onSubmit={handleResetPassword} noValidate>
+                <p style={{ fontSize: "13px", color: "#6B5A4B", marginTop: 0, marginBottom: "16px", lineHeight: "1.5" }}>
+                  Enter the 6-digit code sent to <strong>{forgotEmail}</strong> and choose your new password.
+                </p>
+                <div className="form-group">
+                  <label>6-Digit Verification Code *</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={resetOtp}
+                    onChange={(e) => setResetOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="123456"
+                    style={{ letterSpacing: "6px", fontWeight: "700", fontSize: "16px" }}
+                  />
+                  {errors.resetOtp && <span className="error">{errors.resetOtp}</span>}
+                </div>
+                <div className="form-group">
+                  <label>New password *</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                  />
+                  {errors.newPassword && <span className="error">{errors.newPassword}</span>}
+                </div>
+                <div className="form-group">
+                  <label>Confirm new password *</label>
+                  <input
+                    type="password"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    placeholder="Re-enter your new password"
+                  />
+                  {errors.confirmNewPassword && <span className="error">{errors.confirmNewPassword}</span>}
+                </div>
+                <button type="submit" disabled={loading} className="auth-submit-btn">
+                  {loading ? "Resetting password..." : "RESET PASSWORD"}
+                </button>
+                <div style={{ marginTop: "14px", display: "flex", justifyContent: "space-between", fontSize: "12.5px" }}>
+                  <a
+                    href="#resend-code"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setForgotStep("request");
+                      setErrors({});
+                    }}
+                    className="forgot-pass"
+                  >
+                    Resend code
+                  </a>
+                  <a
+                    href="#back-to-login"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setTab("login");
+                      setErrors({});
+                    }}
+                    className="forgot-pass"
+                  >
+                    ← Back to Sign In
+                  </a>
+                </div>
+              </form>
+            )
           ) : (
             <form className="auth-form active" onSubmit={handleRegister} noValidate>
               <div className="form-group">

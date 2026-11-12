@@ -101,11 +101,19 @@ export async function createOrder(req, res) {
     }
     const pricing = await calculatePromotions({ items: normalizedItems, code: promotionCode, customerId: req.user?.role === "customer" ? req.user.id : null, shippingFee: 0 });
 
+    const authenticatedCustomer =
+      req.user?.role === "customer" && req.user?.id
+        ? await db.findUserById(req.user.id)
+        : null;
+    const resolvedCustomerEmail = authenticatedCustomer?.email
+      ? authenticatedCustomer.email.trim().toLowerCase()
+      : email.trim().toLowerCase();
+
     const orderData = {
       id: orderId,
       customer_id: customerId,
       customer_name: name.trim(),
-      customer_email: email.trim().toLowerCase(),
+      customer_email: resolvedCustomerEmail,
       customer_phone: phone.trim(),
       shipping_address: verifiedAddress ? verifiedAddress.formatted : address.trim(),
       shipping_fee: pricing.shippingFeeOriginal - pricing.shippingDiscountTotal,

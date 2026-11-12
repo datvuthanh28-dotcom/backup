@@ -16,6 +16,7 @@ export function generateToken(user) {
       email: user.email,
       role: user.role,
       name: user.name,
+      tokenVersion: Number(user.token_version ?? 1),
     },
     JWT_SECRET,
     { expiresIn: "7d" }
@@ -77,6 +78,14 @@ export async function authenticateToken(req, res, next) {
       });
     }
 
+    if (Number(decoded.tokenVersion ?? 1) !== Number(user.token_version ?? 1)) {
+      clearAuthCookie(res);
+      return res.status(401).json({
+        success: false,
+        error: "Phiên đăng nhập đã hết hiệu lực do mật khẩu được thay đổi. Vui lòng đăng nhập lại.",
+      });
+    }
+
     req.user = {
       id: user.id,
       name: user.name,
@@ -102,7 +111,9 @@ export async function optionalAuthenticateToken(req, res, next) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = await db.findUserById(decoded.id);
-    if (user?.is_active !== false) req.user = { id: user.id, name: user.name, email: user.email, role: user.role, phone: user.phone };
+    if (user && user.is_active !== false && Number(decoded.tokenVersion ?? 1) === Number(user.token_version ?? 1)) {
+      req.user = { id: user.id, name: user.name, email: user.email, role: user.role, phone: user.phone };
+    }
   } catch { /* A preview remains available as guest when an optional session is invalid. */ }
   next();
 }

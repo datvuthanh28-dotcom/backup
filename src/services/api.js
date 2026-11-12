@@ -57,6 +57,18 @@ export const authAPI = {
       body: JSON.stringify(payload),
     }),
 
+  forgotPassword: (email) =>
+    request("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+
+  resetPassword: (payload) =>
+    request("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
   logout: () =>
     request("/auth/logout", {
       method: "POST",
@@ -65,6 +77,11 @@ export const authAPI = {
   getMe: () => request("/auth/me"),
 };
 export const customerAPI = {
+  subscribeNewsletter: (email, source = "footer") =>
+    request("/customer/newsletter", {
+      method: "POST",
+      body: JSON.stringify({ email, source }),
+    }),
   getAccount: () => request("/customer/account"),
   getAddressSuggestions: (input, country) => request(`/customer/address-suggestions?input=${encodeURIComponent(input)}&country=${encodeURIComponent(country)}`),
   verifyAddress: (address, country = "VN") => request("/customer/verify-address", { method: "POST", body: JSON.stringify({ address, country }) }),
@@ -96,6 +113,8 @@ export const promotionAPI = {
   approve: (id, status, note = "") => request(`/promotions/admin/${id}/approval`, { method: "PATCH", body: JSON.stringify({ status, note }) }),
   archive: (id) => request(`/promotions/admin/${id}`, { method: "DELETE" }),
   report: () => request("/promotions/admin-report"),
+  getEmailAudience: () => request("/promotions/admin/email-audience"),
+  sendEmailCampaign: (payload) => request("/promotions/admin/send-email", { method: "POST", body: JSON.stringify(payload) }),
 };
 
 export const productsAPI = {

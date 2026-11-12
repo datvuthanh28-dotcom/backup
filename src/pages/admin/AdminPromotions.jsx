@@ -64,6 +64,7 @@ export default function AdminPromotions() {
   const [catalog, setCatalog] = useState([]);
   const [suggestionPage, setSuggestionPage] = useState(1);
   const [selectedSuggestions, setSelectedSuggestions] = useState(() => new Set());
+  const [emailPromoDraft, setEmailPromoDraft] = useState(null);
   const suggestionsPerPage = 10;
 
   const load = async (forceRefresh = false) => {
@@ -277,10 +278,22 @@ export default function AdminPromotions() {
   const pagedSuggestions = eligibleSuggestions.slice((suggestionPage - 1) * suggestionsPerPage, suggestionPage * suggestionsPerPage);
   const codeRows = rows.filter((row) => row.codes);
 
+  const openEmailWithCode = (row = null) => {
+    setEmailPromoDraft(row ? {
+      promoCode: String(row.codes || "").split(",")[0].trim().toUpperCase(),
+      promoTitle: row.public_title || row.name || "",
+      promoDescription: row.public_description || row.description || "",
+      discountLabel: row.discount_type === "percentage" ? `${Number(row.discount_value)}% OFF` : row.discount_type === "free_shipping" ? "Complimentary Shipping" : `${Number(row.discount_value || 0).toLocaleString("en-US")} VND OFF`,
+      minimumOrderText: Number(row.minimum_order_value || 0) > 0 ? `Minimum order of ${Number(row.minimum_order_value).toLocaleString("en-US")} VND` : "No minimum order required",
+      validUntilText: row.end_at ? new Date(row.end_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "While supplies last",
+    } : null);
+    setActiveView("email_campaign");
+  };
+
   return <div className="promotion-admin">
     <header>
       <div><p className="eyebrow">Chính sách bán hàng</p><h1>QUẢN LÝ KHUYẾN MÃI</h1><p>Quyết định dựa trên doanh thu dự kiến, chi phí ưu đãi và lượng hàng có thể giải phóng.</p></div>
-      <div className="promotion-header-actions"><button onClick={() => openNew(true)}>Tạo mã giảm giá</button><button className="btn-primary" onClick={() => openNew(false)}>Tạo chương trình tự động</button></div>
+      <div className="promotion-header-actions"><button type="button" onClick={() => openEmailWithCode(null)}>Gửi mail ưu đãi</button><button onClick={() => openNew(true)}>Tạo mã giảm giá</button><button className="btn-primary" onClick={() => openNew(false)}>Tạo chương trình tự động</button></div>
     </header>
 
     {message && <div className={`promotion-toast ${message.startsWith("Đã") ? "promotion-toast--success" : "promotion-toast--error"}`} role="status"><span>{message}</span><button type="button" aria-label="Đóng thông báo" onClick={() => setMessage("")}>×</button></div>}
@@ -297,6 +310,7 @@ export default function AdminPromotions() {
       <button className={activeView === "programs" ? "active" : ""} onClick={() => setActiveView("programs")}>Chương trình ({rows.filter((row) => !row.is_archived).length})</button>
       <button className={activeView === "codes" ? "active" : ""} onClick={() => setActiveView("codes")}>Mã giảm giá ({codeRows.length})</button>
       <button className={activeView === "templates" ? "active" : ""} onClick={() => setActiveView("templates")}>Mẫu đợt sale ({templates.length})</button>
+      <button className={activeView === "email_campaign" ? "active" : ""} onClick={() => setActiveView("email_campaign")}>Gửi email ưu đãi</button>
     </nav>
 
     {activeView === "recommendations" && <section className="promotion-suggestions">
@@ -345,8 +359,9 @@ export default function AdminPromotions() {
     </section>}
 
     {activeView === "programs" && <ProgramTable rows={rows} beginEdit={beginEdit} act={act} openNew={openNew} />}
-    {activeView === "codes" && <CodeTable rows={codeRows} openNew={openNew} />}
+    {activeView === "codes" && <CodeTable rows={codeRows} openNew={openNew} openEmailWithCode={openEmailWithCode} />}
     {activeView === "templates" && <TemplateGallery templates={templates} applyTemplate={applyTemplate} selectedCount={selectedSuggestions.size} />}
+    {activeView === "email_campaign" && <PromotionEmailPanel codeRows={codeRows} initialDraft={emailPromoDraft} setMessage={setMessage} />}
 
     {priceEdit && <PriceModal priceEdit={priceEdit} setPriceEdit={setPriceEdit} setBusy={setBusy} busy={busy} setMessage={setMessage} load={load} />}
     {open && <PromotionModal form={form} patch={patch} setForm={setForm} editing={editing} setOpen={setOpen} save={save} busy={busy} runSimulation={runSimulation} simulation={simulation} catalog={catalog} suggestions={suggestions} />}
@@ -387,14 +402,245 @@ function TargetSummary({ targets, reservedCount }) {
   return <details className="promotion-target-details"><summary>{entries.length} SKU được chọn{Number(reservedCount) > 0 ? ` · giữ ${reservedCount}` : ""}</summary><div>{entries.map((entry) => <span key={entry}>{entry.replace(/^variant:/, "")}</span>)}</div></details>;
 }
 
-function CodeTable({ rows, openNew }) {
+function CodeTable({ rows, openNew, openEmailWithCode }) {
   return <section className="promotion-management-section">
     <div className="promotion-section-heading"><div><p className="eyebrow">Phân phối ưu đãi</p><h2>Mã giảm giá</h2><p>Mã công khai, mã riêng cho khách hàng hoặc mã nội bộ đều được quản lý tại đây.</p></div><button className="btn-primary" onClick={() => openNew(true)}>Tạo mã giảm giá</button></div>
-    <div className="admin-insights__table-wrap"><table className="admin-insights__table"><thead><tr><th>Mã giảm giá</th><th>Chương trình</th><th>Ưu đãi</th><th>Đã sử dụng</th><th>Thời hạn</th><th>Trạng thái</th></tr></thead><tbody>
-      {rows.map((row) => { const codeExhausted = row.code_usage_limit && Number(row.code_used_count) >= Number(row.code_usage_limit); return <tr key={row.id}><td><strong>{row.codes}</strong></td><td>{row.name}</td><td>{row.discount_type === "percentage" ? `${Number(row.discount_value)}%` : money(row.discount_value)}</td><td>{Number(row.code_used_count || 0)}{row.code_usage_limit ? ` / ${row.code_usage_limit}` : " / Không giới hạn"}</td><td>{new Date(row.start_at).toLocaleDateString("vi-VN")} – {row.end_at ? new Date(row.end_at).toLocaleDateString("vi-VN") : "Không giới hạn"}</td><td><span className={`promotion-status promotion-status--${codeExhausted ? "exhausted" : row.effective_status}`}>{codeExhausted ? "Đã hết lượt" : statusLabels[row.effective_status]}</span></td></tr>; })}
-      {rows.length === 0 && <tr><td colSpan="6" className="promotion-table-empty">Chưa có mã giảm giá nào.</td></tr>}
+    <div className="admin-insights__table-wrap"><table className="admin-insights__table"><thead><tr><th>Mã giảm giá</th><th>Chương trình</th><th>Ưu đãi</th><th>Đã sử dụng</th><th>Thời hạn</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>
+      {rows.map((row) => { const codeExhausted = row.code_usage_limit && Number(row.code_used_count) >= Number(row.code_usage_limit); return <tr key={row.id}><td><strong>{row.codes}</strong></td><td>{row.name}</td><td>{row.discount_type === "percentage" ? `${Number(row.discount_value)}%` : money(row.discount_value)}</td><td>{Number(row.code_used_count || 0)}{row.code_usage_limit ? ` / ${row.code_usage_limit}` : " / Không giới hạn"}</td><td>{new Date(row.start_at).toLocaleDateString("vi-VN")} – {row.end_at ? new Date(row.end_at).toLocaleDateString("vi-VN") : "Không giới hạn"}</td><td><span className={`promotion-status promotion-status--${codeExhausted ? "exhausted" : row.effective_status}`}>{codeExhausted ? "Đã hết lượt" : statusLabels[row.effective_status]}</span></td><td><button type="button" onClick={() => openEmailWithCode(row)}>Gửi mail</button></td></tr>; })}
+      {rows.length === 0 && <tr><td colSpan="7" className="promotion-table-empty">Chưa có mã giảm giá nào.</td></tr>}
     </tbody></table></div>
   </section>;
+}
+
+function PromotionEmailPanel({ codeRows, initialDraft, setMessage }) {
+  const [selectedCodeKey, setSelectedCodeKey] = useState(initialDraft?.promoCode || "");
+  const [promoCode, setPromoCode] = useState(initialDraft?.promoCode || "MAISON15");
+  const [promoTitle, setPromoTitle] = useState(initialDraft?.promoTitle || "An Exclusive Privilege From Maison Rue");
+  const [promoDescription, setPromoDescription] = useState(
+    initialDraft?.promoDescription || "Enjoy a curated private privilege across our latest luxury collections for a limited time."
+  );
+  const [discountLabel, setDiscountLabel] = useState(initialDraft?.discountLabel || "15% OFF");
+  const [minimumOrderText, setMinimumOrderText] = useState(initialDraft?.minimumOrderText || "No minimum order required");
+  const [validUntilText, setValidUntilText] = useState(initialDraft?.validUntilText || "While supplies last");
+  const [audience, setAudience] = useState("both");
+  const [customEmails, setCustomEmails] = useState("");
+  const [audienceInfo, setAudienceInfo] = useState(null);
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    if (!initialDraft) return;
+    setSelectedCodeKey(initialDraft.promoCode || "");
+    setPromoCode(initialDraft.promoCode || "");
+    setPromoTitle(initialDraft.promoTitle || "An Exclusive Privilege From Maison Rue");
+    setPromoDescription(initialDraft.promoDescription || "Enjoy a curated private privilege across our latest luxury collections for a limited time.");
+    setDiscountLabel(initialDraft.discountLabel || "Exclusive Promotional Privilege");
+    setMinimumOrderText(initialDraft.minimumOrderText || "No minimum order required");
+    setValidUntilText(initialDraft.validUntilText || "While supplies last");
+  }, [initialDraft]);
+
+  useEffect(() => {
+    promotionAPI.getEmailAudience().then((res) => setAudienceInfo(res.audience)).catch(() => {});
+  }, []);
+
+  const codeOptions = useMemo(() => {
+    const items = [];
+    for (const row of codeRows || []) {
+      const codes = String(row.codes || "").split(",").map((c) => c.trim().toUpperCase()).filter(Boolean);
+      for (const code of codes) {
+        items.push({ code, row });
+      }
+    }
+    return items;
+  }, [codeRows]);
+
+  const handleSelectExisting = (code) => {
+    setSelectedCodeKey(code);
+    if (!code) return;
+    setPromoCode(code);
+    const match = codeOptions.find((entry) => entry.code === code)?.row;
+    if (!match) return;
+    setPromoTitle(match.public_title || match.name || "An Exclusive Privilege From Maison Rue");
+    setPromoDescription(
+      match.public_description ||
+      match.description ||
+      "Enjoy a curated private privilege across our latest luxury collections for a limited time."
+    );
+    setDiscountLabel(
+      match.discount_type === "percentage"
+        ? `${Number(match.discount_value)}% OFF`
+        : match.discount_type === "free_shipping"
+        ? "Complimentary Shipping"
+        : `${Number(match.discount_value || 0).toLocaleString("en-US")} VND OFF`
+    );
+    setMinimumOrderText(
+      Number(match.minimum_order_value || 0) > 0
+        ? `Minimum order of ${Number(match.minimum_order_value).toLocaleString("en-US")} VND`
+        : "No minimum order required"
+    );
+    setValidUntilText(
+      match.end_at
+        ? new Date(match.end_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+        : "While supplies last"
+    );
+  };
+
+  const handleSend = async (event) => {
+    event.preventDefault();
+    if (!promoCode.trim()) {
+      setMessage("Vui lòng nhập mã ưu đãi trước khi gửi.");
+      return;
+    }
+    setSending(true);
+    setMessage("");
+    try {
+      const res = await promotionAPI.sendEmailCampaign({
+        promoCode: promoCode.trim().toUpperCase(),
+        audience,
+        customEmails,
+        promoTitle,
+        promoDescription,
+        discountLabel,
+        minimumOrderText,
+        validUntilText,
+      });
+      setMessage(res.message || `Đã gửi email mã ưu đãi ${promoCode.trim().toUpperCase()}.`);
+    } catch (error) {
+      setMessage(error.message || "Không thể gửi email ưu đãi.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const displayCode = (promoCode || "YOURCODE").trim().toUpperCase();
+
+  return (
+    <section className="promotion-management-section">
+      <div className="promotion-section-heading">
+        <div>
+          <p className="eyebrow">Email Marketing (English Template)</p>
+          <h2>Gửi mã ưu đãi qua Email cho khách hàng</h2>
+          <p>Mẫu email tiếng Anh đã được thiết kế sẵn — chỉ cần chọn hoặc nhập mã Promotion Code để gửi tới khách hàng đăng ký Newsletter và khách hàng hệ thống.</p>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "24px", alignItems: "start" }}>
+        <form onSubmit={handleSend} style={{ background: "#fff", border: "1px solid #e6dfd5", borderRadius: "8px", padding: "20px", display: "grid", gap: "14px" }}>
+          <label style={{ display: "grid", gap: "6px", fontSize: "13px", fontWeight: "600" }}>
+            Chọn nhanh từ mã giảm giá hiện có (tuỳ chọn)
+            <select value={selectedCodeKey} onChange={(e) => handleSelectExisting(e.target.value)} style={{ padding: "10px", border: "1px solid #d8cec1", borderRadius: "4px" }}>
+              <option value="">-- Nhập mã thủ công hoặc chọn mã có sẵn --</option>
+              {codeOptions.map((item) => (
+                <option key={item.code} value={item.code}>
+                  {item.code} — {item.row.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label style={{ display: "grid", gap: "6px", fontSize: "13px", fontWeight: "600" }}>
+            Mã ưu đãi (Promotion Code) *
+            <input
+              required
+              value={promoCode}
+              onChange={(e) => {
+                setPromoCode(e.target.value.toUpperCase());
+                setSelectedCodeKey("");
+              }}
+              placeholder="Ví dụ: MAISON15"
+              style={{ padding: "10px 12px", border: "1px solid #b89b5e", borderRadius: "4px", fontWeight: "700", letterSpacing: "2px", fontSize: "15px" }}
+            />
+          </label>
+
+          <label style={{ display: "grid", gap: "6px", fontSize: "13px", fontWeight: "600" }}>
+            Nhóm người nhận
+            <select value={audience} onChange={(e) => setAudience(e.target.value)} style={{ padding: "10px", border: "1px solid #d8cec1", borderRadius: "4px" }}>
+              <option value="both">
+                Tất cả (Newsletter + Khách hàng{audienceInfo ? `: ${audienceInfo.combinedCount} email` : ""})
+              </option>
+              <option value="newsletter">
+                Chỉ khách đăng ký Newsletter{audienceInfo ? ` (${audienceInfo.newsletterCount} email)` : ""}
+              </option>
+              <option value="customers">
+                Chỉ khách hàng có tài khoản{audienceInfo ? ` (${audienceInfo.customerCount} email)` : ""}
+              </option>
+              <option value="custom">Chỉ gửi danh sách email nhập bên dưới</option>
+            </select>
+          </label>
+
+          <label style={{ display: "grid", gap: "6px", fontSize: "13px", fontWeight: "600" }}>
+            Email nhận thêm / gửi thử (tuỳ chọn, cách nhau dấu phẩy)
+            <input
+              value={customEmails}
+              onChange={(e) => setCustomEmails(e.target.value)}
+              placeholder="client1@gmail.com, client2@gmail.com"
+              style={{ padding: "10px", border: "1px solid #d8cec1", borderRadius: "4px" }}
+            />
+          </label>
+
+          <details style={{ fontSize: "12.5px", color: "#6b5a4b", background: "#faf8f5", padding: "10px 12px", borderRadius: "4px", border: "1px solid #ece5dc" }}>
+            <summary style={{ cursor: "pointer", fontWeight: "600", color: "#2b211c" }}>Tuỳ chỉnh nội dung phụ trong template (tuỳ chọn)</summary>
+            <div style={{ display: "grid", gap: "10px", marginTop: "10px" }}>
+              <label style={{ display: "grid", gap: "4px" }}>
+                Headline (English)
+                <input value={promoTitle} onChange={(e) => setPromoTitle(e.target.value)} style={{ padding: "8px", border: "1px solid #d8cec1", borderRadius: "4px" }} />
+              </label>
+              <label style={{ display: "grid", gap: "4px" }}>
+                Offer Label (English)
+                <input value={discountLabel} onChange={(e) => setDiscountLabel(e.target.value)} style={{ padding: "8px", border: "1px solid #d8cec1", borderRadius: "4px" }} />
+              </label>
+              <label style={{ display: "grid", gap: "4px" }}>
+                Description (English)
+                <textarea rows={2} value={promoDescription} onChange={(e) => setPromoDescription(e.target.value)} style={{ padding: "8px", border: "1px solid #d8cec1", borderRadius: "4px" }} />
+              </label>
+              <label style={{ display: "grid", gap: "4px" }}>
+                Eligibility (English)
+                <input value={minimumOrderText} onChange={(e) => setMinimumOrderText(e.target.value)} style={{ padding: "8px", border: "1px solid #d8cec1", borderRadius: "4px" }} />
+              </label>
+              <label style={{ display: "grid", gap: "4px" }}>
+                Valid Until (English)
+                <input value={validUntilText} onChange={(e) => setValidUntilText(e.target.value)} style={{ padding: "8px", border: "1px solid #d8cec1", borderRadius: "4px" }} />
+              </label>
+            </div>
+          </details>
+
+          <button type="submit" className="btn-primary" disabled={sending} style={{ padding: "12px 18px", fontWeight: "700" }}>
+            {sending ? "Đang gửi email ưu đãi…" : `Gửi email mã ${displayCode} cho khách hàng`}
+          </button>
+        </form>
+
+        <div style={{ background: "#f4f0ea", border: "1px solid #e6dfd5", borderRadius: "8px", padding: "16px" }}>
+          <div style={{ fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "#6c625b", marginBottom: "10px", fontWeight: "700" }}>
+            Xem trước mẫu Email tiếng Anh sẽ gửi (Template sẵn)
+          </div>
+          <div style={{ background: "#ffffff", border: "1px solid #e6dfd5", fontFamily: "'Helvetica Neue', Arial, sans-serif", color: "#1a1615" }}>
+            <div style={{ background: "#1a1615", color: "#ffffff", padding: "20px", textAlign: "center", borderBottom: "2px solid #d4af37" }}>
+              <div style={{ fontFamily: "Georgia, serif", fontSize: "18px", letterSpacing: "0.26em", color: "#d4af37" }}>MAISON RUE</div>
+              <div style={{ fontSize: "10px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#d7cec4", marginTop: "4px" }}>Exclusive Client Privilege</div>
+            </div>
+            <div style={{ padding: "22px", fontSize: "13.5px", lineHeight: "1.6" }}>
+              <p style={{ marginTop: 0 }}>Dear Valued Client,</p>
+              <p><strong>{promoTitle}</strong></p>
+              <p>{promoDescription}</p>
+              <div style={{ margin: "18px 0", padding: "18px", background: "#faf8f5", border: "1px dashed #b89b5e", textAlign: "center" }}>
+                <div style={{ fontSize: "10px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#6c625b", marginBottom: "6px" }}>Your Promotional Code</div>
+                <div style={{ fontFamily: "'Courier New', monospace", fontSize: "24px", fontWeight: "700", letterSpacing: "4px", color: "#1a1615" }}>{displayCode}</div>
+                <div style={{ marginTop: "8px", fontSize: "13px", fontWeight: "600", color: "#7c5b2b" }}>{discountLabel}</div>
+              </div>
+              {(minimumOrderText || validUntilText) && (
+                <div style={{ border: "1px solid #ede6dd", padding: "10px 14px", fontSize: "12.5px", marginBottom: "14px" }}>
+                  {minimumOrderText && <div><strong>Eligibility:</strong> {minimumOrderText}</div>}
+                  {validUntilText && <div><strong>Valid Until:</strong> {validUntilText}</div>}
+                </div>
+              )}
+              <p style={{ fontSize: "12.5px", color: "#555", marginBottom: 0 }}>
+                Simply enter code <strong>{displayCode}</strong> at checkout to apply your privilege.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 function PriceModal({ priceEdit, setPriceEdit, setBusy, busy, setMessage, load }) {
