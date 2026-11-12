@@ -1,0 +1,50 @@
+services:
+  # Microsoft SQL Server 2022
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: maisonrue-mssql
+    restart: always
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${DB_PASSWORD:-MaisonRue@2026!}"
+      MSSQL_PID: "Developer"
+    ports:
+      - "${DB_PORT:-1433}:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -Q \"SELECT 1\" -C 2>/dev/null || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -Q \"SELECT 1\" 2>/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
+  # Toàn bộ ứng dụng (Backend + Frontend built) - Kích hoạt khi chạy với: docker compose --profile full up -d
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: maisonrue-app
+    restart: always
+    profiles:
+      - full
+    depends_on:
+      mssql:
+        condition: service_healthy
+    environment:
+      PORT: 5000
+      NODE_ENV: production
+      DB_SERVER: mssql
+      DB_PORT: 1433
+      DB_NAME: ${DB_NAME:-MaisonRueDB}
+      DB_USER: ${DB_USER:-sa}
+      DB_PASSWORD: ${DB_PASSWORD:-MaisonRue@2026!}
+      DB_TRUST_SERVER_CERTIFICATE: "true"
+      JWT_SECRET: ${JWT_SECRET:-MaisonRue_Secret_Key_Change_In_Production_2026}
+      CLIENT_ORIGIN: "http://localhost:5000"
+    ports:
+      - "5000:5000"
+
+volumes:
+  mssql_data:
+    name: maisonrue_mssql_data

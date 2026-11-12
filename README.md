@@ -39,21 +39,30 @@ Các mật khẩu được băm an toàn bằng **bcrypt** (10 rounds) và lưu 
 
 ### Yêu cầu môi trường
 - **Node.js** >= 18.0.0
-- **Microsoft SQL Server** (Standard, Developer, Enterprise hoặc Express; cổng TCP mặc định thường là 1433)
+- **Cơ sở dữ liệu Microsoft SQL Server**: Có thể dùng 1 trong 2 cách:
+  - **Cách 1 (Khuyên dùng - Nhanh nhất):** Dùng Docker Desktop để chạy MSSQL container chỉ với 1 lệnh (`npm run docker:up`).
+  - **Cách 2:** Cài đặt trực tiếp Microsoft SQL Server (Developer/Express) trên Windows với cổng 1433.
 
-### Bước 1: Cài đặt thư viện dependencies
+### Bước 1: Khởi động Microsoft SQL Server bằng Docker (Nếu dùng Docker)
+Nếu máy bạn có Docker Desktop, chỉ cần chạy:
+```bash
+npm run docker:up
+```
+> Lệnh này sẽ kéo image Microsoft SQL Server 2022 và khởi động container `maisonrue-mssql` với cổng 1433, dữ liệu được lưu bền vững vào volume `maisonrue_mssql_data`.
+
+### Bước 2: Cài đặt thư viện dependencies
 ```bash
 npm install
 ```
 
-### Bước 2: Cấu hình biến môi trường (`.env`)
+### Bước 3: Cấu hình biến môi trường (`.env`)
 Sao chép tệp mẫu; `.env` thật không được đưa lên Git:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Sau đó điền thông tin SQL Server và tạo một `JWT_SECRET` ngẫu nhiên, riêng cho máy của bạn:
+Nếu dùng Docker ở Bước 1, tệp mẫu đã cấu hình sẵn mật khẩu `MaisonRue@2026!` khớp hoàn toàn với container. Nếu dùng SQL Server cục bộ, điền mật khẩu `DB_PASSWORD` của máy bạn:
 ```env
 PORT=5000
 NODE_ENV=development
@@ -63,14 +72,14 @@ DB_SERVER=127.0.0.1
 DB_PORT=1433
 DB_NAME=MaisonRueDB
 DB_USER=sa
-DB_PASSWORD=your_local_sql_server_password
+DB_PASSWORD=MaisonRue@2026!
 DB_TRUST_SERVER_CERTIFICATE=true
 ```
 
 Các biến Google Maps, Resend (email backend) và chatbot là tùy chọn. Khi chưa cấu hình, website vẫn
 chạy được nhưng những tích hợp bên ngoài tương ứng sẽ được bỏ qua.
 
-### Bước 3: Khởi tạo toàn bộ dữ liệu dự án (chạy một lần trên máy mới)
+### Bước 4: Khởi tạo toàn bộ dữ liệu dự án (chạy một lần trên máy mới)
 ```bash
 # Tạo schema, migration, catalog, tồn kho, giá vốn và dữ liệu phân tích 90 ngày
 npm run setup
