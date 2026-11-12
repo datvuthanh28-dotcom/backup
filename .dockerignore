@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.env
+*.log
+npm-debug.log*
+.vscode
+.idea
+tmp
+test-screenshots
+output
+*.docx
