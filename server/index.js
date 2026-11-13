@@ -141,7 +141,12 @@ async function startServer() {
   console.log("==================================================");
 
   // Connect to Microsoft SQL Server exclusively
-  await connectDB();
+  try {
+    await connectDB();
+  } catch (dbErr) {
+    console.warn(`[Database Warning] ${dbErr.message}`);
+    console.warn("[Database Warning] Server tiếp tục khởi động. Vui lòng bật Microsoft SQL Server để sử dụng đầy đủ chức năng đăng nhập và dữ liệu.");
+  }
 
   // Initialize background Weekly Review Audit Scheduler (Monday 08:00 ICT)
   initReviewAuditScheduler();
