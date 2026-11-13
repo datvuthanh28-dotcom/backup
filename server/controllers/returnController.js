@@ -1,12 +1,13 @@
 import { db } from "../config/db.js";
 import { evaluateReturnRequest } from "../services/returnPolicyService.js";
 import { sendReturnAuthorizedEmail, sendReturnRefundedEmail } from "../services/emailService.js";
+import { VIETNAM_BANK_CODES, VIETNAM_BANK_NAMES } from "../data/vietnamBanks.js";
 
 const id = () => `RET-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
 
 export async function submitReturnRequest(req, res) {
   try {
-    const { orderId, orderItemId, requestType, reasonCode, reasonDetail, quantity, exchangeSize, exchangeColor, conditionConfirmed } = req.body || {};
+    const { orderId, orderItemId, requestType, reasonCode, reasonDetail, quantity, exchangeSize, exchangeColor, conditionConfirmed, refundBankCode, refundBankName, refundAccountNumber, refundAccountHolder } = req.body || {};
     const order = await db.getOrderById(String(orderId || ""));
     if (!order || order.customer_id !== req.user.id) return res.status(404).json({ success: false, error: "Order item not found." });
 
@@ -31,6 +32,19 @@ export async function submitReturnRequest(req, res) {
     }
 
     if (!["refund", "exchange"].includes(requestType)) return res.status(400).json({ success: false, error: "Choose a return/refund or exchange request." });
+    if (requestType === "refund") {
+      const bankCode = String(refundBankCode || "").trim().toUpperCase();
+      const bankName = String(refundBankName || "").trim();
+      const accountNumber = String(refundAccountNumber || "").replace(/\s+/g, "");
+      const accountHolder = String(refundAccountHolder || "").trim().replace(/\s+/g, " ");
+      if (!VIETNAM_BANK_CODES.has(bankCode) || VIETNAM_BANK_NAMES[bankCode] !== bankName) throw new Error("Please choose a valid receiving bank.");
+      if (!/^\d{6,19}$/.test(accountNumber)) throw new Error("Bank account number must contain 6–19 digits.");
+      if (!/^[\p{L}][\p{L} .'-]{1,119}$/u.test(accountHolder)) throw new Error("Enter the account holder name exactly as shown by the bank.");
+      req.body.refundBankCode = bankCode;
+      req.body.refundBankName = bankName.slice(0, 120);
+      req.body.refundAccountNumber = accountNumber;
+      req.body.refundAccountHolder = accountHolder.toUpperCase().slice(0, 120);
+    }
     if (requestType === "exchange") {
       const options = await db.getProductVariantOptions(orderItem.product_id);
       const requestedVariant = options.variants.find((variant) => variant.size === exchangeSize && variant.color === exchangeColor);
@@ -54,6 +68,10 @@ export async function submitReturnRequest(req, res) {
       customerEmail,
       requestType, reasonCode, reasonDetail: String(reasonDetail || "").trim().slice(0, 1000), quantity: quantityValue,
       exchangeSize, exchangeColor, amount: result.requestedAmount || 0,
+      refundBankCode: requestType === "refund" ? req.body.refundBankCode : null,
+      refundBankName: requestType === "refund" ? req.body.refundBankName : null,
+      refundAccountNumber: requestType === "refund" ? req.body.refundAccountNumber : null,
+      refundAccountHolder: requestType === "refund" ? req.body.refundAccountHolder : null,
       status: result.status === "auto_approved" ? "return_authorized" : result.status,
       decisionReason: result.decisionReason, deadline: result.deadline || null,
     });

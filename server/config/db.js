@@ -1050,12 +1050,16 @@ export const db = {
       .input("quantity", sql.Int, record.quantity)
       .input("exchange_size", sql.NVarChar, record.exchangeSize || null)
       .input("exchange_color", sql.NVarChar, record.exchangeColor || null)
+      .input("refund_bank_code", sql.NVarChar, record.refundBankCode || null)
+      .input("refund_bank_name", sql.NVarChar, record.refundBankName || null)
+      .input("refund_account_number", sql.NVarChar, record.refundAccountNumber || null)
+      .input("refund_account_holder", sql.NVarChar, record.refundAccountHolder || null)
       .input("amount", sql.Decimal(18, 0), record.amount || 0)
       .input("status", sql.NVarChar, record.status)
       .input("decision_reason", sql.NVarChar, record.decisionReason)
       .input("deadline", sql.DateTime2, record.deadline || null)
-      .query(`INSERT INTO ReturnRequests(id,order_id,order_item_id,customer_id,customer_email,request_type,reason_code,reason_detail,requested_quantity,exchange_size,exchange_color,requested_amount,status,decision_reason,return_deadline,created_at,updated_at)
-        VALUES(@id,@order_id,@order_item_id,@customer_id,@customer_email,@request_type,@reason_code,@reason_detail,@quantity,@exchange_size,@exchange_color,@amount,@status,@decision_reason,@deadline,GETDATE(),GETDATE())`);
+      .query(`INSERT INTO ReturnRequests(id,order_id,order_item_id,customer_id,customer_email,request_type,reason_code,reason_detail,requested_quantity,exchange_size,exchange_color,refund_bank_code,refund_bank_name,refund_account_number,refund_account_holder,requested_amount,status,decision_reason,return_deadline,created_at,updated_at)
+        VALUES(@id,@order_id,@order_item_id,@customer_id,@customer_email,@request_type,@reason_code,@reason_detail,@quantity,@exchange_size,@exchange_color,@refund_bank_code,@refund_bank_name,@refund_account_number,@refund_account_holder,@amount,@status,@decision_reason,@deadline,GETDATE(),GETDATE())`);
     return this.getReturnRequestById(record.id);
   },
 

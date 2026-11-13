@@ -43,6 +43,16 @@ export default function Home() {
         <div className="home-hero-caption">MAISON RUE — SPRING / SUMMER</div>
       </section>
 
+      <section className="home-black-friday" aria-labelledby="black-friday-title">
+        <div className="home-black-friday-copy">
+          <span className="home-eyebrow">A SEASONAL OFFER</span>
+          <h2 id="black-friday-title">Black Friday,<br />quietly considered.</h2>
+          <p>Discover a considered edit of Maison Rue essentials, selected for the season and available for a limited time.</p>
+          <Link className="home-link home-link-light" to="/sale">EXPLORE THE BLACK FRIDAY SALE <span>→</span></Link>
+        </div>
+        <div className="home-black-friday-mark" aria-hidden="true">BLACK<br />FRIDAY</div>
+      </section>
+
       <section className="home-intro">
         <span className="home-eyebrow">A HOUSE OF MATERIALS</span>
         <h2>Luxury begins with<br />what nature gives us.</h2>
