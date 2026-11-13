@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authenticateToken, optionalAuthenticateToken, requireRole } from "../middleware/auth.js";
 import { getAccount, getAddressSuggestions, verifyAddress, addAddress, updateAddress, deleteAddress, updatePreferences, updateProfile, subscribeNewsletter } from "../controllers/customerController.js";
-import { deleteReview, getFavorites, getMyReviewEligibility, getReviewEligibility, saveReview, setFavorite } from "../controllers/engagementController.js";
+import { deleteReview, getFavorites, getMyReviewEligibility, getReviewEligibility, saveReview, setFavorite, syncFavorites } from "../controllers/engagementController.js";
 import { clearCart, getCart, saveCart } from "../controllers/cartController.js";
 const router = Router();
 
@@ -20,6 +20,8 @@ router.patch("/preferences", updatePreferences);
 router.patch("/profile", updateProfile);
 router.put("/profile", updateProfile);
 router.get("/favorites", getFavorites);
+router.post("/favorites/sync", syncFavorites);
+router.put("/favorites", syncFavorites);
 router.put("/favorites/:productId", setFavorite);
 router.get("/reviews", getMyReviewEligibility);
 router.get("/reviews/:productId/eligibility", getReviewEligibility);

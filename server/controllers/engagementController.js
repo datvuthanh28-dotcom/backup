@@ -75,6 +75,97 @@ export async function setFavorite(req, res) {
   return res.json({ success: true, productId, active, changed: true });
 }
 
+export async function syncFavorites(req, res) {
+  try {
+    const userId = req.user.id;
+    const rawIds = Array.isArray(req.body?.productIds)
+      ? req.body.productIds
+      : Array.isArray(req.body?.items)
+      ? req.body.items
+      : [];
+
+    const candidateIds = [...new Set(rawIds.map((val) => {
+      const num = typeof val === "object" && val !== null ? Number(val.id || val.productId) : Number(val);
+      return Number.isInteger(num) && num > 0 ? num : null;
+    }).filter(Boolean))].slice(0, 100);
+
+    const pool = getPool();
+
+    let validProductIds = [];
+    if (candidateIds.length > 0) {
+      const intList = candidateIds.join(",");
+      const validQuery = await pool.request().query(`
+        SELECT p.id 
+        FROM Products p 
+        WHERE p.id IN (${intList}) AND ${activeProductSql("p")}
+      `);
+      validProductIds = validQuery.recordset.map((r) => r.id);
+    }
+
+    if (validProductIds.length > 0) {
+      const transaction = new sql.Transaction(pool);
+      await transaction.begin();
+      try {
+        for (const productId of validProductIds) {
+          const checkRes = await transaction.request()
+            .input("user_id", sql.NVarChar, userId)
+            .input("product_id", sql.Int, productId)
+            .query("SELECT is_active FROM ProductFavorites WHERE user_id=@user_id AND product_id=@product_id");
+
+          const isAlreadyActive = checkRes.recordset.length > 0 && Boolean(checkRes.recordset[0].is_active);
+
+          if (!isAlreadyActive) {
+            await transaction.request()
+              .input("user_id", sql.NVarChar, userId)
+              .input("product_id", sql.Int, productId)
+              .query(`
+                MERGE ProductFavorites AS target
+                USING (SELECT @user_id AS user_id, @product_id AS product_id) AS source
+                ON target.user_id = source.user_id AND target.product_id = source.product_id
+                WHEN MATCHED THEN
+                  UPDATE SET is_active = 1, updated_at = GETDATE()
+                WHEN NOT MATCHED THEN
+                  INSERT (user_id, product_id, is_active, created_at, updated_at)
+                  VALUES (@user_id, @product_id, 1, GETDATE(), GETDATE());
+              `);
+
+            await transaction.request()
+              .input("user_id", sql.NVarChar, userId)
+              .input("product_id", sql.Int, productId)
+              .input("event_type", sql.NVarChar, "added")
+              .query("INSERT INTO ProductFavoriteEvents(user_id, product_id, event_type) VALUES(@user_id, @product_id, @event_type)");
+          }
+        }
+        await transaction.commit();
+      } catch (txErr) {
+        await transaction.rollback();
+        throw txErr;
+      }
+    }
+
+    const result = await pool.request()
+      .input("user_id", sql.NVarChar, userId)
+      .query(`
+        SELECT f.product_id, f.created_at, p.product_code, p.name, p.price, p.images_json
+        FROM ProductFavorites f 
+        JOIN Products p ON p.id = f.product_id
+        WHERE f.user_id = @user_id AND f.is_active = 1 AND ${activeProductSql("p")}
+        ORDER BY f.updated_at DESC
+      `);
+
+    const favorites = result.recordset.map((row) => ({ ...row, images: parseImages(row.images_json) }));
+    return res.json({
+      success: true,
+      favorites,
+      productIds: favorites.map((item) => item.product_id),
+      mergedCount: validProductIds.length,
+    });
+  } catch (err) {
+    console.error("[Sync Favorites] Error:", err);
+    return res.status(500).json({ success: false, error: "Unable to sync favorites." });
+  }
+}
+
 export async function getReviewEligibility(req, res) {
   const productId = Number(req.params.productId);
   const pool = getPool();

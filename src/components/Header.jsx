@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
+import { useFavorites } from "../context/FavoritesContext";
 import { useAuth } from "../context/AuthContext";
 import { useStore } from "../hooks/useStore";
 
@@ -90,6 +91,8 @@ function AudienceDropdown({ audience }) {
 
 export default function Header() {
   const { cartCount } = useCart();
+  const { favoriteIds } = useFavorites();
+  const favoriteCount = favoriteIds?.size || 0;
   const { products } = useStore();
   const { currentUser, role, logout } = useAuth();
   const location = useLocation();
@@ -315,7 +318,7 @@ export default function Header() {
                     <OrdersIcon /> My Orders
                   </Link>
                   <Link className="account-dropdown-link" to="/account/favorites" onClick={() => setUserMenuOpen(false)}>
-                    <HeartIcon /> Wishlist
+                    <HeartIcon /> Wishlist <span>{favoriteCount}</span>
                   </Link>
                   <Link className="account-dropdown-link" to="/cart" onClick={() => setUserMenuOpen(false)}>
                     <ShoppingBagIcon /> Shopping Bag <span>{cartCount}</span>
@@ -368,7 +371,10 @@ export default function Header() {
           </div>
         )}
 
-        <Link to="/wishlist">WISHLIST <HeartIcon /></Link>
+        <Link to="/wishlist">
+          WISHLIST <span id="wishlist-quantity">{favoriteCount > 0 ? favoriteCount : ""}</span>{" "}
+          <HeartIcon />
+        </Link>
 
         <Link to="/cart">
           CART <span id="quantity">{cartCount > 0 ? cartCount : ""}</span>{" "}
