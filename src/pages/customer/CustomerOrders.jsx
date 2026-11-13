@@ -7,6 +7,7 @@ import CustomerAccountSidebar from "../../components/CustomerAccountSidebar";
 import OrderItemLine from "../../components/OrderItemLine";
 import OrderFinancialBreakdown from "../../components/OrderFinancialBreakdown";
 import { customerAPI, returnsAPI } from "../../services/api";
+import { VIETNAM_BANKS, VIETNAM_BANK_MAP } from "../../data/vietnamBanks";
 
 function formatPrice(v) {
   return (v || 0).toLocaleString("vi-VN") + "đ";
@@ -78,7 +79,7 @@ export default function CustomerOrders() {
   const [reviewError, setReviewError] = useState("");
   const [returnRequests, setReturnRequests] = useState([]);
   const [returnTarget, setReturnTarget] = useState(null);
-  const [returnForm, setReturnForm] = useState({ requestType: "refund", reasonCode: "", reasonDetail: "", quantity: 1, conditionConfirmed: false, exchangeSize: "", exchangeColor: "" });
+  const [returnForm, setReturnForm] = useState({ requestType: "refund", reasonCode: "", reasonDetail: "", quantity: 1, conditionConfirmed: false, exchangeSize: "", exchangeColor: "", refundBankCode: "", refundBankName: "", refundAccountNumber: "", refundAccountHolder: "" });
   const [returnSaving, setReturnSaving] = useState(false);
   const [returnError, setReturnError] = useState("");
   const [exchangeOptions, setExchangeOptions] = useState({ sizes: [], colors: [], loading: false });
@@ -101,6 +102,13 @@ export default function CustomerOrders() {
 
   useEffect(() => { refreshReturnRequests(); }, []);
 
+  useEffect(() => {
+    if (!returnTarget) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [returnTarget]);
+
   // Orders may have loaded while the local API was restarting. Refresh when this
   // page opens so a signed-in customer never remains on an empty stale state.
   useEffect(() => {
@@ -109,7 +117,7 @@ export default function CustomerOrders() {
 
   const openReturnRequest = async (order, item) => {
     setReturnTarget({ order, item });
-    setReturnForm({ requestType: "refund", reasonCode: "", reasonDetail: "", quantity: 1, conditionConfirmed: false, exchangeSize: "", exchangeColor: "" });
+    setReturnForm({ requestType: "refund", reasonCode: "", reasonDetail: "", quantity: 1, conditionConfirmed: false, exchangeSize: "", exchangeColor: "", refundBankCode: "", refundBankName: "", refundAccountNumber: "", refundAccountHolder: "" });
     setReturnError("");
     setExchangeOptions({ sizes: [], colors: [], loading: true });
     try {
@@ -124,9 +132,27 @@ export default function CustomerOrders() {
   const submitReturnRequest = async (event) => {
     event.preventDefault();
     if (!returnTarget) return;
+    if (!returnForm.reasonCode) {
+      setReturnError("Please choose a reason for your request.");
+      return;
+    }
+    if (!Number.isInteger(Number(returnForm.quantity)) || Number(returnForm.quantity) < 1 || Number(returnForm.quantity) > Number(returnTarget.item.quantity)) {
+      setReturnError("Please enter a valid quantity for this item.");
+      return;
+    }
     if (returnForm.requestType === "exchange" && (!returnForm.exchangeSize || !returnForm.exchangeColor)) {
       setReturnError("Choose the preferred size and colour for your exchange.");
       return;
+    }
+    if (returnForm.requestType === "refund") {
+      if (!returnForm.refundBankCode || !returnForm.refundAccountNumber || !returnForm.refundAccountHolder) {
+        setReturnError("Please provide your receiving bank, account number and account holder name.");
+        return;
+      }
+      if (!/^\d{6,19}$/.test(returnForm.refundAccountNumber.replace(/\s+/g, ""))) {
+        setReturnError("Bank account number must contain 6–19 digits.");
+        return;
+      }
     }
     setReturnSaving(true); setReturnError("");
     try {
@@ -660,12 +686,13 @@ export default function CustomerOrders() {
       )}
 
       {returnTarget && <div className="order-review-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setReturnTarget(null); }}>
-        <form className="order-review-modal return-request-modal" onSubmit={submitReturnRequest}>
+        <form className="order-review-modal return-request-modal" noValidate onSubmit={submitReturnRequest}>
           <button type="button" className="order-review-close" aria-label="Close" onClick={() => setReturnTarget(null)}>×</button>
-          <p className="eyebrow">Order #{returnTarget.order.id}</p>
-          <h2>Return or exchange request</h2>
-          <p className="order-review-product-name">{returnTarget.item.product_name || returnTarget.item.productName || returnTarget.item.name}</p>
-          <label>Request type<select value={returnForm.requestType} onChange={(event) => setReturnForm({ ...returnForm, requestType: event.target.value })}><option value="refund">Return and refund</option><option value="exchange">Exchange</option></select></label>
+          <p className="eyebrow">CLIENT SERVICES · ORDER #{returnTarget.order.id}</p>
+          <h2>Submit a return or exchange request</h2>
+          <p className="return-request-intro">Tell us what you need and we’ll guide your request through a careful inspection before any refund or exchange is completed.</p>
+          <div className="return-request-product"><span>Selected item</span><strong>{returnTarget.item.product_name || returnTarget.item.productName || returnTarget.item.name}</strong><small>{returnTarget.item.selected_color || returnTarget.item.selectedColor || "—"} · Size {returnTarget.item.selected_size || returnTarget.item.selectedSize || "—"}</small></div>
+          <div className="return-form-section"><p className="return-form-section-title">Request details</p><label>Request type<select value={returnForm.requestType} onChange={(event) => setReturnForm({ ...returnForm, requestType: event.target.value })}><option value="refund">Return and refund</option><option value="exchange">Exchange</option></select></label>
           <label>Reason<select required value={returnForm.reasonCode} onChange={(event) => setReturnForm({ ...returnForm, reasonCode: event.target.value })}><option value="">Choose a reason</option><option value="wrong_item">Wrong item received</option><option value="wrong_color">Wrong colour received</option><option value="wrong_size_sent">Wrong size received</option><option value="missing_item">An item is missing</option><option value="damaged_on_arrival">Damaged on arrival</option><option value="manufacturing_defect">Possible manufacturing defect</option><option value="size_does_not_fit">The size does not fit</option><option value="changed_mind">I changed my mind</option><option value="other">Other</option></select></label>
           <label>Quantity<input type="number" min="1" max={returnTarget.item.quantity} value={returnForm.quantity} onChange={(event) => setReturnForm({ ...returnForm, quantity: Number(event.target.value) })} required /></label>
           {returnForm.requestType === "exchange" && <div className="return-exchange-fields">
@@ -678,7 +705,14 @@ export default function CustomerOrders() {
               {exchangeOptions.colors.map((color) => <option key={color} value={color}>{color}</option>)}
             </select></label>
           </div>}
-          <label>Details<textarea maxLength="1000" value={returnForm.reasonDetail} onChange={(event) => setReturnForm({ ...returnForm, reasonDetail: event.target.value })} placeholder="Tell us briefly what happened or what you would like to exchange." /></label>
+          {returnForm.requestType === "refund" && <fieldset className="return-refund-bank-fields">
+            <legend>Refund receiving details</legend>
+            <p className="return-bank-help">Refunds are transferred to the account you provide after the returned item passes inspection. Please use an account in the order holder’s name.</p>
+            <label>Receiving bank<select required value={returnForm.refundBankCode} onChange={(event) => setReturnForm({ ...returnForm, refundBankCode: event.target.value, refundBankName: VIETNAM_BANK_MAP[event.target.value] || "" })}><option value="">Choose your bank</option>{VIETNAM_BANKS.map(([code, name]) => <option key={code} value={code}>{name}</option>)}</select></label>
+            <label>Account number<input required inputMode="numeric" autoComplete="off" pattern="[0-9]{6,19}" minLength="6" maxLength="19" value={returnForm.refundAccountNumber} onChange={(event) => setReturnForm({ ...returnForm, refundAccountNumber: event.target.value.replace(/\D/g, "").slice(0, 19) })} placeholder="6–19 digits" /></label>
+            <label>Account holder name<input required autoComplete="name" maxLength="120" value={returnForm.refundAccountHolder} onChange={(event) => setReturnForm({ ...returnForm, refundAccountHolder: event.target.value })} placeholder="As shown on your bank account" /></label>
+          </fieldset>}
+          <label>Details<textarea maxLength="1000" value={returnForm.reasonDetail} onChange={(event) => setReturnForm({ ...returnForm, reasonDetail: event.target.value })} placeholder="Tell us briefly what happened or what you would like to exchange." /></label></div>
           {!(["wrong_item", "wrong_color", "wrong_size_sent", "missing_item", "damaged_on_arrival", "manufacturing_defect"].includes(returnForm.reasonCode)) && <label className="return-condition-confirm"><input type="checkbox" checked={returnForm.conditionConfirmed} onChange={(event) => setReturnForm({ ...returnForm, conditionConfirmed: event.target.checked })} /> I confirm the item is unworn, unwashed and unaltered.</label>}
           <p className="return-inspection-note">No photo is needed to submit. Maison Rue will inspect the item in person after receiving it. A refund or exchange is completed only after inspection passes.</p>
           {returnError && <p className="order-review-error">{returnError}</p>}
