@@ -9,8 +9,10 @@ const steps = [
   ["db:seed-analytics", []],
   ["db:normalize-promotions", []],
   ["db:campaigns", []],
+  ["db:seed-promotions", []],
   ["db:metrics", ["--", "90"]],
   ["db:promotion-distribution", []],
+  ["db:verify-demo", []],
 ];
 
 for (const [script,args] of steps) {

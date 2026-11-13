@@ -3,7 +3,10 @@ import dotenv from "dotenv";
 import { allProducts as catalogProducts } from "../../src/data/products.js";
 import { activeProductSql, isLegacyProductCode, legacyProductSql } from "../utils/productLifecycle.js";
 
-dotenv.config();
+// The repository treats the project-local .env as the development source of
+// truth. This avoids an unrelated Windows-level DB_PORT/DB_NAME variable from
+// silently pointing one developer at a different SQL Server database.
+dotenv.config({ override: true });
 
 const sqlConfig = {
   user: process.env.DB_USER || "sa",

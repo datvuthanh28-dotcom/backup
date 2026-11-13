@@ -1,7 +1,8 @@
 import sql from "mssql";
 import dotenv from "dotenv";
 
-dotenv.config();
+// Keep create/setup on the same project-local connection as the application.
+dotenv.config({ override: true });
 
 const database = process.env.DB_NAME || "MaisonRueDB";
 if (!/^[A-Za-z0-9_]+$/.test(database)) {
