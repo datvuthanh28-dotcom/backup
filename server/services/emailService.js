@@ -1,5 +1,10 @@
 import { Resend } from "resend";
-import nodemailer from "nodemailer";
+let nodemailer = null;
+try {
+  nodemailer = (await import("nodemailer")).default;
+} catch {
+  // nodemailer is optional unless custom SMTP is configured
+}
 import { db } from "../config/db.js";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

@@ -81,16 +81,30 @@ chạy được nhưng những tích hợp bên ngoài tương ứng sẽ đư�
 
 ### Bước 4: Khởi tạo toàn bộ dữ liệu dự án (chạy một lần trên máy mới)
 ```bash
-# Tạo schema, migration, catalog, tồn kho, giá vốn và dữ liệu phân tích 90 ngày
+# Tạo schema, migration, catalog, tồn kho, giá vốn, đơn phân tích 90 ngày
+# và một chiến dịch/mã ưu đãi mẫu có thể tái tạo trên mọi máy
 npm run setup
 ```
 
 Lệnh `setup` là quy trình chuẩn khi clone/pull dự án sang máy mới. Lệnh này tạo
 `MaisonRueDB` nếu chưa tồn tại, áp dụng toàn bộ migration, đồng bộ catalog/SKU và
 nạp dữ liệu demo phục vụ báo cáo. Tài khoản SQL Server phải có quyền tạo database.
-Tồn kho nằm trong MSSQL cục bộ và không được Git truyền sang máy khác. Không chạy riêng
+Tồn kho nằm trong MSSQL cục bộ và không được Git truyền sang máy khác. `setup` tái tạo bộ
+dữ liệu demo canonical từ mã nguồn (catalog, SKU, đơn phân tích, chỉ số, mẫu đợt sale,
+chiến dịch "Maison Rue Seasonal Edit" và mã `RUE10`). Không chạy riêng
 `db:replace-catalog` để sửa tồn kho; lệnh này chỉ đồng bộ catalog và luôn giữ nguyên
 tồn kho của SKU đã tồn tại.
+
+> Git không nên chứa file `.bak`, file MDF/LDF hay `.env`: các file này vừa nặng, phụ thuộc
+> máy chủ SQL Server, vừa có thể lộ mật khẩu. Cách chia sẻ dữ liệu đúng là migration + seed
+> có thể lặp lại và có kiểm tra sau khi chạy.
+
+Nếu database demo cục bộ đã bị thay đổi nhiều và cần đưa về **đúng bộ dữ liệu chuẩn**,
+hãy dừng backend trước rồi dùng lệnh phá hủy dữ liệu sau (chỉ dành cho database demo):
+```powershell
+$env:CONFIRM_DEMO_RESET='MAISON_RUE'
+npm run db:reset-demo
+```
 
 ### Bước 4: Kiểm thử toàn diện hệ thống (38 test cases tự động)
 ```bash
@@ -124,6 +138,10 @@ npm run dev
 ```
 
 `npm run doctor` phải hiển thị Database: OK và số lượng Products, Orders, Units sold.
+Sau `setup`, chạy thêm `npm run db:verify-demo` để kiểm tra catalog, KPI, mẫu sale,
+chương trình khuyến mãi và mã ưu đãi đều hiện diện. Các script của dự án ưu tiên `.env`
+trong thư mục dự án để không bị một biến môi trường Windows `DB_PORT` cũ làm kết nối nhầm
+database; mặc định cổng là `1433`.
 Nếu giao diện mới nhưng API trả 404, backend cũ vẫn đang chạy hoặc Terminal đang đứng ở repository/nhánh khác.
 Kiểm tra `http://localhost:5000/api/health`: backend đúng phải trả `apiVersion` và danh sách `capabilities`.
 
