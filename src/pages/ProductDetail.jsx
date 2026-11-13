@@ -7,7 +7,6 @@ import { allProducts as catalogProducts } from "../data/products";
 import ProductCard from "../components/ProductCard";
 import ProductReviews from "../components/ProductReviews";
 import { useFavorites } from "../context/FavoritesContext";
-import { useAuth } from "../context/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const money = (value) => `${Number(value).toLocaleString("vi-VN")}đ`;
@@ -152,7 +151,6 @@ export default function ProductDetail() {
   const product = products.find((item) => Number(item.id) === Number(id));
   const { addToCart, cartCount, cartTotal } = useCart();
   const { isFavorite, toggleFavorite } = useFavorites();
-  const { currentUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   useDocumentTitle(product ? product.name : "Product");
@@ -253,7 +251,7 @@ const relatedProducts = product ? completeTheLook(product, recommendationCatalog
           </div>
         </div>
         <div className="product-info">
-          <p className="product-category">{product.collection}</p><div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start" }}><h1>{product.name}</h1><button type="button" className="product-wishlist-button" aria-label={isFavorite(product.id) ? "Remove from wishlist" : "Add to wishlist"} aria-pressed={isFavorite(product.id)} onClick={async () => { const result = await toggleFavorite(product.id); if (result?.requiresLogin || currentUser?.role !== "customer") navigate(`/login?returnTo=${encodeURIComponent(location.pathname)}`); }}><i className={isFavorite(product.id) ? "fas fa-heart" : "far fa-heart"} /></button></div>
+          <p className="product-category">{product.collection}</p><div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start" }}><h1>{product.name}</h1><button type="button" className="product-wishlist-button" aria-label={isFavorite(product.id) ? "Remove from wishlist" : "Add to wishlist"} aria-pressed={isFavorite(product.id)} onClick={async () => { const result = await toggleFavorite(product.id); if (result?.requiresLogin) navigate(`/login?returnTo=${encodeURIComponent(location.pathname)}`); }}><i className={isFavorite(product.id) ? "fas fa-heart" : "far fa-heart"} /></button></div>
           <p className="product-subtitle">{product.fit} · {product.material}</p>{hasPromotion ? <div className="detail-promotion-price"><span>{money(originalPrice)}</span><strong>{money(promotionPrice)}</strong><small>{product.promotionName} · Tự động áp dụng khi thanh toán</small></div> : <p className="product-price">{money(originalPrice)}</p>}
           <div className="detail-selector"><div className="selector-heading"><strong>Colour</strong><span aria-live="polite">{selectedColor}</span></div><div className="color-swatches">{product.colorOptions.map((color) => <button key={color.name} className={selectedColor === color.name ? "active" : ""} onClick={() => chooseColor(color.name)} title={color.name} aria-label={`Choose colour ${color.name}`} aria-pressed={selectedColor === color.name}><span style={{ background: color.hex }} /></button>)}</div></div>
           <div className="detail-selector"><div className="selector-heading"><strong>Size</strong>{product.sizeGuide?.length > 0 && <button className="text-button" onClick={() => setSizeGuideOpen(true)}>Find my size · Size guide</button>}</div><div className="size-options">{colorVariants.map((variant) => <button key={variant.id} disabled={variant.stock < 1} className={selectedSize === variant.size ? "active" : ""} onClick={() => chooseSize(variant.size)}>{variant.size}</button>)}</div></div>

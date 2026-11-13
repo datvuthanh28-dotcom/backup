@@ -17,7 +17,7 @@ export default function Wishlist() {
         <h1 className="page-title">Wishlist</h1>
         <p>Pieces saved for another moment.</p>
       </header>
-      {loading ? <p className="wishlist-status">Loading your wishlist...</p> : favorites.length ? <div id="products-grid">{favorites.map((product) => <ProductCard key={product.id} product={product} />)}</div> : <div className="wishlist-status"><p>Your wishlist is waiting to be filled.</p><Link to="/" className="home-link">Explore the collection <span>→</span></Link></div>}
+      {loading && favorites.length === 0 ? <p className="wishlist-status">Loading your wishlist...</p> : favorites.length ? <div id="products-grid">{favorites.map((product) => <ProductCard key={product.id} product={product} />)}</div> : <div className="wishlist-status"><p>Your wishlist is waiting to be filled.</p><Link to="/" className="home-link">Explore the collection <span>→</span></Link></div>}
     </main>
   );
 }

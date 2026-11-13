@@ -2767,7 +2767,7 @@ header.store-header.is-hidden{transform:translateY(-100%)}
 .store-header .head-right>a:first-child{margin-right:auto;order:-1}
 .store-header .head-right>a{gap:7px}
 .store-header .head-right .fa-search,.store-header .head-right .fa-user,.store-header .head-right .fa-user-circle,.store-header .head-right .fa-shopping-bag{font-size:16px}
-.store-header .head-right #quantity{min-width:0}
+.store-header .head-right #quantity, .store-header .head-right #wishlist-quantity{min-width:0}
 .store-header .dropdown-menu{top:100%;background:#f7f5f1}
 @media(min-width:1101px){.store-header .head-left{left:150px;right:350px;gap:clamp(16px,2.2vw,42px)}}
 @media(min-width:1300px){.store-header .head-left{left:50%;right:auto;width:max-content;transform:translateX(-50%);gap:clamp(18px,2.2vw,42px)}}
