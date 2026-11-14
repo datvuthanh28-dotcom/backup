@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { StoreProvider } from "./context/StoreContext";
@@ -5,49 +6,49 @@ import { CartProvider } from "./context/CartContext";
 import { FavoritesProvider } from "./context/FavoritesContext";
 
 // Layouts & Protected Route
-import StorefrontLayout from "./components/layout/StorefrontLayout";
-import StaffLayout from "./components/layout/StaffLayout";
-import AdminLayout from "./components/layout/AdminLayout";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import ScrollToTop from "./components/common/ScrollToTop";
 
-// Storefront & Customer Pages
-import Home from "./pages/Home";
-import ProductListPage from "./pages/ProductListPage";
-import ProductDetail from "./pages/ProductDetail";
-import Cart from "./pages/Cart";
-import Checkout from "./pages/Checkout";
-import Login from "./pages/Login"; // Customer Login (/login)
-import CustomerOrders from "./pages/customer/CustomerOrders";
-import CustomerAccount from "./pages/customer/CustomerAccount";
-import CustomerFavorites from "./pages/customer/CustomerFavorites";
-import CustomerOffers from "./pages/customer/CustomerOffers";
-import AccessDenied from "./pages/AccessDenied";
-import SearchResultsPage from "./pages/SearchResultsPage";
-import OurStory from "./pages/OurStory";
-import Wishlist from "./pages/Wishlist";
-import StoreInfoPage from "./pages/StoreInfoPage";
-import SalePage from "./pages/SalePage";
+// Route-level splitting keeps customer, staff and admin code out of one large
+// startup bundle. Shared pages (for example StaffInventory) still produce a
+// single reusable chunk that both portals can request on demand.
+const StorefrontLayout = lazy(() => import("./components/layout/StorefrontLayout"));
+const StaffLayout = lazy(() => import("./components/layout/StaffLayout"));
+const AdminLayout = lazy(() => import("./components/layout/AdminLayout"));
+const Home = lazy(() => import("./pages/Home"));
+const ProductListPage = lazy(() => import("./pages/ProductListPage"));
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
+const Cart = lazy(() => import("./pages/Cart"));
+const Checkout = lazy(() => import("./pages/Checkout"));
+const Login = lazy(() => import("./pages/Login"));
+const CustomerOrders = lazy(() => import("./pages/customer/CustomerOrders"));
+const CustomerAccount = lazy(() => import("./pages/customer/CustomerAccount"));
+const CustomerFavorites = lazy(() => import("./pages/customer/CustomerFavorites"));
+const CustomerOffers = lazy(() => import("./pages/customer/CustomerOffers"));
+const AccessDenied = lazy(() => import("./pages/AccessDenied"));
+const SearchResultsPage = lazy(() => import("./pages/SearchResultsPage"));
+const OurStory = lazy(() => import("./pages/OurStory"));
+const Wishlist = lazy(() => import("./pages/Wishlist"));
+const StoreInfoPage = lazy(() => import("./pages/StoreInfoPage"));
+const SalePage = lazy(() => import("./pages/SalePage"));
+const StaffLogin = lazy(() => import("./pages/staff/StaffLogin"));
+const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
+const StaffDashboard = lazy(() => import("./pages/staff/StaffDashboard"));
+const StaffOrders = lazy(() => import("./pages/staff/StaffOrders"));
+const StaffInventory = lazy(() => import("./pages/staff/StaffInventory"));
+const StaffReviews = lazy(() => import("./pages/staff/StaffReviews"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminEmployees = lazy(() => import("./pages/admin/AdminEmployees"));
+const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
+const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
+const AdminProducts = lazy(() => import("./pages/admin/AdminProducts"));
+const AdminProductInsights = lazy(() => import("./pages/admin/AdminProductInsights"));
+const AdminPromotions = lazy(() => import("./pages/admin/AdminPromotions"));
+const AdminReturns = lazy(() => import("./pages/admin/AdminReturns"));
 
-// Separate Portals Login Pages
-import StaffLogin from "./pages/staff/StaffLogin"; // Staff Login (/staff/login)
-import AdminLogin from "./pages/admin/AdminLogin"; // Admin Login (/admin/login)
-
-// Staff Workspace Pages (Staff Portal)
-import StaffDashboard from "./pages/staff/StaffDashboard";
-import StaffOrders from "./pages/staff/StaffOrders";
-import StaffInventory from "./pages/staff/StaffInventory";
-import StaffReviews from "./pages/staff/StaffReviews";
-
-// Admin Workspace Pages (Admin Portal)
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminEmployees from "./pages/admin/AdminEmployees";
-import AdminReports from "./pages/admin/AdminReports";
-import AdminOrders from "./pages/admin/AdminOrders";
-import AdminProducts from "./pages/admin/AdminProducts";
-import AdminProductInsights from "./pages/admin/AdminProductInsights";
-import AdminPromotions from "./pages/admin/AdminPromotions";
-import AdminReturns from "./pages/admin/AdminReturns";
+function RouteLoading() {
+  return <main className="route-loading" role="status" aria-live="polite"><span>Đang tải nội dung…</span></main>;
+}
 
 function App() {
   return (
@@ -57,6 +58,7 @@ function App() {
           <CartProvider>
           <BrowserRouter>
             <ScrollToTop />
+            <Suspense fallback={<RouteLoading />}>
             <Routes>
               {/* 1. CUSTOMER PORTAL & STOREFRONT */}
               <Route element={<StorefrontLayout />}>
@@ -142,6 +144,7 @@ function App() {
               {/* Catch-all fallback */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </Suspense>
           </BrowserRouter>
           </CartProvider>
         </FavoritesProvider>

@@ -39,6 +39,7 @@
     "db:normalize-promotions": "node server/db/normalize-promotion-data.js",
     "db:campaigns": "node server/db/apply-promotion-campaign-migration.js",
     "db:seed-promotions": "node server/db/seed-canonical-promotions.js",
+    "db:promotion-targeted-demo": "node server/db/seed-demo-targeted-promotion.js",
     "db:verify-demo": "node scripts/verify-demo-dataset.js",
     "db:status": "node scripts/database-dataset-status.js",
     "db:sync": "node scripts/setup-project.js",

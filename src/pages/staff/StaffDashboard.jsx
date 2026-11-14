@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { useStore, STATUS_LABELS } from "../../context/StoreContext";
-import { allProducts } from "../../data/products";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
 
 const formatPrice = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
@@ -29,7 +28,7 @@ const cardStyle = { display: "block", backgroundColor: "#FFF", border: "1px soli
 export default function StaffDashboard() {
   useDocumentTitle("Staff Portal - Tổng Quan Vận Hành");
   const { orders, getProductStock, products } = useStore();
-  const productList = products?.length ? products : allProducts;
+  const productList = products || [];
   const byStatus = (status) => orders.filter((order) => getStatus(order) === status);
   const pending = byStatus("pending");
   const confirmed = byStatus("confirmed");

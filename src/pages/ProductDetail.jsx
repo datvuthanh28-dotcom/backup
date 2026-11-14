@@ -3,7 +3,6 @@ import { Link, useParams } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
 import { useStore } from "../hooks/useStore";
 import useDocumentTitle from "../hooks/useDocumentTitle";
-import { allProducts as catalogProducts } from "../data/products";
 import ProductCard from "../components/ProductCard";
 import ProductReviews from "../components/ProductReviews";
 import { useFavorites } from "../context/FavoritesContext";
@@ -187,9 +186,7 @@ const galleryImages = (selectedColorImages.length
   ? selectedColorImages
   : (product?.images || []).slice(0, 1)
 ).map((image) => ({ image, color: selectedColor }));
-const liveProductsById = new Map(products.map((item) => [Number(item.id), item]));
-const recommendationCatalog = catalogProducts.map((catalogProduct) => ({ ...catalogProduct, ...liveProductsById.get(catalogProduct.id) }));
-const relatedProducts = product ? completeTheLook(product, recommendationCatalog) : [];
+const relatedProducts = product ? completeTheLook(product, products) : [];
   const isFootwear = product?.productType === "Footwear";
   const detailItems = product ? constructionDetails(product) : [];
   const material = product ? materialProfile(product) : "";

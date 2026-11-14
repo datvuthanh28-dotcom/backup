@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Chatbox.css";
-import foxLogo from "../assets/fox-logo.png";
+import foxLogo from "../assets/fox-logo.webp";
 import { useAuth } from "../context/AuthContext";
 import { chatAPI } from "../services/api";
 

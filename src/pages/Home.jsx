@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import useDocumentTitle from "../hooks/useDocumentTitle";
-import products from "../data/products";
+import { useStore } from "../hooks/useStore";
 
 function FavoriteRow({ label, items }) {
   return (
@@ -21,9 +21,11 @@ function FavoriteRow({ label, items }) {
 
 export default function Home() {
   useDocumentTitle("Maison Rue — The Art of Quiet Luxury");
+  const { products } = useStore();
 
-  const mostLovedMen = [109, 113, 117, 127].map((id) => products.men.find((p) => p.id === id)).filter(Boolean);
-  const mostLovedWomen = [150, 155, 158, 174].map((id) => products.women.find((p) => p.id === id)).filter(Boolean);
+  const byId = new Map(products.map((product) => [Number(product.id), product]));
+  const mostLovedMen = [109, 113, 117, 127].map((id) => byId.get(id)).filter(Boolean);
+  const mostLovedWomen = [150, 155, 158, 174].map((id) => byId.get(id)).filter(Boolean);
 
   return (
     <main className="home-page">

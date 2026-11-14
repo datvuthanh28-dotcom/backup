@@ -257,7 +257,22 @@ export const db = {
   async getAllProducts() {
     const p = await getActivePool();
     const res = await p.request().query(`SELECT p.* FROM Products p WHERE ${activeProductSql("p")} ORDER BY p.id ASC`);
-    const variantRes = await p.request().query("SELECT * FROM ProductVariants WHERE is_active = 1 ORDER BY product_id, color_name, size_name");
+    const variantRes = await p.request().query(`
+      SELECT pv.*,
+             latest.created_at AS last_inventory_activity_at,
+             latest.movement_type AS last_inventory_movement_type,
+             latest.quantity_change AS last_inventory_change,
+             latest.performed_by AS last_inventory_actor
+      FROM ProductVariants pv
+      OUTER APPLY (
+        SELECT TOP (1) im.created_at, im.movement_type, im.quantity_change, im.performed_by
+        FROM InventoryMovements im
+        WHERE im.variant_id = pv.id
+        ORDER BY im.created_at DESC, im.id DESC
+      ) latest
+      WHERE pv.is_active = 1
+      ORDER BY pv.product_id, pv.color_name, pv.size_name
+    `);
     return res.recordset.map((r) => {
       const catalog = catalogProducts.find((product) => product.id === r.id) || {};
       const variants = variantRes.recordset.filter((variant) => variant.product_id === r.id).map((variant) => ({
@@ -271,6 +286,10 @@ export const db = {
         reorderPoint: Number(variant.reorder_point ?? variant.low_stock_threshold ?? 0),
         leadTimeDays: Number(variant.lead_time_days || 7),
         lowStockThreshold: variant.low_stock_threshold, maxStockThreshold: variant.max_stock_threshold,
+        lastInventoryActivityAt: variant.last_inventory_activity_at,
+        lastInventoryMovementType: variant.last_inventory_movement_type,
+        lastInventoryChange: variant.last_inventory_change == null ? null : Number(variant.last_inventory_change),
+        lastInventoryActor: variant.last_inventory_actor,
       }))
         .sort((a, b) => (catalog.colors?.indexOf(a.color) ?? 0) - (catalog.colors?.indexOf(b.color) ?? 0) || (catalog.sizes?.indexOf(a.size) ?? 0) - (catalog.sizes?.indexOf(b.size) ?? 0));
       return { ...catalog, ...r, productCode: r.product_code, collection: r.collection_name || catalog.collection, collections: r.collections_json ? JSON.parse(r.collections_json) : catalog.collections, material: r.material || catalog.material, stock: variants.reduce((sum, variant) => sum + variant.stock, 0), variants, images: JSON.parse(r.images_json), colors: JSON.parse(r.colors_json), colorImages: JSON.parse(r.color_images_json) };
@@ -287,8 +306,23 @@ export const db = {
     const r = res.recordset[0];
     if (!r) return null;
     const catalog = catalogProducts.find((product) => product.id === r.id) || {};
-    const variantRes = await p.request().input("product_id", sql.Int, numId).query("SELECT * FROM ProductVariants WHERE product_id=@product_id AND is_active=1 ORDER BY color_name, size_name");
-    const variants = variantRes.recordset.map((variant) => ({ id: variant.id, sku: variant.sku, color: variant.color_name, size: variant.size_name, price: Number(variant.price), costPrice: Number(variant.cost_price || 0), floorPrice: Number(variant.floor_price || 0), stock: variant.stock_quantity, lowStockThreshold: variant.low_stock_threshold, maxStockThreshold: variant.max_stock_threshold }))
+    const variantRes = await p.request().input("product_id", sql.Int, numId).query(`
+      SELECT pv.*,
+             latest.created_at AS last_inventory_activity_at,
+             latest.movement_type AS last_inventory_movement_type,
+             latest.quantity_change AS last_inventory_change,
+             latest.performed_by AS last_inventory_actor
+      FROM ProductVariants pv
+      OUTER APPLY (
+        SELECT TOP (1) im.created_at, im.movement_type, im.quantity_change, im.performed_by
+        FROM InventoryMovements im
+        WHERE im.variant_id = pv.id
+        ORDER BY im.created_at DESC, im.id DESC
+      ) latest
+      WHERE pv.product_id=@product_id AND pv.is_active=1
+      ORDER BY pv.color_name, pv.size_name
+    `);
+    const variants = variantRes.recordset.map((variant) => ({ id: variant.id, sku: variant.sku, color: variant.color_name, size: variant.size_name, price: Number(variant.price), costPrice: Number(variant.cost_price || 0), floorPrice: Number(variant.floor_price || 0), stock: variant.stock_quantity, lowStockThreshold: variant.low_stock_threshold, maxStockThreshold: variant.max_stock_threshold, lastInventoryActivityAt: variant.last_inventory_activity_at, lastInventoryMovementType: variant.last_inventory_movement_type, lastInventoryChange: variant.last_inventory_change == null ? null : Number(variant.last_inventory_change), lastInventoryActor: variant.last_inventory_actor }))
       .sort((a, b) => (catalog.colors?.indexOf(a.color) ?? 0) - (catalog.colors?.indexOf(b.color) ?? 0) || (catalog.sizes?.indexOf(a.size) ?? 0) - (catalog.sizes?.indexOf(b.size) ?? 0));
     return {
       ...catalog, ...r,
@@ -452,7 +486,21 @@ export const db = {
       all: "1=1",
     }[scope] || `NOT (${legacySql})`;
     const res = await p.request().query(`SELECT p.* FROM Products p WHERE ${scopeSql} ORDER BY p.id DESC`);
-    const variantRes = await p.request().query("SELECT * FROM ProductVariants ORDER BY product_id, color_name, size_name");
+    const variantRes = await p.request().query(`
+      SELECT pv.*,
+             latest.created_at AS last_inventory_activity_at,
+             latest.movement_type AS last_inventory_movement_type,
+             latest.quantity_change AS last_inventory_change,
+             latest.performed_by AS last_inventory_actor
+      FROM ProductVariants pv
+      OUTER APPLY (
+        SELECT TOP (1) im.created_at, im.movement_type, im.quantity_change, im.performed_by
+        FROM InventoryMovements im
+        WHERE im.variant_id = pv.id
+        ORDER BY im.created_at DESC, im.id DESC
+      ) latest
+      ORDER BY pv.product_id, pv.color_name, pv.size_name
+    `);
     return res.recordset.map((r) => {
       const catalog = catalogProducts.find((product) => product.id === r.id) || {};
       const variants = variantRes.recordset.filter((variant) => variant.product_id === r.id).map((variant) => ({
@@ -480,6 +528,10 @@ export const db = {
         updatedBy: variant.updated_by,
         createdAt: variant.created_at,
         updatedAt: variant.updated_at,
+        lastInventoryActivityAt: variant.last_inventory_activity_at,
+        lastInventoryMovementType: variant.last_inventory_movement_type,
+        lastInventoryChange: variant.last_inventory_change == null ? null : Number(variant.last_inventory_change),
+        lastInventoryActor: variant.last_inventory_actor,
       }));
       return {
         ...catalog,
@@ -1949,6 +2001,9 @@ export const db = {
         const variantId = String(input.variantId || "");
         const quantity = Number.parseInt(input.actualQuantity ?? input.quantity, 10);
         if (!productId || !variantId || !Number.isInteger(quantity) || quantity < 0) throw new Error("SKU hoặc số lượng trên phiếu không hợp lệ.");
+        if (["receipt", "quarantine", "release"].includes(type) && quantity < 1) {
+          throw new Error("Số lượng của nghiệp vụ này phải là số nguyên lớn hơn 0.");
+        }
         const variantResult = await transaction.request()
           .input("product_id", sql.Int, productId)
           .input("variant_id", sql.NVarChar, variantId)
@@ -2001,11 +2056,13 @@ export const db = {
           movementType = "special_adjustment";
         }
         else if (type === "quarantine") {
-          const available = before - Number(variant.reserved_quantity || 0) - quarantineBefore;
+          const available = Math.max(0, before - reservedBefore - quarantineBefore);
+          if (available === 0) throw new Error(`SKU ${variant.sku} không còn hàng có thể bán để chuyển sang chờ kiểm tra.`);
           if (quantity > available) throw new Error(`SKU ${variant.sku} không đủ hàng có thể bán để chuyển chờ kiểm tra.`);
           quarantineAfter += quantity;
           movementType = "quarantine_hold";
         } else if (type === "release") {
+          if (quarantineBefore === 0) throw new Error(`SKU ${variant.sku} không có hàng chờ kiểm tra để đưa lại vào bán.`);
           if (quantity > quarantineBefore) throw new Error(`SKU ${variant.sku} chỉ có ${quarantineBefore} sản phẩm chờ kiểm tra.`);
           quarantineAfter -= quantity;
           movementType = "quarantine_release";
