@@ -36,6 +36,10 @@ export default function Checkout() {
   const [pricing, setPricing] = useState(null);
   const [promotionMessage, setPromotionMessage] = useState("");
   const [previewing, setPreviewing] = useState(false);
+  const [promoModalOpen, setPromoModalOpen] = useState(false);
+  const [availableOffers, setAvailableOffers] = useState([]);
+  const [offersLoading, setOffersLoading] = useState(false);
+  const [offersError, setOffersError] = useState("");
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const [addressSuggestions, setAddressSuggestions] = useState([]);
@@ -100,12 +104,50 @@ export default function Checkout() {
   const previewPricing = useCallback(async (code = "") => {
     if (!checkoutItems.length) return;
     setPreviewing(true); setPromotionMessage("");
-    try { const result = await promotionAPI.preview(checkoutItems, code); setPricing(result.pricing); if (code) setPromotionMessage(`Code ${result.pricing.code} applied.`); }
+    try { const result = await promotionAPI.preview(checkoutItems, code); setPricing(result.pricing); if (code) setPromotionMessage(`Promo code ${result.pricing.code} has been applied.`); }
     catch (error) { setPromotionMessage(error.message); if (code) { setAppliedCode(""); setPricing(null); } }
     finally { setPreviewing(false); }
   }, [checkoutItems]);
 
   useEffect(() => { previewPricing(appliedCode); }, [appliedCode, previewPricing]);
+
+  useEffect(() => {
+    if (!promoModalOpen) return undefined;
+    const closeOnEscape = (event) => { if (event.key === "Escape") setPromoModalOpen(false); };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [promoModalOpen]);
+
+  const openPromotionPicker = async () => {
+    setPromoModalOpen(true);
+    setOffersLoading(true);
+    setOffersError("");
+    try {
+      const result = await promotionAPI.getMyOffers();
+      const candidates = (result.offers || []).filter((offer) => !offer.used_by_customer && offer.assignment_status !== "used");
+      const checked = await Promise.allSettled(candidates.map(async (offer) => {
+        const preview = await promotionAPI.preview(checkoutItems, offer.code);
+        return {
+          ...offer,
+          saving: Number(preview.pricing?.codeDiscountTotal || 0) + Number(preview.pricing?.shippingDiscountTotal || 0),
+          finalTotal: Number(preview.pricing?.finalTotal || 0),
+        };
+      }));
+      setAvailableOffers(checked.filter((entry) => entry.status === "fulfilled").map((entry) => entry.value));
+    } catch (error) {
+      setAvailableOffers([]);
+      setOffersError(error.status === 401 ? "Sign in to view promo codes assigned to your account." : error.message);
+    } finally {
+      setOffersLoading(false);
+    }
+  };
+
+  const applyPromotionCode = () => {
+    const normalized = codeInput.trim().toUpperCase();
+    if (!normalized) return;
+    setAppliedCode(normalized);
+    setPromoModalOpen(false);
+  };
 
   if (cartLoading && !orderSuccess) {
     return <main id="cart-container" style={{ padding: "60px 20px", textAlign: "center" }}>Loading your bag...</main>;
@@ -137,17 +179,17 @@ export default function Checkout() {
         setFormData((prev) => ({ ...prev, address: res.verifiedAddress.formatted || text }));
         setAddressConfirmed(true);
         setAddressVerificationStatus(res.verifiedAddress.status || "MATCHED");
-        setVerifiedExplanation(res.verifiedAddress.explanation || "Địa chỉ phù hợp với dữ liệu bản đồ.");
+        setVerifiedExplanation(res.verifiedAddress.explanation || "This address matches the available map data.");
         return true;
       } else {
         setAddressConfirmed(false);
-        setErrors((prev) => ({ ...prev, address: res.error || "Chưa đủ thông tin để xác minh địa chỉ này." }));
+        setErrors((prev) => ({ ...prev, address: res.error || "There is not enough information to verify this address." }));
         return false;
       }
     } catch (err) {
       setAddressConfirmed(false);
       setAddressVerificationStatus("");
-      setErrors((prev) => ({ ...prev, address: err.message || "Chưa đủ thông tin để xác minh địa chỉ này." }));
+      setErrors((prev) => ({ ...prev, address: err.message || "There is not enough information to verify this address." }));
       return false;
     } finally {
       setVerifyingAddress(false);
@@ -313,6 +355,8 @@ export default function Checkout() {
     );
   }
 
+  const pricedItemsByCartId = new Map((pricing?.items || []).map((item) => [item.cartItemId, item]));
+
   return (
     <main style={{ maxWidth: "1200px", margin: "40px auto", padding: "0 25px" }}>
       <h1
@@ -431,7 +475,7 @@ export default function Checkout() {
                 />
                 {suggestionsLoading && (
                   <small style={{ display: "block", color: "#8a5a36", marginTop: "4px" }}>
-                    Đang tìm kiếm vị trí trên Geoapify…
+                    Searching for this location with Geoapify…
                   </small>
                 )}
                 {suggestionsOpen && addressSuggestions.length > 0 && (
@@ -501,14 +545,14 @@ export default function Checkout() {
                     }}
                   >
                     {verifyingAddress
-                      ? "Đang thẩm định địa chỉ…"
+                      ? "Verifying address…"
                       : addressConfirmed
-                        ? addressVerificationStatus === "PENDING_MANUAL_REVIEW" ? "✓ Đã ghi nhận" : "✓ Đã xác nhận"
-                        : "Xác nhận địa chỉ"}
+                        ? addressVerificationStatus === "PENDING_MANUAL_REVIEW" ? "✓ Submitted for review" : "✓ Verified"
+                        : "Verify address"}
                   </button>
                   {addressConfirmed && (
                     <small style={{ color: addressVerificationStatus === "PENDING_MANUAL_REVIEW" ? "#9a6700" : "#2e7d32", fontWeight: "600", fontSize: "12px" }}>
-                      ✓ {verifiedExplanation || "Địa chỉ phù hợp với dữ liệu bản đồ."}
+                      ✓ {verifiedExplanation || "This address matches the available map data."}
                     </small>
                   )}
                 </div>
@@ -620,9 +664,12 @@ export default function Checkout() {
               </h2>
 
               <div style={{ maxHeight: "280px", overflowY: "auto", marginBottom: "20px" }}>
-                {checkoutItems.map((item) => (
-                  <div
+                {checkoutItems.map((item) => {
+                  const pricedItem = pricedItemsByCartId.get(item.cartItemId);
+                  const discounted = Number(pricedItem?.automaticDiscount || 0) + Number(pricedItem?.orderDiscountAllocated || 0) > 0;
+                  return <div
                     key={item.cartItemId}
+                    className="checkout-order-item"
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -642,11 +689,12 @@ export default function Checkout() {
                         {item.selectedColor || "Standard"} / {item.selectedSize || "One size"} × {item.quantity}
                       </div>
                     </div>
-                    <div style={{ fontWeight: "600", color: "#B89B5E", fontSize: "13.5px" }}>
-                      {formatPrice(item.price * item.quantity)}
+                    <div className={`checkout-order-item__price${discounted ? " has-discount" : ""}`}>
+                      {discounted && <del>{formatPrice(pricedItem.originalLineTotal)}</del>}
+                      <strong>{formatPrice(pricedItem?.finalLineTotal ?? item.price * item.quantity)}</strong>
                     </div>
-                  </div>
-                ))}
+                  </div>;
+                })}
               </div>
 
               <div className="summary-row">
@@ -659,7 +707,14 @@ export default function Checkout() {
                 <span>Shipping:</span>
                 <span style={{ color: "#2E8B57", fontWeight: "600" }}>COMPLIMENTARY</span>
               </div>
-              <div className="checkout-promotion"><label>Promo code</label><div><input value={codeInput} onChange={(event) => setCodeInput(event.target.value.toUpperCase())} placeholder="Enter a promo code" disabled={Boolean(appliedCode)} /><button type="button" onClick={() => appliedCode ? (setAppliedCode(""), setCodeInput("")) : setAppliedCode(codeInput.trim().toUpperCase())} disabled={previewing || (!appliedCode && !codeInput.trim())}>{appliedCode ? "Remove code" : previewing ? "Checking..." : "Apply"}</button></div>{promotionMessage && <p className={pricing?.code ? "success" : "error"}>{promotionMessage}</p>}</div>
+              <div className="checkout-promotion">
+                <div className="checkout-promotion__heading"><div><span>Promo code</span><small>Choose an eligible offer or enter your code</small></div>{appliedCode && <button type="button" className="checkout-promotion__remove" onClick={() => { setAppliedCode(""); setCodeInput(""); }}>Remove</button>}</div>
+                <button type="button" className={`checkout-promotion__trigger${appliedCode ? " is-applied" : ""}`} onClick={openPromotionPicker}>
+                  <span>{appliedCode ? <><strong>{appliedCode}</strong><small>Applied</small></> : <><strong>Choose or enter a promo code</strong><small>View offers available for this order</small></>}</span>
+                  <span aria-hidden="true">›</span>
+                </button>
+                {promotionMessage && <p className={pricing?.code ? "success" : "error"}>{promotionMessage}</p>}
+              </div>
               <div className="summary-row total" style={{ fontSize: "20px" }}>
                 <span>Total:</span>
                 <span>{formatPrice(pricing?.finalTotal ?? selectedCartTotal)}</span>
@@ -689,6 +744,27 @@ export default function Checkout() {
           </div>
         </div>
       </form>
+      {promoModalOpen && (
+        <div className="promo-picker-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setPromoModalOpen(false); }}>
+          <section className="promo-picker" role="dialog" aria-modal="true" aria-labelledby="promo-picker-title">
+            <button type="button" className="promo-picker__close" aria-label="Close" onClick={() => setPromoModalOpen(false)}>×</button>
+            <div className="promo-picker__header"><p className="eyebrow">OFFERS FOR YOUR ORDER</p><h2 id="promo-picker-title">Choose a promo code</h2><p>Only codes confirmed as eligible for your current bag are shown below.</p></div>
+            <div className="promo-picker__manual">
+              <label htmlFor="checkout-promo-code">Enter a promo code</label>
+              <div><input id="checkout-promo-code" value={codeInput} onChange={(event) => setCodeInput(event.target.value.toUpperCase())} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); applyPromotionCode(); } }} placeholder="E.G. RUEVIP15" autoFocus /><button type="button" onClick={applyPromotionCode} disabled={!codeInput.trim() || previewing}>Apply</button></div>
+            </div>
+            <div className="promo-picker__available">
+              <div className="promo-picker__section-title"><strong>Available promo codes</strong>{!offersLoading && <span>{availableOffers.length} {availableOffers.length === 1 ? "code" : "codes"}</span>}</div>
+              {offersLoading ? <div className="promo-picker__state">Checking eligible offers…</div> : availableOffers.length ? availableOffers.map((offer) => (
+                <article className="promo-picker__offer" key={offer.code_id}>
+                  <div><span>{offer.distribution_type === "targeted" ? "Exclusively for you" : "Public offer"}</span><code>{offer.code}</code><p>{offer.display_description || offer.description}</p><small>Minimum order {formatPrice(offer.minimum_order_value || 0)}{offer.end_at ? ` · Expires ${new Date(offer.end_at).toLocaleDateString("en-GB")}` : ""}</small></div>
+                  <div><strong>Save {formatPrice(offer.saving)}</strong><button type="button" onClick={() => { setCodeInput(offer.code); setAppliedCode(offer.code); setPromoModalOpen(false); }}>Apply</button></div>
+                </article>
+              )) : <div className="promo-picker__state"><strong>No saved promo code is currently eligible</strong><span>{offersError || "You can still enter another code above to check it."}</span></div>}
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

@@ -336,6 +336,12 @@
 .inventory-stock-status.is-over { color: #2c6ba0; background: #eef6fc; border-color: #bfd6e8; }
 .inventory-stock-status.is-stable { color: #2e8b57; background: #f0fff0; border-color: #c3e6cb; }
 
+.inventory-last-activity { display: flex; min-width: 142px; flex-direction: column; gap: 2px; }
+.inventory-last-activity strong { color: #33251f; font-size: 11.5px; font-weight: 650; white-space: nowrap; }
+.inventory-last-activity span { color: #6b5a4b; font-size: 11px; }
+.inventory-last-activity small { color: #9a7b55; font-size: 10.5px; }
+.inventory-no-activity { color: #a09384; font-size: 11px; font-style: italic; white-space: nowrap; }
+
 .inventory-stock-limits { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
 .inventory-stock-limits .form-group { margin: 0; }
 .inventory-stock-limits label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; }
@@ -394,6 +400,25 @@
   background: #fff;
   color: var(--inventory-brown);
   cursor: pointer;
+}
+
+.inventory-operation-picker button:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+  filter: grayscale(.25);
+}
+
+.inventory-operation-picker button:disabled small { color: #9a5b52; }
+
+.inventory-receipt-guidance {
+  margin: 2px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid #d9cfbf;
+  border-radius: 6px;
+  background: #faf7f1;
+  color: #655548;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .inventory-pagination {

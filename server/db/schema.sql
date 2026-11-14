@@ -114,7 +114,16 @@ BEGIN
     CREATE TABLE InventoryMovements (
         id INT IDENTITY(1,1) PRIMARY KEY,
         product_id INT NOT NULL FOREIGN KEY REFERENCES Products(id),
-        movement_type NVARCHAR(40) NOT NULL CHECK (movement_type IN ('order_deduction', 'order_cancellation_restore', 'manual_adjustment', 'restock')),
+        movement_type NVARCHAR(40) NOT NULL CHECK (movement_type IN (
+            'order_deduction', 'order_cancellation_restore', 'order_reservation',
+            'order_cancelled_awaiting_return', 'reservation_release',
+            'manual_adjustment', 'threshold_adjustment', 'restock',
+            'return_restock', 'exchange_deduction', 'initial_stock',
+            'product_deactivated', 'product_restored', 'sku_deactivated',
+            'sku_restored', 'receipt', 'stocktake_adjustment',
+            'special_adjustment', 'quarantine_hold', 'quarantine_release',
+            'document_reversal'
+        )),
         quantity_change INT NOT NULL,
         resulting_stock INT NOT NULL,
         reference_id NVARCHAR(50),

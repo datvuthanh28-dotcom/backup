@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { productsAPI, ordersAPI, promotionAPI, reportAPI } from "../services/api";
-import { allProducts as staticProducts } from "../data/products";
 import { useAuth } from "./AuthContext";
 
 export const VALID_STATUS_TRANSITIONS = {
@@ -26,7 +25,7 @@ const StoreContext = createContext(null);
 export function StoreProvider({ children }) {
   const { isAuthenticated, currentUser } = useAuth();
 
-  const [products, setProducts] = useState(staticProducts);
+  const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [revenueReport, setRevenueReport] = useState(null);
 
@@ -41,36 +40,14 @@ export function StoreProvider({ children }) {
         .catch(() => ({ prices: {} }));
       const res = await productsAPI.getAll();
       if (res.success && Array.isArray(res.products) && res.products.length > 0) {
-        // The approved assortment is the storefront source of truth. Ignore legacy
-        // products that may still be returned by an older or unsynchronized API.
-        const staticById = new Map(staticProducts.map((product) => [Number(product.id), product]));
         const approvedProducts = res.products
-          .map((product) => {
-            const catalogProduct = staticById.get(Number(product.id));
-            if (!catalogProduct) return null;
-            return {
-              ...catalogProduct,
-              ...product,
-              audience: catalogProduct.audience,
-              gender: catalogProduct.gender,
-              productType: catalogProduct.productType,
-              subcategory: catalogProduct.subcategory,
-              // Product media ships with the approved catalog. The database
-              // may still contain legacy placeholder paths after a catalog
-              // pull, so live stock must not overwrite current WebP assets.
-              images: catalogProduct.images,
-              colors: catalogProduct.colors,
-              colorImages: catalogProduct.colorImages,
-              colorOptions: catalogProduct.colorOptions,
-              promotionPrice: Number(product.price),
-              promotionDiscount: 0,
-              promotionName: null,
-              collection: catalogProduct.collection,
-              collections: catalogProduct.collections,
-              material: catalogProduct.material,
-            };
-          })
-          .filter(Boolean);
+          .filter((product) => Number(product.id) >= 106 && product.is_active !== false)
+          .map((product) => ({
+            ...product,
+            promotionPrice: Number(product.price),
+            promotionDiscount: 0,
+            promotionName: null,
+          }));
         if (approvedProducts.length > 0) {
           // Publish live SKU stock immediately.
           setProducts(approvedProducts);

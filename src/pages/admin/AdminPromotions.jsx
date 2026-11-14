@@ -415,11 +415,16 @@ function TargetSummary({ targets, reservedCount }) {
 }
 
 function CodeTable({ rows, openNew, openEmailWithCode }) {
+  const distributionLabels = {
+    public: { label: "Mã dùng chung", note: "Mọi khách hàng", tone: "public" },
+    targeted: { label: "Mã dành riêng", note: "Chỉ khách được gán", tone: "targeted" },
+    private: { label: "Mã nội bộ", note: "Không công khai", tone: "private" },
+  };
   return <section className="promotion-management-section">
     <div className="promotion-section-heading"><div><p className="eyebrow">Phân phối ưu đãi</p><h2>Mã giảm giá</h2><p>Mã công khai, mã riêng cho khách hàng hoặc mã nội bộ đều được quản lý tại đây.</p></div><button className="btn-primary" onClick={() => openNew(true)}>Tạo mã giảm giá</button></div>
-    <div className="admin-insights__table-wrap"><table className="admin-insights__table"><thead><tr><th>Mã giảm giá</th><th>Chương trình</th><th>Ưu đãi</th><th>Đã sử dụng</th><th>Thời hạn</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>
-      {rows.map((row) => { const codeExhausted = row.code_usage_limit && Number(row.code_used_count) >= Number(row.code_usage_limit); return <tr key={row.id}><td><strong>{row.codes}</strong></td><td>{row.name}</td><td>{row.discount_type === "percentage" ? `${Number(row.discount_value)}%` : money(row.discount_value)}</td><td>{Number(row.code_used_count || 0)}{row.code_usage_limit ? ` / ${row.code_usage_limit}` : " / Không giới hạn"}</td><td>{new Date(row.start_at).toLocaleDateString("vi-VN")} – {row.end_at ? new Date(row.end_at).toLocaleDateString("vi-VN") : "Không giới hạn"}</td><td><span className={`promotion-status promotion-status--${codeExhausted ? "exhausted" : row.effective_status}`}>{codeExhausted ? "Đã hết lượt" : statusLabels[row.effective_status]}</span></td><td><button type="button" onClick={() => openEmailWithCode(row)}>Gửi mail</button></td></tr>; })}
-      {rows.length === 0 && <tr><td colSpan="7" className="promotion-table-empty">Chưa có mã giảm giá nào.</td></tr>}
+    <div className="admin-insights__table-wrap"><table className="admin-insights__table promotion-code-table"><thead><tr><th>Mã giảm giá</th><th>Phân phối</th><th>Chương trình</th><th>Ưu đãi</th><th>Đã sử dụng</th><th>Thời hạn</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>
+      {rows.map((row) => { const codeExhausted = row.code_usage_limit && Number(row.code_used_count) >= Number(row.code_usage_limit); const distribution = distributionLabels[row.code_distribution_type] || distributionLabels.private; return <tr key={row.id}><td><strong className="promotion-code-value">{row.codes}</strong>{row.code_display_description && <small>{row.code_display_description}</small>}</td><td><span className={`promotion-distribution promotion-distribution--${distribution.tone}`}>{distribution.label}</span><small>{row.code_distribution_type === "targeted" ? `${Number(row.code_assigned_customer_count || 0)} khách được nhận` : distribution.note}</small></td><td>{row.name}</td><td>{row.discount_type === "percentage" ? `${Number(row.discount_value)}%` : money(row.discount_value)}</td><td>{Number(row.code_used_count || 0)}{row.code_usage_limit ? ` / ${row.code_usage_limit}` : " / Không giới hạn"}</td><td>{new Date(row.start_at).toLocaleDateString("vi-VN")} – {row.end_at ? new Date(row.end_at).toLocaleDateString("vi-VN") : "Không giới hạn"}</td><td><span className={`promotion-status promotion-status--${codeExhausted ? "exhausted" : row.effective_status}`}>{codeExhausted ? "Đã hết lượt" : statusLabels[row.effective_status]}</span></td><td><button className="promotion-email-button" type="button" onClick={() => openEmailWithCode(row)}>Gửi email</button></td></tr>; })}
+      {rows.length === 0 && <tr><td colSpan="8" className="promotion-table-empty">Chưa có mã giảm giá nào.</td></tr>}
     </tbody></table></div>
   </section>;
 }

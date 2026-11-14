@@ -7,7 +7,11 @@ const directory = path.dirname(fileURLToPath(import.meta.url));
 
 async function applyInventoryOperationsMigration() {
   await connectDB();
-  for (const file of ["029_inventory_operations.sql", "030_inventory_document_workflow.sql"]) {
+  for (const file of [
+    "029_inventory_operations.sql",
+    "030_inventory_document_workflow.sql",
+    "031_inventory_movement_types.sql",
+  ]) {
     const source = fs.readFileSync(path.join(directory, "migrations", file), "utf8");
     for (const batch of source.split(/^\s*GO\s*$/gim)) {
       if (batch.trim()) await getPool().request().query(batch);
@@ -18,10 +22,18 @@ async function applyInventoryOperationsMigration() {
       COL_LENGTH('ProductVariants', 'reserved_quantity') AS reserved_quantity,
       COL_LENGTH('ProductVariants', 'quarantine_quantity') AS quarantine_quantity,
       OBJECT_ID('InventoryDocuments') AS inventory_documents,
-      OBJECT_ID('InventoryDocumentItems') AS inventory_document_items
+      OBJECT_ID('InventoryDocumentItems') AS inventory_document_items,
+      (
+        SELECT COUNT(*)
+        FROM sys.check_constraints
+        WHERE parent_object_id = OBJECT_ID('dbo.InventoryMovements')
+          AND name = 'CK_InventoryMovements_MovementType'
+          AND definition LIKE '%receipt%'
+          AND definition LIKE '%document_reversal%'
+      ) AS movement_constraint_ready
   `);
   const state = result.recordset[0];
-  if (!state.reserved_quantity || !state.quarantine_quantity || !state.inventory_documents || !state.inventory_document_items) {
+  if (!state.reserved_quantity || !state.quarantine_quantity || !state.inventory_documents || !state.inventory_document_items || !state.movement_constraint_ready) {
     throw new Error("Inventory operations schema verification did not pass.");
   }
   console.log("[Inventory Migration] Reservation, quarantine and warehouse documents are ready.");

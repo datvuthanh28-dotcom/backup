@@ -10,6 +10,18 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return undefined
+            if (id.includes('react-router')) return 'router'
+            if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('react\\') || id.includes('react-dom\\')) return 'react'
+            return 'vendor'
+          },
+        },
+      },
+    },
     server: {
       host: true,
       port: 5173,

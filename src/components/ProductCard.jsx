@@ -73,7 +73,7 @@ return (
     <Link to={`/product/${product.id}`} className="product-card-link">
       <div className="product-image">
         {isOutOfStock && <span className="product-card-sold-out">Sold out</span>}
-        {!isOutOfStock && hasPromotion && <span className="product-card-sale-badge">Giảm {promotionPercent}%</span>}
+        {!isOutOfStock && hasPromotion && <span className="product-card-sale-badge">−{promotionPercent}%</span>}
         <img className="product-image-primary" src={`/${coverImage}`} alt={product.name} />
         {hoverImage && <img className="product-image-hover" src={`/${hoverImage}`} alt="" aria-hidden="true" />}
       </div>
