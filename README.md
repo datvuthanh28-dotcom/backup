@@ -134,6 +134,7 @@ Sau khi pull, hãy dừng hoàn toàn tiến trình `npm run dev` cũ rồi ch�
 npm install
 npm run setup
 npm run doctor
+npm run db:verify-demo
 npm run dev
 ```
 
@@ -144,6 +145,29 @@ trong thư mục dự án để không bị một biến môi trường Windows 
 database; mặc định cổng là `1433`.
 Nếu giao diện mới nhưng API trả 404, backend cũ vẫn đang chạy hoặc Terminal đang đứng ở repository/nhánh khác.
 Kiểm tra `http://localhost:5000/api/health`: backend đúng phải trả `apiVersion` và danh sách `capabilities`.
+
+### Chia sẻ dữ liệu database qua Git đúng cách
+
+Git **không đồng bộ trực tiếp** database MSSQL đang chạy trên từng máy. Repository chia sẻ
+một bộ dữ liệu demo canonical thông qua schema, migration và seed. Sau khi clone hoặc pull,
+mỗi thành viên chạy:
+
+```bash
+npm install
+npm run db:sync
+npm run db:verify-demo
+npm run db:status
+```
+
+`db:sync` là bí danh rõ nghĩa của quy trình `setup`. `db:verify-demo` sẽ thất bại nếu thiếu
+sản phẩm hiện hành, SKU, giá vốn/giá sàn, ảnh, đơn báo cáo, yêu thích, đánh giá, mẫu sale,
+chương trình mẫu hoặc mã `RUE10`. `db:status` in số lượng và fingerprint catalog để hai máy
+có thể đối chiếu nhanh.
+
+Không commit `.env`, mật khẩu, file `.bak`, MDF/LDF hoặc Docker volume. Các đơn hàng và dữ
+liệu khách hàng phát sinh riêng sau khi chạy website không tự động truyền qua Git. Nếu nhóm
+cần dùng chung dữ liệu vận hành phát sinh theo thời gian thực, phải kết nối tới một SQL Server
+dùng chung; không dùng repository như một cơ chế đồng bộ database đang hoạt động.
 
 ### Các lệnh bổ sung cho Database:
 ```bash

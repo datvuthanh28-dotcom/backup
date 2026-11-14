@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useStore } from "../../context/StoreContext";
+import { useAuth } from "../../context/AuthContext";
 import { productsAPI } from "../../services/api";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
 import "./StaffInventory.css";
@@ -39,6 +40,13 @@ const STOCK_OPTIONS = [
   { id: "overstock", label: "Vượt mức tồn" },
 ];
 const STOCK_FILTER_IDS = new Set(STOCK_OPTIONS.map((option) => option.id));
+const OPERATION_TYPES = [
+  { id: "receipt", title: "Nhập hàng", description: "Nhận hàng từ nhà cung cấp vào kho.", icon: "fa-truck-ramp-box" },
+  { id: "stocktake", title: "Kiểm kê", description: "Ghi nhận số lượng đếm thực tế.", icon: "fa-clipboard-check" },
+  { id: "quarantine", title: "Chờ kiểm tra", description: "Tạm ngừng bán hàng lỗi hoặc cần kiểm định.", icon: "fa-shield" },
+  { id: "release", title: "Đưa lại vào bán", description: "Mở bán hàng đã vượt qua kiểm tra.", icon: "fa-circle-check" },
+  { id: "special_adjustment", title: "Điều chỉnh đặc biệt", description: "Sửa sai dữ liệu tồn kho có lưu vết.", icon: "fa-triangle-exclamation", adminOnly: true },
+];
 
 function normalizeGender(value) {
   const gender = String(value || "").toLowerCase();
@@ -49,7 +57,7 @@ function normalizeGender(value) {
 }
 
 function getVariantState(variant) {
-  const stock = Number(variant.stock);
+  const stock = Number(variant.availableQuantity ?? (Number(variant.stock || 0) - Number(variant.reservedQuantity || 0) - Number(variant.quarantineQuantity || 0)));
   const min = Number(variant.lowStockThreshold ?? variant.low_stock_threshold ?? 3);
   const max = Number(variant.maxStockThreshold ?? variant.max_stock_threshold ?? 20);
   if (stock === 0) return { id: "out", label: "Hết hàng" };
@@ -74,9 +82,19 @@ function formatDate(isoStr) {
   });
 }
 
-export default function StaffInventory() {
-  useDocumentTitle("Staff Portal — Quản Lý Tồn Kho");
-  const { products, updateVariantStock, getProductStock } = useStore();
+const DOCUMENT_TYPE_LABELS = {
+  receipt: "Nhập hàng",
+  stocktake: "Kiểm kê",
+  quarantine: "Chờ kiểm tra",
+  release: "Đưa lại vào bán",
+  special_adjustment: "Điều chỉnh đặc biệt",
+};
+
+export default function StaffInventory({ portal = "staff" }) {
+  const isAdminPortal = portal === "admin";
+  useDocumentTitle(isAdminPortal ? "Admin — Vận Hành Kho" : "Staff Portal — Quản Lý Tồn Kho");
+  const { products, updateVariantStock, refreshProducts } = useStore();
+  const { currentUser } = useAuth();
   const [searchParams] = useSearchParams();
 
   const [genderFilter, setGenderFilter] = useState("all");
@@ -88,10 +106,8 @@ export default function StaffInventory() {
   const [page, setPage] = useState(1);
   const [editProduct, setEditProduct] = useState(null);
   const [selectedVariantId, setSelectedVariantId] = useState("");
-  const [newStockValue, setNewStockValue] = useState("");
   const [minStockValue, setMinStockValue] = useState("3");
   const [maxStockValue, setMaxStockValue] = useState("20");
-  const [stockNote, setStockNote] = useState("");
   const [toastMessage, setToastMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const toastTimerRef = useRef(null);
@@ -99,6 +115,21 @@ export default function StaffInventory() {
   const [selectedProductMovements, setSelectedProductMovements] = useState(null);
   const [movementsList, setMovementsList] = useState([]);
   const [loadingMovements, setLoadingMovements] = useState(false);
+  const [operationRow, setOperationRow] = useState(null);
+  const [operationType, setOperationType] = useState("");
+  const [operationQuantity, setOperationQuantity] = useState("");
+  const [operationReference, setOperationReference] = useState("");
+  const [operationNote, setOperationNote] = useState("");
+  const [operationSupplier, setOperationSupplier] = useState("");
+  const [operationUnitCost, setOperationUnitCost] = useState("");
+  const [operationSellable, setOperationSellable] = useState("");
+  const [operationQuarantine, setOperationQuarantine] = useState("0");
+  const [operationUpdateCost, setOperationUpdateCost] = useState(false);
+  const [operationConfirm, setOperationConfirm] = useState(false);
+  const [documents, setDocuments] = useState([]);
+  const [loadingDocuments, setLoadingDocuments] = useState(false);
+  const [reversingDocument, setReversingDocument] = useState(null);
+  const [reversalReason, setReversalReason] = useState("");
 
   const showToast = (msg) => {
     if (toastTimerRef.current) {
@@ -114,6 +145,45 @@ export default function StaffInventory() {
     }
   }, []);
 
+  const loadDocuments = async () => {
+    if (!isAdminPortal) return;
+    setLoadingDocuments(true);
+    try {
+      const result = await productsAPI.getInventoryDocuments(50);
+      if (!result.success) throw new Error(result.error || "Không thể tải lịch sử phiếu kho.");
+      setDocuments(result.documents || []);
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setLoadingDocuments(false);
+    }
+  };
+
+  const submitReversal = async (event) => {
+    event.preventDefault();
+    if (!reversingDocument || reversalReason.trim().length < 10) return;
+    setLoading(true);
+    try {
+      const result = await productsAPI.reverseInventoryDocument(reversingDocument.id, reversalReason.trim());
+      if (!result.success) throw new Error(result.error || "Không thể đảo phiếu kho.");
+      await refreshProducts();
+      await loadDocuments();
+      showToast(`Đã tạo ${result.document?.documentCode || "phiếu đảo"}.`);
+      setReversingDocument(null);
+      setReversalReason("");
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDocuments();
+  // Chỉ tải lại khi đổi giữa cổng Staff/Admin.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdminPortal]);
+
   const productTypes = useMemo(
     () => [...new Set(products.map((product) => product.productType || product.category).filter(Boolean))].sort(),
     [products]
@@ -123,7 +193,11 @@ export default function StaffInventory() {
     (product.variants || []).map((variant) => ({
       product,
       variant,
-      stock: Number(variant.stock),
+      stock: Number(variant.availableQuantity ?? (Number(variant.stock || 0) - Number(variant.reservedQuantity || 0) - Number(variant.quarantineQuantity || 0))),
+      physical: Number(variant.stock || 0),
+      reserved: Number(variant.reservedQuantity || 0),
+      quarantine: Number(variant.quarantineQuantity || 0),
+      incoming: Number(variant.incomingQuantity || 0),
       state: getVariantState(variant),
     }))
   ), [products]);
@@ -188,20 +262,9 @@ export default function StaffInventory() {
     setSortBy("stock_asc");
   };
 
-  const handleOpenEdit = (product, variantId = null) => {
-    const firstVariant = product.variants?.find((variant) => String(variant.id) === String(variantId)) || product.variants?.[0];
-    setEditProduct(product);
-    setSelectedVariantId(firstVariant?.id || "");
-    setNewStockValue(firstVariant ? String(firstVariant.stock) : String(getProductStock(product.id)));
-    setMinStockValue(String(firstVariant?.lowStockThreshold ?? firstVariant?.low_stock_threshold ?? 3));
-    setMaxStockValue(String(firstVariant?.maxStockThreshold ?? firstVariant?.max_stock_threshold ?? 20));
-    setStockNote("");
-  };
-
   const handleVariantChange = (variantId) => {
     const variant = editProduct?.variants?.find((item) => String(item.id) === String(variantId));
     setSelectedVariantId(variantId);
-    setNewStockValue(variant ? String(variant.stock) : "");
     setMinStockValue(String(variant?.lowStockThreshold ?? variant?.low_stock_threshold ?? 3));
     setMaxStockValue(String(variant?.maxStockThreshold ?? variant?.max_stock_threshold ?? 20));
   };
@@ -209,28 +272,22 @@ export default function StaffInventory() {
   const handleSaveStock = async (e) => {
     e.preventDefault();
     if (!editProduct) return;
-    const stockNum = parseInt(newStockValue, 10);
+    const selectedVariant = editProduct.variants?.find((item) => String(item.id) === String(selectedVariantId));
+    const stockNum = Number(selectedVariant?.stock ?? 0);
     const minStockNum = parseInt(minStockValue, 10);
     const maxStockNum = parseInt(maxStockValue, 10);
-    if (isNaN(stockNum) || stockNum < 0) {
-      alert("Số lượng tồn kho phải là số nguyên dương (>= 0).");
-      return;
-    }
     if (isNaN(minStockNum) || minStockNum < 0 || isNaN(maxStockNum) || maxStockNum <= minStockNum) {
       alert("Mức tối thiểu phải từ 0 trở lên và mức tối đa phải lớn hơn mức tối thiểu.");
       return;
     }
-    if (stockNote.trim().length < 5) {
-      alert("Vui lòng nhập lý do điều chỉnh tồn kho (tối thiểu 5 ký tự). Nội dung này sẽ được lưu vào lịch sử kiểm toán.");
-      return;
-    }
+    const thresholdNote = `Cập nhật hạn mức tồn kho: Min ${minStockNum}, Max ${maxStockNum}.`;
 
     setLoading(true);
     if (!selectedVariantId) {
       alert("Sản phẩm chưa có SKU biến thể hợp lệ để điều chỉnh.");
       return;
     }
-    const res = await updateVariantStock(editProduct.id, selectedVariantId, stockNum, minStockNum, maxStockNum, stockNote);
+    const res = await updateVariantStock(editProduct.id, selectedVariantId, stockNum, minStockNum, maxStockNum, thresholdNote);
     setLoading(false);
 
     if (res.success) {
@@ -258,6 +315,107 @@ export default function StaffInventory() {
     }
   };
 
+  const inventoryTotals = useMemo(() => inventoryRows.reduce((total, row) => ({
+    physical: total.physical + row.physical,
+    reserved: total.reserved + row.reserved,
+    available: total.available + row.stock,
+    quarantine: total.quarantine + row.quarantine,
+    incoming: total.incoming + row.incoming,
+  }), { physical: 0, reserved: 0, available: 0, quarantine: 0, incoming: 0 }), [inventoryRows]);
+
+  const openOperation = (row) => {
+    setOperationRow(row);
+    setOperationType("");
+    setOperationQuantity("");
+    setOperationReference("");
+    setOperationNote("");
+    setOperationSupplier("");
+    setOperationUnitCost("");
+    setOperationSellable("");
+    setOperationQuarantine("0");
+    setOperationUpdateCost(false);
+    setOperationConfirm(false);
+  };
+
+  const selectOperationType = (type) => {
+    setOperationType(type);
+    setOperationQuantity(type === "stocktake" || type === "special_adjustment" ? String(operationRow?.physical ?? 0) : "");
+    setOperationSellable("");
+    setOperationQuarantine("0");
+    setOperationNote("");
+    setOperationConfirm(false);
+  };
+
+  const operationPreview = useMemo(() => {
+    if (!operationRow || !operationType) return null;
+    const quantity = Number(operationQuantity);
+    if (!Number.isInteger(quantity) || quantity < 0) return null;
+    let physical = operationRow.physical;
+    let quarantine = operationRow.quarantine;
+    if (operationType === "receipt") {
+      physical += quantity;
+      quarantine += Number(operationQuarantine || 0);
+    } else if (operationType === "stocktake" || operationType === "special_adjustment") physical = quantity;
+    else if (operationType === "quarantine") quarantine += quantity;
+    else if (operationType === "release") quarantine -= quantity;
+    return { physical, quarantine, available: Math.max(0, physical - operationRow.reserved - quarantine) };
+  }, [operationRow, operationType, operationQuantity, operationQuarantine]);
+
+  const submitOperation = async (event) => {
+    event.preventDefault();
+    if (!operationRow || !operationType || !operationNote.trim()) return;
+    const quantity = Number(operationQuantity);
+    if (!Number.isInteger(quantity) || quantity < 0 || (!["stocktake", "special_adjustment"].includes(operationType) && quantity === 0)) {
+      alert("Số lượng chưa hợp lệ.");
+      return;
+    }
+    if (operationType === "receipt") {
+      const sellable = Number(operationSellable);
+      const quarantine = Number(operationQuarantine);
+      if (!operationSupplier.trim() || !Number.isFinite(Number(operationUnitCost)) || Number(operationUnitCost) <= 0) {
+        alert("Phiếu nhập cần có nhà cung cấp và giá nhập hợp lệ.");
+        return;
+      }
+      if (!Number.isInteger(sellable) || !Number.isInteger(quarantine) || sellable < 0 || quarantine < 0 || sellable + quarantine !== quantity) {
+        alert("Số đạt chất lượng cộng số chờ kiểm tra phải bằng tổng số nhận.");
+        return;
+      }
+    }
+    if (!operationConfirm) {
+      alert("Vui lòng kiểm tra kết quả dự kiến và xác nhận trước khi ghi nhận.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await productsAPI.createInventoryDocument({
+        documentType: operationType,
+        externalReference: operationReference.trim() || undefined,
+        supplierName: operationSupplier.trim() || undefined,
+        updateCostPrice: currentUser?.role === "admin" && operationUpdateCost,
+        note: operationNote.trim(),
+        items: [{
+          productId: operationRow.product.id,
+          variantId: operationRow.variant.id,
+          expectedQuantity: operationRow.physical,
+          actualQuantity: quantity,
+          sellableQuantity: operationType === "receipt" ? Number(operationSellable) : undefined,
+          quarantineQuantity: operationType === "receipt" ? Number(operationQuarantine) : undefined,
+          unitCost: operationType === "receipt" ? Number(operationUnitCost) : undefined,
+          note: operationNote.trim(),
+        }],
+      });
+      if (!result.success) throw new Error(result.error || "Không thể ghi nhận nghiệp vụ kho.");
+      await refreshProducts();
+      await loadDocuments();
+      showToast(`Đã ghi nhận ${result.document?.documentCode || "phiếu kho"}.`);
+      setOperationRow(null);
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="staff-inventory-page">
       <div style={{ marginBottom: "25px" }}>
@@ -269,8 +427,9 @@ export default function StaffInventory() {
             margin: 0,
           }}
         >
-          QUẢN LÝ KHO
+          {isAdminPortal ? "VẬN HÀNH KHO & KIỂM TOÁN" : "QUẢN LÝ KHO"}
         </h1>
+        {isAdminPortal && <p className="inventory-page-lead">Thực hiện nghiệp vụ theo từng SKU; mọi thay đổi đều được ghi thành phiếu và lưu dấu vết kiểm toán.</p>}
       </div>
 
       {toastMessage && (
@@ -296,6 +455,14 @@ export default function StaffInventory() {
           </button>
         </div>
       )}
+
+      <section className="inventory-kpi-grid" aria-label="Tổng quan tồn kho">
+        <div><span>Tồn thực tế</span><strong>{inventoryTotals.physical}</strong></div>
+        <div><span>Đang giữ cho đơn</span><strong>{inventoryTotals.reserved}</strong></div>
+        <div><span>Có thể bán</span><strong>{inventoryTotals.available}</strong></div>
+        <div><span>Chờ kiểm tra</span><strong>{inventoryTotals.quarantine}</strong></div>
+        <div><span>Đang về kho</span><strong>{inventoryTotals.incoming}</strong></div>
+      </section>
 
       <section className="inventory-filters" aria-label="Bộ lọc tồn kho">
         <div className="inventory-filter-group inventory-filter-gender">
@@ -370,7 +537,7 @@ export default function StaffInventory() {
                 <th style={{ padding: "14px 18px", fontWeight: "600" }}>Sản Phẩm</th>
                 <th style={{ padding: "14px 18px", fontWeight: "600" }}>SKU / Thuộc Tính</th>
                 <th style={{ padding: "14px 18px", fontWeight: "600" }}>Đơn Giá</th>
-                <th style={{ padding: "14px 18px", fontWeight: "600" }}>Tồn Kho</th>
+                <th style={{ padding: "14px 18px", fontWeight: "600" }}>Số Lượng Kho</th>
                 <th style={{ padding: "14px 18px", fontWeight: "600" }}>Tình Trạng</th>
                 <th style={{ padding: "14px 18px", fontWeight: "600", textAlign: "right" }}>Điều Chỉnh & Lịch Sử</th>
               </tr>
@@ -386,7 +553,8 @@ export default function StaffInventory() {
                   </td>
                 </tr>
               ) : (
-                paginatedRows.map(({ product: p, variant, stock, state }, idx) => {
+                paginatedRows.map((row, idx) => {
+                  const { product: p, variant, stock, state, physical, reserved, quarantine, incoming } = row;
                   const firstImg = p.images ? p.images[0] : "";
 
                   return (
@@ -422,7 +590,7 @@ export default function StaffInventory() {
                         {formatPrice(variant.price ?? p.price)}
                       </td>
 
-                      <td data-label="Tồn kho" style={{ padding: "12px 18px" }}>
+                      <td data-label="Số lượng kho" style={{ padding: "12px 18px" }}>
                         <span
                           style={{
                             fontSize: "16px",
@@ -432,7 +600,8 @@ export default function StaffInventory() {
                         >
                           {stock}
                         </span>{" "}
-                        <span style={{ fontSize: "12px", color: "#8A7350" }}>sản phẩm</span>
+                        <span style={{ fontSize: "12px", color: "#8A7350" }}>có thể bán</span>
+                        <div className="inventory-quantity-breakdown">Thực tế {physical} · Giữ {reserved} · Kiểm tra {quarantine}{incoming ? ` · Đang về ${incoming}` : ""}</div>
                         <div style={{ marginTop: 2, fontSize: "10.5px", color: "#A09384" }}>Min {variant.lowStockThreshold ?? 3} · Max {variant.maxStockThreshold ?? 20}</div>
                       </td>
 
@@ -443,10 +612,10 @@ export default function StaffInventory() {
                       <td data-label="Thao tác" style={{ padding: "12px 18px", textAlign: "right" }}>
                         <div className="inventory-row-actions">
                           <button
-                            onClick={() => handleOpenEdit(p, variant.id)}
+                            onClick={() => openOperation(row)}
                             className="inventory-adjust-button"
                           >
-                            Điều chỉnh
+                            Nghiệp vụ
                           </button>
 
                           <button
@@ -484,6 +653,125 @@ export default function StaffInventory() {
         )}
       </div>
 
+      {isAdminPortal && (
+        <section className="inventory-documents" aria-label="Lịch sử phiếu kho">
+          <div className="inventory-documents-heading">
+            <div><span>Kiểm toán kho</span><h2>Phiếu kho gần đây</h2></div>
+            <button type="button" onClick={loadDocuments} disabled={loadingDocuments}>
+              <i className="fas fa-rotate" aria-hidden="true" /> {loadingDocuments ? "Đang tải..." : "Làm mới"}
+            </button>
+          </div>
+          {documents.length === 0 ? (
+            <div className="inventory-documents-empty">Chưa có phiếu kho nào được ghi nhận.</div>
+          ) : (
+            <div className="inventory-documents-table-wrap">
+              <table className="inventory-documents-table">
+                <thead><tr><th>Mã phiếu</th><th>Nghiệp vụ</th><th>Phạm vi</th><th>Chứng từ / Nhà cung cấp</th><th>Người thực hiện</th><th>Thời gian</th><th></th></tr></thead>
+                <tbody>{documents.map((document) => (
+                  <tr key={document.id}>
+                    <td><strong>{document.document_code}</strong><small>{document.status === "reversed" ? "Đã đảo phiếu" : "Đã hoàn tất"}</small></td>
+                    <td>{DOCUMENT_TYPE_LABELS[document.document_type] || document.document_type}</td>
+                    <td>{Number(document.item_count || 0)} SKU<small>{Number(document.total_quantity || 0)} đơn vị biến động</small></td>
+                    <td>{document.external_reference || "Không có mã ngoài"}<small>{document.supplier_name || "—"}</small></td>
+                    <td>{document.created_by || "Hệ thống"}</td>
+                    <td>{formatDate(document.created_at)}</td>
+                    <td>{document.status === "completed" && document.document_type !== "reversal" && <button className="inventory-reverse-button" type="button" onClick={() => { setReversingDocument(document); setReversalReason(""); }}>Đảo phiếu</button>}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+
+      {reversingDocument && (
+        <div className="inventory-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setReversingDocument(null)}>
+          <form className="inventory-reversal-modal" onSubmit={submitReversal}>
+            <div className="inventory-reversal-heading"><div><span>Kiểm toán kho</span><h3>Đảo phiếu {reversingDocument.document_code}</h3></div><button type="button" onClick={() => setReversingDocument(null)}>×</button></div>
+            <p>Hệ thống sẽ tạo một phiếu ngược, không xóa lịch sử cũ. Thao tác bị từ chối nếu SKU đã có biến động mới hơn.</p>
+            <label>Lý do đảo phiếu *<textarea minLength="10" required value={reversalReason} onChange={(event) => setReversalReason(event.target.value)} placeholder="Mô tả sai sót chứng từ hoặc số lượng cần khắc phục..." /></label>
+            <div className="inventory-operation-actions"><button type="button" onClick={() => setReversingDocument(null)}>Hủy</button><button type="submit" disabled={loading || reversalReason.trim().length < 10}>{loading ? "Đang xử lý..." : "Xác nhận đảo phiếu"}</button></div>
+          </form>
+        </div>
+      )}
+
+      {operationRow && (
+        <div className="inventory-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setOperationRow(null)}>
+          <form className="inventory-operation-modal" onSubmit={submitOperation}>
+            <div className="inventory-operation-heading">
+              <img src={`/${operationRow.product.images?.[0] || ""}`} alt="" />
+              <div><span>Nghiệp vụ kho theo SKU</span><h3>{operationRow.product.name}</h3><small>{operationRow.variant.sku} · {operationRow.variant.color} · Size {operationRow.variant.size}</small></div>
+              <button type="button" onClick={() => setOperationRow(null)} aria-label="Đóng">×</button>
+            </div>
+            <div className="inventory-operation-current">
+              <div><span>Tồn thực tế</span><strong>{operationRow.physical}</strong></div>
+              <div><span>Đang giữ</span><strong>{operationRow.reserved}</strong></div>
+              <div><span>Có thể bán</span><strong>{operationRow.stock}</strong></div>
+              <div><span>Chờ kiểm tra</span><strong>{operationRow.quarantine}</strong></div>
+            </div>
+            {!operationType ? (
+              <div className="inventory-operation-picker">
+                <h4>Chọn nghiệp vụ cần thực hiện</h4>
+                <div>
+                  {OPERATION_TYPES.filter((item) => !item.adminOnly || currentUser?.role === "admin").map((item) => (
+                    <button type="button" key={item.id} onClick={() => selectOperationType(item.id)}>
+                      <i className={`fas ${item.icon}`} aria-hidden="true" />
+                      <span><strong>{item.title}</strong><small>{item.description}</small></span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="inventory-operation-selected">
+                  <button type="button" onClick={() => setOperationType("")}><i className="fas fa-arrow-left" /> Chọn lại</button>
+                  <strong>{OPERATION_TYPES.find((item) => item.id === operationType)?.title}</strong>
+                </div>
+                {operationType === "receipt" && (
+                  <div className="inventory-operation-fields two-columns">
+                    <label>Nhà cung cấp *<input value={operationSupplier} onChange={(e) => setOperationSupplier(e.target.value)} placeholder="Tên nhà cung cấp" required /></label>
+                    <label>Giá nhập mỗi sản phẩm *<input type="number" min="1" step="1" value={operationUnitCost} onChange={(e) => setOperationUnitCost(e.target.value)} required /></label>
+                  </div>
+                )}
+                <label>{operationType === "receipt" ? "Tổng số lượng nhận *" : operationType === "stocktake" ? "Số lượng đếm thực tế *" : operationType === "special_adjustment" ? "Tồn thực tế mới *" : "Số lượng *"}
+                  <input type="number" min="0" step="1" value={operationQuantity} onChange={(e) => {
+                    setOperationQuantity(e.target.value);
+                    if (operationType === "receipt") setOperationSellable(String(Math.max(0, Number(e.target.value || 0) - Number(operationQuarantine || 0))));
+                    setOperationConfirm(false);
+                  }} required />
+                </label>
+                {operationType === "receipt" && (
+                  <div className="inventory-operation-fields two-columns">
+                    <label>Đạt chất lượng, có thể bán *<input type="number" min="0" step="1" value={operationSellable} onChange={(e) => { setOperationSellable(e.target.value); setOperationConfirm(false); }} required /></label>
+                    <label>Chờ kiểm tra *<input type="number" min="0" step="1" value={operationQuarantine} onChange={(e) => { setOperationQuarantine(e.target.value); setOperationConfirm(false); }} required /></label>
+                  </div>
+                )}
+                <label>Mã chứng từ bên ngoài <small>Không bắt buộc; mã phiếu kho do hệ thống tự sinh.</small>
+                  <input value={operationReference} onChange={(e) => setOperationReference(e.target.value)} placeholder="Hóa đơn, PO hoặc vận đơn..." />
+                </label>
+                <label>Lý do / ghi chú kiểm toán *
+                  <textarea value={operationNote} onChange={(e) => setOperationNote(e.target.value)} minLength="5" required placeholder={operationType === "stocktake" ? "Mô tả ca kiểm kê và nguyên nhân chênh lệch nếu có..." : "Nêu nguồn hàng, kết luận kiểm tra hoặc lý do điều chỉnh..."} />
+                </label>
+                {operationType === "receipt" && currentUser?.role === "admin" && (
+                  <label className="inventory-operation-checkbox"><input type="checkbox" checked={operationUpdateCost} onChange={(e) => setOperationUpdateCost(e.target.checked)} /> Cập nhật giá vốn bình quân sau lô nhập này</label>
+                )}
+                {operationPreview && (
+                  <div className="inventory-operation-preview">
+                    <h4>Kết quả dự kiến</h4>
+                    <div><span>Chỉ số</span><span>Trước</span><span>Sau</span></div>
+                    <div><strong>Tồn thực tế</strong><span>{operationRow.physical}</span><b>{operationPreview.physical}</b></div>
+                    <div><strong>Có thể bán</strong><span>{operationRow.stock}</span><b>{operationPreview.available}</b></div>
+                    <div><strong>Chờ kiểm tra</strong><span>{operationRow.quarantine}</span><b>{operationPreview.quarantine}</b></div>
+                  </div>
+                )}
+                <label className="inventory-operation-checkbox confirm"><input type="checkbox" checked={operationConfirm} onChange={(e) => setOperationConfirm(e.target.checked)} /> Tôi đã kiểm tra SKU và số lượng trước/sau.</label>
+                <div className="inventory-operation-actions"><button type="button" onClick={() => setOperationRow(null)}>Hủy</button><button type="submit" disabled={loading || !operationConfirm || operationNote.trim().length < 5}>{loading ? "Đang lưu..." : `Xác nhận ${OPERATION_TYPES.find((item) => item.id === operationType)?.title.toLowerCase()}`}</button></div>
+              </>
+            )}
+          </form>
+        </div>
+      )}
+
       {/* Edit Stock Modal */}
       {editProduct && (
         <div
@@ -512,7 +800,7 @@ export default function StaffInventory() {
             }}
           >
             <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "24px", color: "#2B211C", marginTop: 0 }}>
-              Điều Chỉnh Tồn Kho
+              Cấu Hình Hạn Mức Tồn Kho
             </h3>
 
             <div style={{ display: "flex", gap: "15px", alignItems: "center", margin: "15px 0 20px" }}>
@@ -547,28 +835,8 @@ export default function StaffInventory() {
                 </select>
               </div>
 
-              <div className="form-group">
-                <label style={{ fontSize: "13px", fontWeight: "600" }}>Số lượng tồn kho khả dụng mới *</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={newStockValue}
-                  onChange={(e) => setNewStockValue(e.target.value)}
-                  autoFocus
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "4px",
-                    border: "1px solid #D8CEC1",
-                    fontSize: "16px",
-                    fontWeight: "600",
-                  }}
-                />
-                <div className="inventory-stock-change-preview">
-                  Hiện tại: <strong>{editProduct.variants?.find((item) => String(item.id) === String(selectedVariantId))?.stock ?? "—"}</strong>
-                  <span aria-hidden="true">→</span>
-                  Sau điều chỉnh: <strong>{newStockValue === "" ? "—" : newStockValue}</strong>
-                </div>
+              <div className="inventory-threshold-note">
+                Tồn thực tế không được thay đổi tại đây. Hãy dùng nút <strong>Nghiệp vụ</strong> để nhập hàng, kiểm kê hoặc điều chỉnh đặc biệt có chứng từ.
               </div>
 
               <div className="inventory-stock-limits">
@@ -580,23 +848,6 @@ export default function StaffInventory() {
                   <label>Mức tối đa (Max) *</label>
                   <input type="number" min="1" value={maxStockValue} onChange={(event) => setMaxStockValue(event.target.value)} />
                 </div>
-              </div>
-
-              <div className="form-group" style={{ marginTop: "12px" }}>
-                <label style={{ fontSize: "13px", fontWeight: "600" }}>Lý do điều chỉnh tồn kho *</label>
-                <input
-                  type="text"
-                  value={stockNote}
-                  onChange={(e) => setStockNote(e.target.value)}
-                  placeholder="Ví dụ: Nhập bổ sung theo phiếu NK-102; điều chỉnh sau kiểm kê..."
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "4px",
-                    border: "1px solid #D8CEC1",
-                    fontSize: "13px",
-                  }}
-                />
               </div>
 
               <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "25px" }}>
@@ -611,11 +862,11 @@ export default function StaffInventory() {
                 </button>
                 <button
                   type="submit"
-                  disabled={loading || !selectedVariantId || stockNote.trim().length < 5 || newStockValue === "" || minStockValue === "" || maxStockValue === "" || Number(maxStockValue) <= Number(minStockValue)}
+                  disabled={loading || !selectedVariantId || minStockValue === "" || maxStockValue === "" || Number(maxStockValue) <= Number(minStockValue)}
                   className="btn-primary"
                   style={{ padding: "10px 22px", fontSize: "13px" }}
                 >
-                  {loading ? "Đang lưu..." : "Xác nhận điều chỉnh"}
+                  {loading ? "Đang lưu..." : "Lưu hạn mức"}
                 </button>
               </div>
             </form>
@@ -692,9 +943,23 @@ export default function StaffInventory() {
                       <td style={{ padding: "10px", color: "#8A7350" }}>{formatDate(m.created_at || m.createdAt)}</td>
                       <td style={{ padding: "10px", fontWeight: "600" }}>
                         {m.movement_type === "order_deduction"
-                          ? "Trừ kho do đặt đơn"
+                          ? "Xuất kho xử lý đơn"
+                          : m.movement_type === "order_reservation"
+                          ? "Giữ hàng cho đơn"
+                          : m.movement_type === "order_reservation_release"
+                          ? "Hủy giữ hàng"
                           : m.movement_type === "order_cancellation_restore"
                           ? "Hoàn kho do hủy đơn"
+                          : m.movement_type === "receipt"
+                          ? "Nhập hàng"
+                          : m.movement_type === "stocktake_adjustment"
+                          ? "Điều chỉnh sau kiểm kê"
+                          : m.movement_type === "quarantine_hold"
+                          ? "Chuyển chờ kiểm tra"
+                          : m.movement_type === "quarantine_release"
+                          ? "Đưa lại vào bán"
+                          : m.movement_type === "special_adjustment"
+                          ? "Điều chỉnh đặc biệt"
                           : m.movement_type === "threshold_adjustment"
                           ? "Điều chỉnh hạn mức"
                           : "Điều chỉnh thủ công"}
@@ -707,9 +972,9 @@ export default function StaffInventory() {
                           color: (m.quantity_change || m.quantityChange) > 0 ? "#2E8B57" : "#D9534F",
                         }}
                       >
-                        {(m.quantity_change || m.quantityChange) > 0 ? `+${m.quantity_change || m.quantityChange}` : m.quantity_change || m.quantityChange}
+                        {(m.quantity_change ?? m.quantityChange) > 0 ? `+${m.quantity_change ?? m.quantityChange}` : (m.quantity_change ?? m.quantityChange ?? 0)}
                       </td>
-                      <td style={{ padding: "10px", fontWeight: "600" }}>{m.resulting_stock || m.resultingStock}</td>
+                      <td style={{ padding: "10px", fontWeight: "600" }}>{m.resulting_stock ?? m.resultingStock ?? 0}</td>
                       <td style={{ padding: "10px", color: "#4E342E" }}>{m.performed_by || m.performedBy}</td>
                     </tr>
                   ))}

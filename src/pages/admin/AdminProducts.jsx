@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
 import { productsAPI } from "../../services/api";
 import AdminPagination from "../../components/AdminPagination";
@@ -6,6 +7,113 @@ import AdminPagination from "../../components/AdminPagination";
 const money = (val) => Number(val || 0).toLocaleString("vi-VN") + "đ";
 const PAGE_SIZE = 10;
 const LEGACY_PRODUCT_CODE_MAX = 105;
+
+const numericText = (value) => String(value ?? "").replace(/[^0-9]/g, "").replace(/^0+(?=\d)/, "");
+const integerValue = (value) => Number(numericText(value) || 0);
+const moneyInput = (value) => numericText(value) ? integerValue(value).toLocaleString("vi-VN") : "";
+const splitOptions = (value) => [...new Set(String(value || "").split(/[,\n]/).map((item) => item.trim()).filter(Boolean))];
+const rawOptions = (value) => String(value || "").split(/[,\n]/).map((item) => item.trim()).filter(Boolean);
+const skuPart = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-|-$/g, "");
+const DEFAULT_SIZE_PRESETS = {
+  clothing: ["XS", "S", "M", "L", "XL"],
+  footwear: ["36", "37", "38", "39", "40", "41", "42", "43", "44", "45"],
+  accessories: ["ONE SIZE"],
+};
+
+const COLOR_NAME_PATTERN = /^[\p{L}][\p{L}\p{M}\s-]{0,39}$/u;
+const ALPHA_SIZES = new Set(["XXS", "XS", "S", "SMALL", "M", "MEDIUM", "L", "LARGE", "XL", "X-LARGE", "XXL", "2XL", "3XL", "4XL"]);
+const normalizeOptionKey = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, " ").toUpperCase();
+
+const validateColorName = (value) => {
+  const color = String(value || "").trim().replace(/\s+/g, " ");
+  if (!color) return "Vui lòng nhập ít nhất một màu.";
+  if (!COLOR_NAME_PATTERN.test(color)) return `“${color}” không phải tên màu hợp lệ. Chỉ dùng chữ, khoảng trắng hoặc dấu gạch nối.`;
+  return "";
+};
+
+const validateSizeName = (value, category = "clothing") => {
+  const size = String(value || "").trim().replace(/\s+/g, " ").toUpperCase();
+  if (!size) return "Vui lòng nhập ít nhất một kích cỡ.";
+  if (category === "accessories") {
+    const numericSize = Number(size);
+    const isLengthSize = /^\d{2,3}$/.test(size) && numericSize >= 50 && numericSize <= 130;
+    return size === "ONE SIZE" || ALPHA_SIZES.has(size) || isLengthSize
+      ? ""
+      : `Size phụ kiện “${size}” không hợp lệ. Dùng ONE SIZE, size chữ hoặc chiều dài 50–130 cm.`;
+  }
+  if (category === "footwear") {
+    const numericSize = Number(size);
+    return /^\d{2}(?:\.5)?$/.test(size) && numericSize >= 16 && numericSize <= 48
+      ? ""
+      : `Cỡ giày “${size}” không hợp lệ. Chấp nhận cỡ số từ 16 đến 48, có thể có .5.`;
+  }
+  const numericSize = Number(size);
+  const isNumericClothingSize = /^\d{2}$/.test(size) && numericSize >= 18 && numericSize <= 54;
+  const ageMatch = size.match(/^(\d{1,2})-(\d{1,2})(M|Y)$/);
+  const isAgeSize = Boolean(ageMatch) && Number(ageMatch[1]) < Number(ageMatch[2]) && Number(ageMatch[2]) <= (ageMatch[3] === "M" ? 24 : 16);
+  return ALPHA_SIZES.has(size) || isNumericClothingSize || isAgeSize
+    ? ""
+    : `Size “${size}” không đúng chuẩn trang phục. Dùng XS–4XL, số 18–54 hoặc khoảng tuổi như 0-3M, 2-4Y.`;
+};
+
+const validateOptionList = (value, type, category) => {
+  const values = rawOptions(value);
+  if (!values.length) return type === "color" ? "Vui lòng nhập ít nhất một màu." : "Vui lòng nhập ít nhất một kích cỡ.";
+  const keys = values.map(normalizeOptionKey);
+  if (new Set(keys).size !== keys.length) return type === "color" ? "Danh sách màu đang có giá trị trùng nhau." : "Danh sách kích cỡ đang có giá trị trùng nhau.";
+  for (const item of values) {
+    const message = type === "color" ? validateColorName(item) : validateSizeName(item, category);
+    if (message) return message;
+  }
+  return "";
+};
+
+const validateVariantFields = (variant, category = "clothing") => {
+  const errors = {};
+  if (!String(variant?.sku || "").trim()) errors.sku = "Vui lòng nhập mã SKU.";
+  const colorError = validateColorName(variant?.color);
+  if (colorError) errors.color = colorError;
+  const sizeError = validateSizeName(variant?.size, category);
+  if (sizeError) errors.size = sizeError;
+  const price = integerValue(variant?.price);
+  const cost = integerValue(variant?.costPrice);
+  const floor = integerValue(variant?.floorPrice);
+  const stock = integerValue(variant?.stock);
+  const minStock = integerValue(variant?.minStock ?? variant?.lowStockThreshold);
+  const maxStock = integerValue(variant?.maxStock ?? variant?.maxStockThreshold);
+  if (price <= 0) errors.price = "Giá bán phải lớn hơn 0đ.";
+  if (cost <= 0) errors.costPrice = "Giá vốn phải lớn hơn 0đ.";
+  if (floor < cost || floor > price) errors.floorPrice = "Cần thỏa mãn giá vốn ≤ giá sàn ≤ giá bán.";
+  if (![stock, minStock, maxStock].every(Number.isInteger)) errors.stock = "Số lượng tồn phải là số nguyên.";
+  if (maxStock <= minStock) errors.maxStock = "Mức tồn tối đa phải lớn hơn mức tối thiểu.";
+  return errors;
+};
+
+function CurrencyInput({ value, onChange, ...props }) {
+  return (
+    <input
+      {...props}
+      type="text"
+      inputMode="numeric"
+      autoComplete="off"
+      value={moneyInput(value)}
+      onChange={(event) => onChange(integerValue(event.target.value))}
+    />
+  );
+}
+
+function IntegerInput({ value, onChange, ...props }) {
+  return (
+    <input
+      {...props}
+      type="text"
+      inputMode="numeric"
+      autoComplete="off"
+      value={numericText(value)}
+      onChange={(event) => onChange(integerValue(event.target.value))}
+    />
+  );
+}
 
 const safeNumber = (value) => {
   const result = Number(value);
@@ -117,21 +225,25 @@ const getInventorySummary = (product) => {
     total: variants.length,
     sold: activeVariants.length,
     inactive: variants.length - activeVariants.length,
-    activeStock: activeVariants.reduce((sum, variant) => sum + safeNumber(variant?.stock), 0),
-    outOfStock: activeVariants.filter((variant) => safeNumber(variant?.stock) === 0).length,
+    physicalStock: activeVariants.reduce((sum, variant) => sum + safeNumber(variant?.stock), 0),
+    reservedStock: activeVariants.reduce((sum, variant) => sum + safeNumber(variant?.reservedQuantity), 0),
+    quarantineStock: activeVariants.reduce((sum, variant) => sum + safeNumber(variant?.quarantineQuantity), 0),
+    incomingStock: activeVariants.reduce((sum, variant) => sum + safeNumber(variant?.incomingQuantity), 0),
+    activeStock: activeVariants.reduce((sum, variant) => sum + safeNumber(variant?.availableQuantity ?? (safeNumber(variant?.stock) - safeNumber(variant?.reservedQuantity) - safeNumber(variant?.quarantineQuantity))), 0),
+    outOfStock: activeVariants.filter((variant) => safeNumber(variant?.availableQuantity ?? (safeNumber(variant?.stock) - safeNumber(variant?.reservedQuantity) - safeNumber(variant?.quarantineQuantity))) === 0).length,
     lowStock: activeVariants.filter((variant) => {
-      const stock = safeNumber(variant?.stock);
+      const stock = safeNumber(variant?.availableQuantity ?? (safeNumber(variant?.stock) - safeNumber(variant?.reservedQuantity) - safeNumber(variant?.quarantineQuantity)));
       const minStock = safeNumber(variant?.minStock ?? variant?.lowStockThreshold);
       return stock > 0 && stock <= minStock;
     }).length,
     stable: activeVariants.filter((variant) => {
-      const stock = safeNumber(variant?.stock);
+      const stock = safeNumber(variant?.availableQuantity ?? (safeNumber(variant?.stock) - safeNumber(variant?.reservedQuantity) - safeNumber(variant?.quarantineQuantity)));
       const minStock = safeNumber(variant?.minStock ?? variant?.lowStockThreshold);
       const maxStock = safeNumber(variant?.maxStock ?? variant?.maxStockThreshold);
       return minStock < stock && stock < maxStock;
     }).length,
     overStock: activeVariants.filter((variant) => {
-      const stock = safeNumber(variant?.stock);
+      const stock = safeNumber(variant?.availableQuantity ?? (safeNumber(variant?.stock) - safeNumber(variant?.reservedQuantity) - safeNumber(variant?.quarantineQuantity)));
       const maxStock = safeNumber(variant?.maxStock ?? variant?.maxStockThreshold);
       return maxStock > 0 && stock >= maxStock;
     }).length,
@@ -147,6 +259,8 @@ export default function AdminProducts() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [formError, setFormError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [unavailableProductImages, setUnavailableProductImages] = useState({});
 
   useEffect(() => {
@@ -175,53 +289,210 @@ export default function AdminProducts() {
   const [movementsModal, setMovementsModal] = useState(null); // { productId: ..., movements: [] }
   const [busy, setBusy] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [createMetadata, setCreateMetadata] = useState({ sizePresets: DEFAULT_SIZE_PRESETS, defaultInventoryPolicy: { min: 3, max: 30 } });
+
+  useEffect(() => {
+    if (!productModal && !variantModal) {
+      setFormError("");
+      setFieldErrors({});
+    }
+  }, [productModal, variantModal]);
+
+  const clearFieldError = (field) => setFieldErrors((current) => {
+    if (!current[field]) return current;
+    const next = { ...current };
+    delete next[field];
+    return next;
+  });
+
+  const focusFirstInvalidField = (errors) => {
+    const firstField = Object.keys(errors)[0];
+    if (!firstField) return;
+    window.requestAnimationFrame(() => {
+      const target = document.querySelector(`[data-field-key="${firstField}"]`);
+      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      window.setTimeout(() => target?.focus?.({ preventScroll: true }), 250);
+    });
+  };
+
+  const showFieldErrors = (errors) => {
+    setFieldErrors(errors);
+    setFormError("Vui lòng kiểm tra các trường được đánh dấu bên dưới.");
+    focusFirstInvalidField(errors);
+  };
+
+  const fieldProps = (field) => ({
+    "data-field-key": field,
+    "aria-invalid": Boolean(fieldErrors[field]),
+    className: fieldErrors[field] ? "admin-products__input-error" : undefined,
+    onFocus: () => clearFieldError(field),
+  });
+
+  const fieldMessage = (field) => fieldErrors[field]
+    ? <small className="admin-products__field-error" role="alert">{fieldErrors[field]}</small>
+    : null;
 
   const isProductImageUnavailable = useCallback((product) => {
     const image = normalizeImageUrl(getProductImage(product));
     return Boolean(image && unavailableProductImages[product.id] === image);
   }, [unavailableProductImages]);
 
-  const emptyVariant = (price = "") => ({
+  const emptyVariant = (price = "", overrides = {}) => ({
     sku: "", color: "", size: "", price, costPrice: "", floorPrice: "",
-    stock: 0, minStock: 0, maxStock: 1, isNew: true,
+    stock: 0, minStock: 3, maxStock: 30, isNew: true, ...overrides,
   });
 
-  const openCreateProduct = () => setProductModal({
-    mode: "create",
-    data: {
-      productCode: "", name: "", price: "", category: "clothing", gender: "nam",
-      description: "", material: "", collectionName: "", minAlert: 0,
-      images: [], imageText: "", variants: [emptyVariant()],
-    },
-  });
+  const buildVariantMatrix = (data, patch = {}) => {
+    const next = { ...data, ...patch };
+    const colors = splitOptions(next.variantColors);
+    const sizes = splitOptions(next.variantSizes).map((size) => size.toUpperCase());
+    const existing = new Map((next.variants || []).map((variant) => [`${String(variant.color || "").toUpperCase()}|${String(variant.size || "").toUpperCase()}`, variant]));
+    const generated = colors.flatMap((color) => sizes.map((size) => {
+      const key = `${color.toUpperCase()}|${size.toUpperCase()}`;
+      return existing.get(key) || emptyVariant(next.price, {
+        sku: [next.productCode, skuPart(color), skuPart(size)].filter(Boolean).join("-"),
+        color,
+        size,
+        price: next.price,
+        costPrice: next.defaultCostPrice,
+        floorPrice: next.defaultFloorPrice,
+        stock: next.defaultStock,
+        minStock: next.defaultMinStock,
+        maxStock: next.defaultMaxStock,
+        costInherited: true,
+        floorInherited: true,
+        stockInherited: true,
+        minInherited: true,
+        maxInherited: true,
+      });
+    }));
+    return { ...next, variants: generated };
+  };
 
-  const openEditProduct = (product) => setProductModal({
-    mode: "edit",
-    data: {
+  const openCreateProduct = async () => {
+    setFormError("");
+    setFieldErrors({});
+    setBusy(true);
+    try {
+      const metadata = await productsAPI.getCreateMetadata();
+      const normalizedMetadata = {
+        sizePresets: metadata.sizePresets || DEFAULT_SIZE_PRESETS,
+        defaultInventoryPolicy: metadata.defaultInventoryPolicy || { min: 3, max: 30 },
+      };
+      setCreateMetadata(normalizedMetadata);
+      const data = {
+        productCode: metadata.nextProductCode || "", name: "", price: "", category: "clothing", gender: "nam",
+        description: "", material: "", collectionName: "", minAlert: normalizedMetadata.defaultInventoryPolicy.min,
+        images: [], imageText: "", colorImages: {}, selectedImageColor: "__general", variants: [], variantColors: "", variantSizes: normalizedMetadata.sizePresets.clothing.join(", "),
+        defaultCostPrice: "", defaultFloorPrice: "", defaultStock: 0,
+        defaultMinStock: normalizedMetadata.defaultInventoryPolicy.min, defaultMaxStock: normalizedMetadata.defaultInventoryPolicy.max,
+      };
+      setProductModal({ mode: "create", data, initialData: data });
+    } catch (metadataError) {
+      setError(metadataError.message || "Không thể lấy mã sản phẩm tiếp theo.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openEditProduct = (product) => {
+    setFormError("");
+    setFieldErrors({});
+    const data = {
       ...product,
       productCode: product.productCode || product.product_code,
       collectionName: product.collectionName || product.collection || "",
       imageText: (product.images || []).join("\n"),
+      selectedImageColor: "__general",
       variants: (product.variants || []).map((variant) => ({
         ...variant,
         minStock: variant.minStock ?? variant.lowStockThreshold ?? 0,
         maxStock: variant.maxStock ?? variant.maxStockThreshold ?? 1,
         isNew: false,
       })),
-    },
-  });
+    };
+    setProductModal({
+      mode: "edit",
+      data,
+      initialData: data,
+    });
+  };
+
+  const closeProductModal = () => {
+    if (!productModal) return;
+    const changed = JSON.stringify(productModal.data) !== JSON.stringify(productModal.initialData);
+    if (changed && !window.confirm("Bạn có thay đổi chưa lưu. Bạn có chắc muốn đóng?")) return;
+    setProductModal(null);
+  };
+
+  useEffect(() => {
+    if (!productModal) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key !== "Escape") return;
+      const changed = JSON.stringify(productModal.data) !== JSON.stringify(productModal.initialData);
+      if (!changed || window.confirm("Bạn có thay đổi chưa lưu. Bạn có chắc muốn đóng?")) setProductModal(null);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [productModal]);
 
   const updateProductField = (field, value) => setProductModal((current) => ({
     ...current, data: { ...current.data, [field]: value },
   }));
 
-  const updateEditorVariant = (index, field, value) => setProductModal((current) => ({
-    ...current,
-    data: {
-      ...current.data,
-      variants: current.data.variants.map((variant, variantIndex) => variantIndex === index ? { ...variant, [field]: value } : variant),
-    },
-  }));
+  const updateStandardPrice = (nextPrice) => setProductModal((current) => {
+    const previousPrice = integerValue(current.data.price);
+    const uniqueVariantPrices = [...new Set(
+      (current.data.variants || [])
+        .map((variant) => integerValue(variant.price))
+        .filter((price) => price > 0),
+    )];
+    // Older records can have a product price that is already out of sync with
+    // otherwise identical SKU prices. In that case all SKUs still follow one
+    // common standard price and should move together on the next edit.
+    const allVariantsShareOnePrice = uniqueVariantPrices.length <= 1;
+    const variants = (current.data.variants || []).map((variant) => {
+      const variantPrice = integerValue(variant.price);
+      const followsStandardPrice = allVariantsShareOnePrice
+        || variantPrice === previousPrice
+        || (variant.isNew && variantPrice === 0);
+      return followsStandardPrice ? { ...variant, price: nextPrice } : variant;
+    });
+
+    return {
+      ...current,
+      data: { ...current.data, price: nextPrice, variants },
+    };
+  });
+
+  const updateEditorVariant = (index, field, value) => setProductModal((current) => {
+    const inheritanceFlag = { costPrice: "costInherited", floorPrice: "floorInherited", stock: "stockInherited", minStock: "minInherited", maxStock: "maxInherited" }[field];
+    return {
+      ...current,
+      data: {
+        ...current.data,
+        variants: current.data.variants.map((variant, variantIndex) => variantIndex === index ? { ...variant, [field]: value, ...(inheritanceFlag ? { [inheritanceFlag]: false } : {}) } : variant),
+      },
+    };
+  });
+
+  const updateVariantBuilder = (field, value) => setProductModal((current) => {
+    const mapping = {
+      defaultCostPrice: ["costPrice", "costInherited"], defaultFloorPrice: ["floorPrice", "floorInherited"],
+      defaultStock: ["stock", "stockInherited"], defaultMinStock: ["minStock", "minInherited"], defaultMaxStock: ["maxStock", "maxInherited"],
+    }[field];
+    let data = buildVariantMatrix(current.data, { [field]: value });
+    if (mapping) {
+      const [variantField, inheritanceFlag] = mapping;
+      data = { ...data, variants: data.variants.map((variant) => variant[inheritanceFlag] === false ? variant : { ...variant, [variantField]: value, [inheritanceFlag]: true }) };
+    }
+    return { ...current, data };
+  });
 
   const handleImageUpload = async (event) => {
     const files = [...(event.target.files || [])];
@@ -237,13 +508,29 @@ export default function AdminProducts() {
         uploaded.push(result.path);
       }
       setProductModal((current) => {
-        const currentImages = String(current.data.imageText || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
-        const images = [...currentImages, ...uploaded];
-        return { ...current, data: { ...current.data, imageText: images.join("\n") } };
+        const selectedColor = current.data.selectedImageColor || "__general";
+        if (selectedColor === "__general") {
+          const currentImages = String(current.data.imageText || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+          return { ...current, data: { ...current.data, imageText: [...currentImages, ...uploaded].join("\n") } };
+        }
+        const colorImages = { ...(current.data.colorImages || {}) };
+        colorImages[selectedColor] = [...(colorImages[selectedColor] || []), ...uploaded];
+        return { ...current, data: { ...current.data, colorImages } };
       });
     } catch (uploadError) { setError(uploadError.message || "Không thể tải ảnh lên."); }
     finally { setUploadingImages(false); }
   };
+
+  const removeModalImage = (index) => setProductModal((current) => {
+    const selectedColor = current.data.selectedImageColor || "__general";
+    if (selectedColor === "__general") {
+      const images = String(current.data.imageText || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+      return { ...current, data: { ...current.data, imageText: images.filter((_, imageIndex) => imageIndex !== index).join("\n") } };
+    }
+    const colorImages = { ...(current.data.colorImages || {}) };
+    colorImages[selectedColor] = (colorImages[selectedColor] || []).filter((_, imageIndex) => imageIndex !== index);
+    return { ...current, data: { ...current.data, colorImages } };
+  });
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
@@ -257,7 +544,7 @@ export default function AdminProducts() {
     } finally {
       setLoading(false);
     }
-  }, [catalogScope]);
+  }, [catalogScope, setSelectedProduct]);
 
   useEffect(() => {
     loadProducts();
@@ -363,21 +650,54 @@ export default function AdminProducts() {
     e.preventDefault();
     setBusy(true);
     setError("");
+    setFormError("");
+    setFieldErrors({});
     setSuccessMsg("");
     try {
+      const standardPrice = integerValue(productModal.data.price);
+      const draftVariants = productModal.data.variants || [];
+      const uniqueVariantPrices = [...new Set(
+        draftVariants.map((variant) => integerValue(variant.price)).filter((price) => price > 0),
+      )];
+      // Repair records saved by the previous UI where the product standard
+      // price changed but every SKU was left at one identical old price.
+      const variants = uniqueVariantPrices.length <= 1 && standardPrice > 0
+        ? draftVariants.map((variant) => ({ ...variant, price: standardPrice }))
+        : draftVariants;
       const form = {
         ...productModal.data,
+        price: standardPrice,
+        variants,
         images: String(productModal.data.imageText || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean),
-        colors: [...new Set((productModal.data.variants || []).map((variant) => String(variant.color || "").trim()).filter(Boolean))],
+        colors: [...new Set(variants.map((variant) => String(variant.color || "").trim()).filter(Boolean))],
       };
-      if (!form.variants?.length) throw new Error("Sản phẩm phải có ít nhất một SKU.");
-      for (const variant of form.variants) {
-        if (!variant.sku?.trim() || !variant.color?.trim() || !variant.size?.trim()) throw new Error("Mỗi SKU phải có mã SKU, màu sắc và kích cỡ.");
-        const price = Number(variant.price);
-        const cost = Number(variant.costPrice);
-        const floor = Number(variant.floorPrice);
-        if (!(price > 0) || cost < 0 || floor < cost || floor > price) throw new Error(`SKU ${variant.sku}: giá phải thỏa mãn 0 ≤ giá vốn ≤ giá sàn ≤ giá bán.`);
-        if (Number(variant.maxStock) <= Number(variant.minStock)) throw new Error(`SKU ${variant.sku}: mức tồn tối đa phải lớn hơn mức tối thiểu.`);
+      const errors = {};
+      if (!String(form.productCode || "").trim()) errors.productCode = "Hệ thống chưa cấp được mã sản phẩm.";
+      if (!String(form.name || "").trim()) errors.name = "Vui lòng nhập tên sản phẩm.";
+      if (integerValue(form.price) <= 0) errors.price = "Giá bán chuẩn phải lớn hơn 0đ.";
+      if (productModal.mode === "create") {
+        const colorListError = validateOptionList(form.variantColors, "color", form.category);
+        const sizeListError = validateOptionList(form.variantSizes, "size", form.category);
+        if (colorListError) errors.variantColors = colorListError;
+        if (sizeListError) errors.variantSizes = sizeListError;
+        if ((form.variants || []).length > 100) errors.variantColors = "Một sản phẩm chỉ nên tạo tối đa 100 tổ hợp SKU trong một lần.";
+      }
+      if (!form.variants?.length) errors.variantColors = "Sản phẩm phải có ít nhất một tổ hợp màu và kích cỡ.";
+      const seenSkus = new Set();
+      const seenSelections = new Set();
+      for (const [index, variant] of form.variants.entries()) {
+        const variantErrors = validateVariantFields(variant, form.category);
+        Object.entries(variantErrors).forEach(([field, message]) => { errors[`variants.${index}.${field}`] = message; });
+        const skuKey = normalizeOptionKey(variant.sku);
+        const selectionKey = `${normalizeOptionKey(variant.color)}|${normalizeOptionKey(variant.size)}`;
+        if (seenSkus.has(skuKey)) errors[`variants.${index}.sku`] = "Mã SKU đang bị trùng trong danh sách.";
+        if (seenSelections.has(selectionKey)) errors[`variants.${index}.size`] = "Tổ hợp màu và kích cỡ này đã tồn tại trong danh sách.";
+        seenSkus.add(skuKey);
+        seenSelections.add(selectionKey);
+      }
+      if (Object.keys(errors).length) {
+        showFieldErrors(errors);
+        return;
       }
       if (productModal.mode === "create") {
         await productsAPI.createProductAdmin(form);
@@ -393,7 +713,7 @@ export default function AdminProducts() {
       setProductModal(null);
       await loadProducts();
     } catch (err) {
-      setError(err.message || "Lỗi khi lưu sản phẩm.");
+      setFormError(err.message || "Không thể lưu sản phẩm. Vui lòng kiểm tra lại thông tin.");
     } finally {
       setBusy(false);
     }
@@ -433,9 +753,16 @@ export default function AdminProducts() {
     e.preventDefault();
     setBusy(true);
     setError("");
+    setFormError("");
+    setFieldErrors({});
     setSuccessMsg("");
     try {
       const { productId, mode, data } = variantModal;
+      const errors = validateVariantFields(data, variantModal.category || "clothing");
+      if (Object.keys(errors).length) {
+        showFieldErrors(errors);
+        return;
+      }
       if (mode === "create") {
         await productsAPI.createVariantAdmin(productId, data);
         setSuccessMsg(`Đã thêm SKU mới ${data.sku || ""} thành công.`);
@@ -446,7 +773,7 @@ export default function AdminProducts() {
       setVariantModal(null);
       await loadProducts();
     } catch (err) {
-      setError(err.message || "Lỗi khi lưu SKU biến thể.");
+      setFormError(err.message || "Không thể lưu SKU. Vui lòng kiểm tra lại thông tin.");
     } finally {
       setBusy(false);
     }
@@ -496,7 +823,7 @@ export default function AdminProducts() {
   return (
     <div className="admin-products" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* Header */}
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "25px" }}>
+      <header className="admin-products__header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "25px" }}>
         <div>
           <span style={{ fontSize: "11px", fontWeight: "700", color: "#8A5A36", letterSpacing: "1.5px", textTransform: "uppercase" }}>
             Quản trị danh mục & SKU
@@ -508,9 +835,13 @@ export default function AdminProducts() {
             Thêm mới, chỉnh sửa thông tin, xóa mềm, khôi phục kinh doanh và theo dõi nhật ký kiểm toán tồn kho từng SKU.
           </p>
         </div>
-        <button
-          onClick={openCreateProduct}
-          style={{
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", justifyContent: "flex-end" }}>
+          <Link to="/admin/inventory" style={{ border: "1px solid #8A5A36", color: "#6F482D", borderRadius: "6px", padding: "10px 16px", fontSize: "13px", fontWeight: "600", textDecoration: "none", display: "flex", alignItems: "center", gap: "8px" }}>
+            <i className="fas fa-warehouse" /> Vận Hành Kho
+          </Link>
+          <button
+            onClick={openCreateProduct}
+            style={{
             backgroundColor: "#8A5A36",
             color: "#FFF",
             border: "none",
@@ -523,9 +854,10 @@ export default function AdminProducts() {
             alignItems: "center",
             gap: "8px",
           }}
-        >
-          <i className="fas fa-plus"></i> Thêm Sản Phẩm Mới
-        </button>
+          >
+            <i className="fas fa-plus"></i> Thêm Sản Phẩm Mới
+          </button>
+        </div>
       </header>
 
       {/* Notifications */}
@@ -540,7 +872,7 @@ export default function AdminProducts() {
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: "12px", marginBottom: "18px" }}>
+      <div className="admin-products__summary" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: "12px", marginBottom: "18px" }}>
         {[
           { key: "all", label: "Tổng sản phẩm", value: stats.totalProducts, tone: "#F4EEE8" },
           { key: "active", label: "Đang kinh doanh", value: stats.activeProducts, tone: "#EAF7EC" },
@@ -563,7 +895,7 @@ export default function AdminProducts() {
       </div>
 
       {/* Filter Bar */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px", backgroundColor: "#FFF", padding: "16px 20px", borderRadius: "8px", border: "1px solid #E8E1D6", marginBottom: "12px", alignItems: "end" }}>
+      <div className="admin-products__filters" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px", backgroundColor: "#FFF", padding: "16px 20px", borderRadius: "8px", border: "1px solid #E8E1D6", marginBottom: "12px", alignItems: "end" }}>
         <div>
           <label style={{ display: "block", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.7px", color: "#7A6557", marginBottom: "6px" }}>Phạm vi dữ liệu</label>
           <select value={catalogScope} onChange={(e) => changeCatalogScope(e.target.value)} style={{ width: "100%", padding: "9px 12px", border: "1px solid #D8CEC1", borderRadius: "5px", fontSize: "13px", backgroundColor: "#FFF" }}>
@@ -667,7 +999,7 @@ export default function AdminProducts() {
       </div>
 
       {/* Main Content Layout */}
-      <div style={{ display: "grid", gridTemplateColumns: selectedProduct ? "1.7fr 1fr" : "1fr", gap: "25px" }}>
+      <div className={`admin-products__content ${selectedProduct ? "has-inspector" : ""}`} style={{ display: "grid", gridTemplateColumns: selectedProduct ? "1.7fr 1fr" : "1fr", gap: "25px" }}>
         {/* Products Table */}
         <div style={{ backgroundColor: "#FFF", borderRadius: "8px", border: "1px solid #E8E1D6", overflow: "hidden" }}>
           <div style={{ padding: "16px 20px", borderBottom: "1px solid #E8E1D6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -682,16 +1014,16 @@ export default function AdminProducts() {
           {loading ? (
             <div style={{ padding: "40px", textAlign: "center", color: "#8A7350" }}>Đang tải danh mục sản phẩm...</div>
           ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12.5px", textAlign: "left", minWidth: "1180px" }}>
+            <div className="admin-products__table-scroll" style={{ overflowX: "auto" }}>
+              <table className="admin-products__table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "12.5px", textAlign: "left", minWidth: "1180px" }}>
                 <thead>
                   <tr style={{ backgroundColor: "#FAF6F0", borderBottom: "1px solid #E8E1D6", color: "#6B5A4B", textTransform: "uppercase", fontSize: "10.5px", letterSpacing: "0.5px" }}>
                     <th style={{ padding: "12px 14px" }}>Sản Phẩm</th>
-                    <th style={{ padding: "12px 12px" }}>Phân Loại</th>
+                    <th className="admin-products__classification" style={{ padding: "12px 12px" }}>Phân Loại</th>
                     <th style={{ padding: "12px 12px" }}>Giá</th>
                     <th style={{ padding: "12px 12px" }}>SKU</th>
                     <th style={{ padding: "12px 12px" }}>Tồn Kho</th>
-                    <th style={{ padding: "12px 12px" }}>Dữ Liệu</th>
+                    <th className="admin-products__data" style={{ padding: "12px 12px" }}>Dữ Liệu</th>
                     <th style={{ padding: "12px 12px" }}>Trạng Thái</th>
                     <th style={{ padding: "12px 12px", textAlign: "right" }}>Thao Tác</th>
                   </tr>
@@ -708,7 +1040,7 @@ export default function AdminProducts() {
                     const legacyProduct = isLegacyProduct(p);
                     return (
                       <tr key={p.id} onClick={() => setSelectedProduct(p)} style={{ borderBottom: "1px solid #F0EAE1", backgroundColor: isSelected ? "rgba(138, 90, 54, 0.08)" : "transparent", cursor: "pointer" }}>
-                        <td style={{ padding: "12px 14px" }}>
+                        <td className="admin-products__identity" style={{ padding: "12px 14px" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                             <div style={{ width: "56px", height: "56px", borderRadius: "8px", overflow: "hidden", border: "1px solid #E8E1D6", backgroundColor: "#F8F2EC", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                               {image && !imageUnavailable ? (
@@ -727,14 +1059,15 @@ export default function AdminProducts() {
                                 <span style={{ padding: "6px", color: "#8A7350", fontSize: "10px", lineHeight: 1.25, textAlign: "center" }}>Chưa có ảnh</span>
                               )}
                             </div>
-                            <div>
+                            <div className="admin-products__identity-copy">
                               <div style={{ fontWeight: "700", color: "#14100E", marginBottom: "4px" }}>{p.name}</div>
                               <div style={{ fontSize: "11px", color: "#8A7350", marginBottom: "2px" }}>{p.productCode || p.product_code}</div>
                               <div style={{ fontSize: "10.5px", color: "#6B5A4B" }}>{p.collectionName || p.collection || ""}</div>
+                              <div className="admin-products__compact-meta">{p.category || "—"} · {p.gender || "—"} · {dataStatus}</div>
                             </div>
                           </div>
                         </td>
-                        <td style={{ padding: "12px 12px", color: "#6B5A4B" }}>
+                        <td className="admin-products__classification" style={{ padding: "12px 12px", color: "#6B5A4B" }}>
                           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                             <span>{p.category || "—"}</span>
                             <span>{p.gender || "—"}</span>
@@ -754,14 +1087,16 @@ export default function AdminProducts() {
                         </td>
                         <td style={{ padding: "12px 12px" }}>
                           {legacyProduct ? <span style={{ color: "#806D60", fontSize: "11px" }}>Không theo dõi</span> : <>
-                            <div style={{ fontWeight: "700" }}>{inventorySummary.activeStock.toLocaleString("vi-VN")}</div>
+                            <div style={{ fontWeight: "700" }}>{inventorySummary.activeStock.toLocaleString("vi-VN")} có thể bán</div>
+                            <div style={{ fontSize: "11px", color: "#6B5A4B" }}>Thực tế {inventorySummary.physicalStock} · Giữ {inventorySummary.reservedStock}</div>
+                            {(inventorySummary.quarantineStock > 0 || inventorySummary.incomingStock > 0) && <div style={{ fontSize: "11px", color: "#8A7350" }}>Kiểm tra {inventorySummary.quarantineStock} · Đang về {inventorySummary.incomingStock}</div>}
                             <div style={{ fontSize: "11px", color: "#D9534F" }}>{inventorySummary.outOfStock} hết hàng</div>
                             <div style={{ fontSize: "11px", color: "#B56A1F" }}>{inventorySummary.lowStock} sắp hết</div>
                             <div style={{ fontSize: "11px", color: "#2E8B57" }}>{inventorySummary.stable} ổn định</div>
                             <div style={{ fontSize: "11px", color: "#8A5A36" }}>{inventorySummary.overStock} vượt mức</div>
                           </>}
                         </td>
-                        <td style={{ padding: "12px 12px" }}>
+                        <td className="admin-products__data" style={{ padding: "12px 12px" }}>
                           <span title={getProductDataIssues(p, imageUnavailable).length ? `Cần bổ sung: ${getProductDataIssues(p, imageUnavailable).join(", ")}` : "Dữ liệu đã sẵn sàng"} style={{ display: "inline-block", padding: "4px 8px", backgroundColor: dataStatus === "Hoàn chỉnh" ? "#EAF7EC" : dataStatus === "Lưu trữ" ? "#F2EEE9" : "#FFF3DE", color: "#3D2B22", borderRadius: "999px", fontWeight: "600", fontSize: "11px" }}>{dataStatus}</span>
                           {getProductDataIssues(p, imageUnavailable).length > 0 && <small style={{ display: "block", marginTop: "5px", maxWidth: "140px", color: "#806D60", fontSize: "10px" }}>{getProductDataIssues(p, imageUnavailable).slice(0, 2).join(" · ")}</small>}
                         </td>
@@ -832,6 +1167,7 @@ export default function AdminProducts() {
                   onClick={() => setVariantModal({
                     mode: "create",
                     productId: selectedProduct.id,
+                    category: selectedProduct.category,
                     data: {
                       sku: `${selectedProduct.productCode || selectedProduct.product_code}-NEW-M`,
                       color: "Standard",
@@ -890,7 +1226,7 @@ export default function AdminProducts() {
                         <td style={{ padding: "8px 10px", textAlign: "right" }}>
                           <div style={{ display: "inline-flex", gap: "5px" }}>
                             {!isLegacyProduct(selectedProduct) && <button
-                              onClick={() => setVariantModal({ mode: "edit", productId: selectedProduct.id, data: { ...v } })}
+                              onClick={() => setVariantModal({ mode: "edit", productId: selectedProduct.id, category: selectedProduct.category, data: { ...v } })}
                               title="Sửa SKU"
                               style={{ padding: "3px 6px", backgroundColor: "#FAF6F0", border: "1px solid #D8CEC1", borderRadius: "3px", fontSize: "10px", cursor: "pointer" }}
                             >
@@ -928,52 +1264,64 @@ export default function AdminProducts() {
 
       {/* Modal: Create / Edit Product */}
       {productModal && (
-        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
-          <div style={{ backgroundColor: "#FFF", borderRadius: "8px", maxWidth: "1050px", width: "100%", maxHeight: "90vh", overflowY: "auto", padding: "25px", border: "1px solid #D8CEC1" }}>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "24px", margin: "0 0 15px", color: "#14100E" }}>
-              {productModal.mode === "create" ? "Tạo Sản Phẩm Mới" : `Chỉnh Sửa Sản Phẩm: ${productModal.data.productCode}`}
-            </h2>
-            <form onSubmit={handleSaveProduct} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+        <div className="admin-products__modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeProductModal(); }}>
+          <div className="admin-products__modal admin-products__modal--product" role="dialog" aria-modal="true" aria-labelledby="product-editor-title">
+            <div className="admin-products__modal-header">
+              <div><p className="eyebrow">Danh mục & SKU</p><h2 id="product-editor-title">{productModal.mode === "create" ? "Tạo sản phẩm mới" : `Chỉnh sửa sản phẩm: ${productModal.data.productCode}`}</h2></div>
+              <button className="admin-products__modal-close" type="button" onClick={closeProductModal} aria-label="Đóng cửa sổ">×</button>
+            </div>
+            <form noValidate className="admin-products__editor" onSubmit={handleSaveProduct} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              {formError && <div className="admin-products__form-error" role="alert"><i className="fas fa-exclamation-circle" /> <span>{formError}</span></div>}
+              <nav className="admin-products__editor-nav" aria-label="Các phần của biểu mẫu"><button type="button" onClick={() => document.getElementById("product-basic-info")?.scrollIntoView({ behavior: "smooth", block: "start" })}>1. Thông tin</button><button type="button" onClick={() => document.getElementById("product-variant-editor")?.scrollIntoView({ behavior: "smooth", block: "start" })}>2. SKU & giá</button><button type="button" onClick={() => document.getElementById("product-image-editor")?.scrollIntoView({ behavior: "smooth", block: "start" })}>3. Hình ảnh</button></nav>
+              <div id="product-basic-info" className="admin-products__form-grid admin-products__form-grid--2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", scrollMarginTop: "130px" }}>
                 <label style={{ fontSize: "12px", fontWeight: "600", color: "#4E342E" }}>
                   Mã sản phẩm (MR-xxx) *
                   <input
+                    {...fieldProps("productCode")}
                     required
-                    disabled={productModal.mode === "edit"}
+                    readOnly
                     value={productModal.data.productCode || ""}
-                    onChange={(e) => setProductModal({ ...productModal, data: { ...productModal.data, productCode: e.target.value.toUpperCase() } })}
-                    style={{ width: "100%", padding: "8px 10px", marginTop: "4px", border: "1px solid #D8CEC1", borderRadius: "4px" }}
+                    title="Mã được hệ thống cấp tự động và không tái sử dụng"
+                    style={{ width: "100%", padding: "8px 10px", marginTop: "4px", border: "1px solid #D8CEC1", borderRadius: "4px", background: "#F3EFEA" }}
                   />
+                  <small className="admin-products__field-hint">Hệ thống tự cấp mã tiếp theo và kiểm tra lại khi lưu.</small>
+                  {fieldMessage("productCode")}
                 </label>
                 <label style={{ fontSize: "12px", fontWeight: "600", color: "#4E342E" }}>
                   Tên sản phẩm *
                   <input
+                    {...fieldProps("name")}
                     required
                     value={productModal.data.name || ""}
                     onChange={(e) => setProductModal({ ...productModal, data: { ...productModal.data, name: e.target.value } })}
                     style={{ width: "100%", padding: "8px 10px", marginTop: "4px", border: "1px solid #D8CEC1", borderRadius: "4px" }}
                   />
+                  {fieldMessage("name")}
                 </label>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+              <div className="admin-products__form-grid admin-products__form-grid--3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
                 <label style={{ fontSize: "12px", fontWeight: "600", color: "#4E342E" }}>
                   Giá bán chuẩn (VNĐ) *
-                  <input
-                    required
-                    type="number"
-                    min="0"
-                    step="1000"
+                  <CurrencyInput
+                    {...fieldProps("price")}
                     value={productModal.data.price || 0}
-                    onChange={(e) => setProductModal({ ...productModal, data: { ...productModal.data, price: Number(e.target.value) } })}
+                    onChange={updateStandardPrice}
                     style={{ width: "100%", padding: "8px 10px", marginTop: "4px", border: "1px solid #D8CEC1", borderRadius: "4px" }}
                   />
+                  <small className="admin-products__field-hint">Tự cập nhật các SKU đang dùng giá chuẩn cũ; SKU có giá riêng được giữ nguyên.</small>
+                  {fieldMessage("price")}
                 </label>
                 <label style={{ fontSize: "12px", fontWeight: "600", color: "#4E342E" }}>
                   Danh mục *
                   <select
                     value={productModal.data.category || "clothing"}
-                    onChange={(e) => setProductModal({ ...productModal, data: { ...productModal.data, category: e.target.value } })}
+                    onChange={(e) => {
+                      const category = e.target.value;
+                      const sizes = (createMetadata.sizePresets?.[category] || DEFAULT_SIZE_PRESETS[category] || []).join(", ");
+                      if (productModal.mode === "create") setProductModal((current) => ({ ...current, data: buildVariantMatrix(current.data, { category, variantSizes: sizes }) }));
+                      else updateProductField("category", category);
+                    }}
                     style={{ width: "100%", padding: "8px 10px", marginTop: "4px", border: "1px solid #D8CEC1", borderRadius: "4px" }}
                   >
                     <option value="clothing">Trang phục (Clothing)</option>
@@ -995,7 +1343,7 @@ export default function AdminProducts() {
                 </label>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div className="admin-products__form-grid admin-products__form-grid--2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <label style={{ fontSize: "12px", fontWeight: "600", color: "#4E342E" }}>
                   Chất liệu chính
                   <input
@@ -1024,36 +1372,64 @@ export default function AdminProducts() {
                 />
               </label>
 
-              <section style={{ borderTop: "1px solid #E8E1D6", paddingTop: "16px" }}>
+              {productModal.mode === "create" && <section className="admin-products__variant-builder">
+                <div className="admin-products__section-heading"><div><p className="eyebrow">Bước 2</p><h3>Màu sắc và kích cỡ</h3><small>Nhập cách nhau bằng dấu phẩy. Hệ thống tự sinh mọi tổ hợp SKU bên dưới.</small></div><strong>{splitOptions(productModal.data.variantColors).length} màu · {splitOptions(productModal.data.variantSizes).length} size · {(productModal.data.variants || []).length} SKU</strong></div>
+                <div className="admin-products__form-grid admin-products__form-grid--2">
+                  <label>Màu sắc *<input {...fieldProps("variantColors")} value={productModal.data.variantColors || ""} onChange={(event) => updateVariantBuilder("variantColors", event.target.value)} placeholder="Brown, Navy, Ivory" />{fieldMessage("variantColors")}</label>
+                  <label>Kích cỡ *<input {...fieldProps("variantSizes")} value={productModal.data.variantSizes || ""} onChange={(event) => updateVariantBuilder("variantSizes", event.target.value.toUpperCase())} placeholder={productModal.data.category === "accessories" ? "ONE SIZE" : productModal.data.category === "footwear" ? "36, 37, 38" : "S, M, L"} />{fieldMessage("variantSizes")}</label>
+                </div>
+                <div className="admin-products__token-row">{splitOptions(productModal.data.variantColors).map((color) => <span key={color}>{color}</span>)}{splitOptions(productModal.data.variantSizes).map((size) => <span className="is-size" key={size}>{size.toUpperCase()}</span>)}</div>
+                <div className="admin-products__section-heading admin-products__section-heading--defaults"><div><h3>Giá và tồn kho mặc định</h3><small>Mọi SKU mới kế thừa các giá trị này; admin vẫn có thể chỉnh riêng từng dòng.</small></div></div>
+                <div className="admin-products__defaults-grid">
+                  <label>Giá vốn<CurrencyInput value={productModal.data.defaultCostPrice || 0} onChange={(value) => updateVariantBuilder("defaultCostPrice", value)} /></label>
+                  <label>Giá sàn<CurrencyInput value={productModal.data.defaultFloorPrice || 0} onChange={(value) => updateVariantBuilder("defaultFloorPrice", value)} /></label>
+                  <label>Tồn ban đầu<IntegerInput value={productModal.data.defaultStock || 0} onChange={(value) => updateVariantBuilder("defaultStock", value)} /></label>
+                  <label>Min<IntegerInput value={productModal.data.defaultMinStock || 0} onChange={(value) => updateVariantBuilder("defaultMinStock", value)} /></label>
+                  <label>Max<IntegerInput value={productModal.data.defaultMaxStock || 0} onChange={(value) => updateVariantBuilder("defaultMaxStock", value)} /></label>
+                </div>
+              </section>}
+
+              <section id="product-variant-editor" style={{ borderTop: "1px solid #E8E1D6", paddingTop: "16px", scrollMarginTop: "130px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
                   <div>
                     <h3 style={{ margin: 0, fontSize: "16px" }}>SKU, giá và tồn kho</h3>
                     <small style={{ color: "#806D60" }}>Tồn kho của SKU hiện có chỉ được thay đổi tại chức năng Điều chỉnh kho để đảm bảo lịch sử kiểm toán.</small>
                   </div>
-                  <button type="button" onClick={() => updateProductField("variants", [...(productModal.data.variants || []), emptyVariant(productModal.data.price)])} style={{ padding: "7px 12px", border: 0, borderRadius: "4px", background: "#4E342E", color: "#FFF", cursor: "pointer" }}>+ Thêm SKU</button>
+                  <button type="button" onClick={() => updateProductField("variants", [...(productModal.data.variants || []), emptyVariant(productModal.data.price)])} style={{ padding: "7px 12px", border: 0, borderRadius: "4px", background: "#4E342E", color: "#FFF", cursor: "pointer" }}>+ Thêm SKU riêng</button>
                 </div>
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", minWidth: "930px" }}>
                     <thead><tr style={{ background: "#FAF6F0" }}><th>Mã SKU</th><th>Màu</th><th>Size</th><th>Giá bán</th><th>Giá vốn</th><th>Giá sàn</th><th>Tồn</th><th>Min</th><th>Max</th><th></th></tr></thead>
                     <tbody>{(productModal.data.variants || []).map((variant, index) => <tr key={variant.id || `new-${index}`} style={{ borderBottom: "1px solid #EEE7DE" }}>
-                      {["sku", "color", "size", "price", "costPrice", "floorPrice", "stock", "minStock", "maxStock"].map((field) => <td key={field} style={{ padding: "6px 4px" }}><input required={field !== "stock"} disabled={(field === "sku" || field === "stock") && !variant.isNew} type={["price", "costPrice", "floorPrice", "stock", "minStock", "maxStock"].includes(field) ? "number" : "text"} min="0" value={variant[field] ?? ""} onChange={(event) => updateEditorVariant(index, field, event.target.type === "number" ? Number(event.target.value) : event.target.value.toUpperCase())} style={{ width: field === "sku" ? "145px" : "78px", boxSizing: "border-box", padding: "7px", border: "1px solid #D8CEC1", borderRadius: "4px", background: ((field === "sku" || field === "stock") && !variant.isNew) ? "#F3EFEA" : "#FFF" }} /></td>)}
+                      {["sku", "color", "size", "price", "costPrice", "floorPrice", "stock", "minStock", "maxStock"].map((field) => {
+                        const isMoney = ["price", "costPrice", "floorPrice"].includes(field);
+                        const isQuantity = ["stock", "minStock", "maxStock"].includes(field);
+                        const disabled = (field === "sku" || field === "stock") && !variant.isNew;
+                        const fieldKey = `variants.${index}.${field}`;
+                        const sharedProps = { ...fieldProps(fieldKey), disabled, value: variant[field] ?? "", style: { width: field === "sku" ? "145px" : isMoney ? "108px" : "78px", boxSizing: "border-box", padding: "7px", border: "1px solid #D8CEC1", borderRadius: "4px", background: disabled ? "#F3EFEA" : "#FFF" } };
+                        return <td key={field} style={{ padding: "6px 4px", verticalAlign: "top" }}>{isMoney ? <CurrencyInput {...sharedProps} onChange={(value) => updateEditorVariant(index, field, value)} /> : isQuantity ? <IntegerInput {...sharedProps} onChange={(value) => updateEditorVariant(index, field, value)} /> : <input {...sharedProps} type="text" onChange={(event) => updateEditorVariant(index, field, event.target.value.toUpperCase())} />}{fieldMessage(fieldKey)}</td>;
+                      })}
                       <td><button type="button" disabled={!variant.isNew} title={variant.isNew ? "Bỏ SKU chưa lưu" : "SKU hiện có được ngừng bán bằng thao tác xóa mềm"} onClick={() => updateProductField("variants", productModal.data.variants.filter((_, variantIndex) => variantIndex !== index))} style={{ border: 0, background: "transparent", color: variant.isNew ? "#B94A48" : "#B9ADA4", cursor: variant.isNew ? "pointer" : "not-allowed" }}>×</button></td>
                     </tr>)}</tbody>
                   </table>
                 </div>
               </section>
 
-              <section style={{ borderTop: "1px solid #E8E1D6", paddingTop: "16px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}><div><h3 style={{ margin: "0 0 4px", fontSize: "16px" }}>Ảnh sản phẩm</h3><small style={{ color: "#806D60" }}>Ảnh đầu tiên được dùng làm ảnh đại diện. Khuyến nghị WebP, tỷ lệ 1:1.</small></div><label style={{ padding: "8px 13px", border: "1px solid #BDAA96", borderRadius: "5px", cursor: uploadingImages ? "wait" : "pointer", color: "#4E342E", fontSize: "12px", fontWeight: 600, whiteSpace: "nowrap" }}>{uploadingImages ? "Đang tải ảnh…" : "+ Tải ảnh từ máy"}<input type="file" multiple accept="image/webp,image/jpeg,image/png" disabled={uploadingImages} onChange={handleImageUpload} style={{ display: "none" }} /></label></div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(95px,1fr))", gap: "9px", marginTop: "12px" }}>{String(productModal.data.imageText || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean).map((image, index, images) => <div key={`${image}-${index}`} style={{ position: "relative", border: index === 0 ? "2px solid #8A5A36" : "1px solid #DDD2C5", borderRadius: "5px", overflow: "hidden", aspectRatio: "1", background: "#F7F1EA" }}><img src={normalizeImageUrl(image)} alt={`Ảnh sản phẩm ${index + 1}`} onError={(event) => { event.currentTarget.style.display = "none"; }} style={{ width: "100%", height: "100%", objectFit: "cover" }} /><button type="button" onClick={() => updateProductField("imageText", images.filter((_, imageIndex) => imageIndex !== index).join("\n"))} aria-label="Xóa ảnh" style={{ position: "absolute", right: "4px", top: "4px", width: "22px", height: "22px", border: 0, borderRadius: "50%", background: "rgba(35,25,20,.8)", color: "#FFF", cursor: "pointer" }}>×</button>{index === 0 && <span style={{ position: "absolute", left: "4px", bottom: "4px", padding: "2px 5px", borderRadius: "3px", background: "rgba(35,25,20,.8)", color: "#FFF", fontSize: "9px" }}>Đại diện</span>}</div>)}</div>
-                <small style={{ display: "block", color: "#806D60", marginTop: "10px" }}>Hoặc nhập đường dẫn ảnh, mỗi dòng một ảnh:</small>
-                <textarea rows="4" value={productModal.data.imageText || ""} onChange={(event) => updateProductField("imageText", event.target.value)} placeholder="/image/catalog/MR-xxx/front.webp&#10;/image/catalog/MR-xxx/back.webp" style={{ width: "100%", boxSizing: "border-box", marginTop: "8px", padding: "9px", border: "1px solid #D8CEC1", borderRadius: "4px" }} />
+              <section id="product-image-editor" style={{ borderTop: "1px solid #E8E1D6", paddingTop: "16px", scrollMarginTop: "130px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}><div><h3 style={{ margin: "0 0 4px", fontSize: "16px" }}>Ảnh sản phẩm theo màu</h3><small style={{ color: "#806D60" }}>Chọn nhóm ảnh trước khi tải. Ảnh đầu tiên của mỗi màu là ảnh đại diện màu đó.</small></div><label style={{ padding: "8px 13px", border: "1px solid #BDAA96", borderRadius: "5px", cursor: uploadingImages ? "wait" : "pointer", color: "#4E342E", fontSize: "12px", fontWeight: 600, whiteSpace: "nowrap" }}>{uploadingImages ? "Đang tải ảnh…" : "+ Tải ảnh từ máy"}<input type="file" multiple accept="image/webp,image/jpeg,image/png" disabled={uploadingImages} onChange={handleImageUpload} style={{ display: "none" }} /></label></div>
+                <div className="admin-products__image-tabs"><button type="button" className={(productModal.data.selectedImageColor || "__general") === "__general" ? "active" : ""} onClick={() => updateProductField("selectedImageColor", "__general")}>Ảnh chung</button>{[...new Set((productModal.data.variants || []).map((variant) => variant.color).filter(Boolean))].map((color) => <button type="button" className={productModal.data.selectedImageColor === color ? "active" : ""} onClick={() => updateProductField("selectedImageColor", color)} key={color}>{color}</button>)}</div>
+                {(() => {
+                  const selectedColor = productModal.data.selectedImageColor || "__general";
+                  const images = selectedColor === "__general" ? String(productModal.data.imageText || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean) : (productModal.data.colorImages?.[selectedColor] || []);
+                  return <><div className="admin-products__image-grid">{images.map((image, index) => <div key={`${image}-${index}`} className={index === 0 ? "is-primary" : ""}><img src={normalizeImageUrl(image)} alt={`${selectedColor === "__general" ? "Ảnh chung" : selectedColor} ${index + 1}`} onError={(event) => { event.currentTarget.style.display = "none"; }} /><button type="button" onClick={() => removeModalImage(index)} aria-label="Xóa ảnh">×</button>{index === 0 && <span>Đại diện</span>}</div>)}</div>{images.length === 0 && <p className="admin-products__image-empty">Chưa có ảnh trong nhóm này.</p>}</>;
+                })()}
+                {(productModal.data.selectedImageColor || "__general") === "__general" && <details className="admin-products__advanced-images"><summary>Nhập đường dẫn ảnh nâng cao</summary><textarea rows="4" value={productModal.data.imageText || ""} onChange={(event) => updateProductField("imageText", event.target.value)} placeholder="/image/catalog/MR-xxx/front.webp&#10;/image/catalog/MR-xxx/back.webp" /></details>}
               </section>
 
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "15px" }}>
+              <div className="admin-products__modal-actions">
                 <button
                   type="button"
-                  onClick={() => setProductModal(null)}
+                  onClick={closeProductModal}
                   style={{ padding: "9px 16px", backgroundColor: "#FAF6F0", border: "1px solid #D8CEC1", borderRadius: "4px", cursor: "pointer" }}
                 >
                   Hủy
@@ -1073,112 +1449,117 @@ export default function AdminProducts() {
 
       {/* Modal: Create / Edit SKU Variant */}
       {variantModal && (
-        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
-          <div style={{ backgroundColor: "#FFF", borderRadius: "8px", maxWidth: "500px", width: "100%", padding: "25px", border: "1px solid #D8CEC1" }}>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "22px", margin: "0 0 15px", color: "#14100E" }}>
-              {variantModal.mode === "create" ? "Thêm Biến Thể SKU Mới" : `Chỉnh Sửa SKU: ${variantModal.data.sku}`}
-            </h2>
-            <form onSubmit={handleSaveVariant} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="admin-products__modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setVariantModal(null); }}>
+          <div className="admin-products__modal" role="dialog" aria-modal="true" style={{ maxWidth: "500px", padding: "25px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "15px", alignItems: "flex-start" }}><h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "22px", margin: "0 0 15px", color: "#14100E" }}>
+              {variantModal.mode === "create" ? "Thêm biến thể SKU mới" : `Chỉnh sửa SKU: ${variantModal.data.sku}`}
+            </h2><button className="admin-products__modal-close" type="button" onClick={() => setVariantModal(null)} aria-label="Đóng cửa sổ">×</button></div>
+            <form noValidate className="admin-products__editor" onSubmit={handleSaveVariant} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {formError && <div className="admin-products__form-error" role="alert"><i className="fas fa-exclamation-circle" /> <span>{formError}</span></div>}
               <label style={{ fontSize: "12px", fontWeight: "600", color: "#4E342E" }}>
                 Mã SKU *
                 <input
+                  {...fieldProps("sku")}
                   required
                   disabled={variantModal.mode === "edit"}
                   value={variantModal.data.sku || ""}
                   onChange={(e) => setVariantModal({ ...variantModal, data: { ...variantModal.data, sku: e.target.value.toUpperCase() } })}
                   style={{ width: "100%", padding: "8px 10px", marginTop: "4px", border: "1px solid #D8CEC1", borderRadius: "4px" }}
                 />
+                {fieldMessage("sku")}
               </label>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              <div className="admin-products__form-grid admin-products__form-grid--2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
                 <label style={{ fontSize: "12px", fontWeight: "600", color: "#4E342E" }}>
                   Màu sắc *
                   <input
+                    {...fieldProps("color")}
                     required
                     value={variantModal.data.color || ""}
                     onChange={(e) => setVariantModal({ ...variantModal, data: { ...variantModal.data, color: e.target.value } })}
                     style={{ width: "100%", padding: "8px 10px", marginTop: "4px", border: "1px solid #D8CEC1", borderRadius: "4px" }}
                   />
+                  {fieldMessage("color")}
                 </label>
                 <label style={{ fontSize: "12px", fontWeight: "600", color: "#4E342E" }}>
                   Kích cỡ *
                   <input
+                    {...fieldProps("size")}
                     required
                     value={variantModal.data.size || ""}
                     onChange={(e) => setVariantModal({ ...variantModal, data: { ...variantModal.data, size: e.target.value } })}
                     style={{ width: "100%", padding: "8px 10px", marginTop: "4px", border: "1px solid #D8CEC1", borderRadius: "4px" }}
                   />
+                  {fieldMessage("size")}
                 </label>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
+              <div className="admin-products__form-grid admin-products__form-grid--3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
                 <label style={{ fontSize: "12px", fontWeight: "600", color: "#4E342E" }}>
                   Giá bán (VNĐ)
-                  <input
-                    required
-                    type="number"
-                    min="0"
+                  <CurrencyInput
+                    {...fieldProps("price")}
                     value={variantModal.data.price || 0}
-                    onChange={(e) => setVariantModal({ ...variantModal, data: { ...variantModal.data, price: Number(e.target.value) } })}
+                    onChange={(value) => setVariantModal({ ...variantModal, data: { ...variantModal.data, price: value } })}
                     style={{ width: "100%", padding: "8px 10px", marginTop: "4px", border: "1px solid #D8CEC1", borderRadius: "4px" }}
                   />
+                  {fieldMessage("price")}
                 </label>
                 <label style={{ fontSize: "12px", fontWeight: "600", color: "#4E342E" }}>
                   Giá vốn (Cost)
-                  <input
-                    type="number"
-                    min="0"
+                  <CurrencyInput
+                    {...fieldProps("costPrice")}
                     value={variantModal.data.costPrice || 0}
-                    onChange={(e) => setVariantModal({ ...variantModal, data: { ...variantModal.data, costPrice: Number(e.target.value) } })}
+                    onChange={(value) => setVariantModal({ ...variantModal, data: { ...variantModal.data, costPrice: value } })}
                     style={{ width: "100%", padding: "8px 10px", marginTop: "4px", border: "1px solid #D8CEC1", borderRadius: "4px" }}
                   />
+                  {fieldMessage("costPrice")}
                 </label>
                 <label style={{ fontSize: "12px", fontWeight: "600", color: "#4E342E" }}>
                   Giá sàn (Floor)
-                  <input
-                    type="number"
-                    min="0"
+                  <CurrencyInput
+                    {...fieldProps("floorPrice")}
                     value={variantModal.data.floorPrice || 0}
-                    onChange={(e) => setVariantModal({ ...variantModal, data: { ...variantModal.data, floorPrice: Number(e.target.value) } })}
+                    onChange={(value) => setVariantModal({ ...variantModal, data: { ...variantModal.data, floorPrice: value } })}
                     style={{ width: "100%", padding: "8px 10px", marginTop: "4px", border: "1px solid #D8CEC1", borderRadius: "4px" }}
                   />
+                  {fieldMessage("floorPrice")}
                 </label>
               </div>
 
               {variantModal.mode === "create" && (
                 <label style={{ fontSize: "12px", fontWeight: "600", color: "#4E342E" }}>
                   Số lượng nhập ban đầu *
-                  <input
-                    required
-                    type="number"
-                    min="0"
+                  <IntegerInput
+                    {...fieldProps("stock")}
                     value={variantModal.data.stock || 0}
-                    onChange={(e) => setVariantModal({ ...variantModal, data: { ...variantModal.data, stock: Number(e.target.value) } })}
+                    onChange={(value) => setVariantModal({ ...variantModal, data: { ...variantModal.data, stock: value } })}
                     style={{ width: "100%", padding: "8px 10px", marginTop: "4px", border: "1px solid #D8CEC1", borderRadius: "4px" }}
                   />
+                  {fieldMessage("stock")}
                 </label>
               )}
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              <div className="admin-products__form-grid admin-products__form-grid--2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
                 <label style={{ fontSize: "12px", fontWeight: "600", color: "#4E342E" }}>
                   Tồn tối thiểu (Min alert)
-                  <input
-                    type="number"
-                    min="0"
+                  <IntegerInput
+                    {...fieldProps("minStock")}
                     value={variantModal.data.minStock ?? variantModal.data.lowStockThreshold ?? 3}
-                    onChange={(e) => setVariantModal({ ...variantModal, data: { ...variantModal.data, minStock: Number(e.target.value) } })}
+                    onChange={(value) => setVariantModal({ ...variantModal, data: { ...variantModal.data, minStock: value } })}
                     style={{ width: "100%", padding: "8px 10px", marginTop: "4px", border: "1px solid #D8CEC1", borderRadius: "4px" }}
                   />
+                  {fieldMessage("minStock")}
                 </label>
                 <label style={{ fontSize: "12px", fontWeight: "600", color: "#4E342E" }}>
                   Tồn tối đa (Max capacity)
-                  <input
-                    type="number"
-                    min="1"
+                  <IntegerInput
+                    {...fieldProps("maxStock")}
                     value={variantModal.data.maxStock ?? variantModal.data.maxStockThreshold ?? 30}
-                    onChange={(e) => setVariantModal({ ...variantModal, data: { ...variantModal.data, maxStock: Number(e.target.value) } })}
+                    onChange={(value) => setVariantModal({ ...variantModal, data: { ...variantModal.data, maxStock: value } })}
                     style={{ width: "100%", padding: "8px 10px", marginTop: "4px", border: "1px solid #D8CEC1", borderRadius: "4px" }}
                   />
+                  {fieldMessage("maxStock")}
                 </label>
               </div>
 

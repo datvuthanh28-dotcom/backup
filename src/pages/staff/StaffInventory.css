@@ -6,6 +6,80 @@
   --inventory-paper: #ffffff;
   --inventory-cream: #faf6f0;
 }
+.inventory-page-lead { margin:7px 0 0; color:#6b5a4b; font-size:13px; }
+.inventory-documents { margin-top:18px; border:1px solid var(--inventory-line); border-radius:10px; background:#fff; overflow:hidden; }
+.inventory-documents-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 18px; border-bottom:1px solid #e8e0d6; }
+.inventory-documents-heading span { color:#8a7350; font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
+.inventory-documents-heading h2 { margin:3px 0 0; color:#2b211c; font:600 24px 'Cormorant Garamond',serif; }
+.inventory-documents-heading button { padding:8px 12px; border:1px solid #d8cec1; border-radius:6px; background:#fff; color:#4e342e; cursor:pointer; }
+.inventory-documents-heading button:disabled { opacity:.55; cursor:wait; }
+.inventory-documents-empty { padding:28px; color:#806f61; text-align:center; }
+.inventory-documents-table-wrap { overflow:auto; }
+.inventory-documents-table { width:100%; min-width:860px; border-collapse:collapse; font-size:12px; }
+.inventory-documents-table th { padding:10px 14px; background:#faf6f0; color:#715b4b; font-size:10px; letter-spacing:.05em; text-align:left; text-transform:uppercase; }
+.inventory-documents-table td { padding:12px 14px; border-top:1px solid #eee7de; color:#3f322b; vertical-align:top; }
+.inventory-documents-table td small { display:block; margin-top:3px; color:#8a7350; font-size:10.5px; }
+.inventory-reverse-button { padding:6px 9px; border:1px solid #d7b8b3; border-radius:5px; background:#fff8f7; color:#9b433d; cursor:pointer; white-space:nowrap; }
+.inventory-reversal-modal { width:min(500px,100%); padding:25px; border-radius:10px; background:#fff; box-shadow:0 18px 55px rgba(0,0,0,.24); }
+.inventory-reversal-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.inventory-reversal-heading span { color:#9b433d; font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
+.inventory-reversal-heading h3 { margin:3px 0 0; color:#2b211c; font:600 24px 'Cormorant Garamond',serif; }
+.inventory-reversal-heading button { border:0; background:transparent; color:#6b5a4b; font-size:25px; cursor:pointer; }
+.inventory-reversal-modal p { color:#6b5a4b; font-size:12px; line-height:1.5; }
+.inventory-reversal-modal label { display:grid; gap:6px; color:#4e342e; font-size:12px; font-weight:650; }
+.inventory-reversal-modal textarea { min-height:90px; padding:10px 12px; border:1px solid #d8cec1; border-radius:6px; resize:vertical; }
+.inventory-threshold-note { margin:14px 0; padding:11px 12px; border:1px solid #e3d7c9; border-radius:6px; background:#faf6f0; color:#6b5a4b; font-size:12px; line-height:1.45; }
+
+.inventory-kpi-grid { display:grid; grid-template-columns:repeat(5,minmax(120px,1fr)); gap:10px; margin:0 0 14px; }
+.inventory-kpi-grid > div { padding:13px 15px; border:1px solid var(--inventory-line); border-radius:8px; background:#fff; }
+.inventory-kpi-grid span { display:block; color:#8a7350; font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
+.inventory-kpi-grid strong { display:block; margin-top:5px; color:var(--inventory-ink); font-size:21px; }
+.inventory-quantity-breakdown { margin-top:4px; color:#75675b; font-size:10.5px; line-height:1.4; white-space:nowrap; }
+.inventory-modal-backdrop { position:fixed; inset:0; z-index:3100; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(43,33,28,.62); }
+.inventory-operation-modal { width:min(620px,100%); max-height:90vh; overflow:auto; padding:26px; border-radius:10px; background:#fff; box-shadow:0 18px 55px rgba(0,0,0,.24); }
+.inventory-operation-heading { display:grid; grid-template-columns:58px minmax(0,1fr) 32px; align-items:center; gap:14px; margin-bottom:18px; }
+.inventory-operation-heading > img { width:58px; height:58px; border-radius:7px; object-fit:cover; background:#f7f2ea; }
+.inventory-operation-heading span { color:#8a7350; font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
+.inventory-operation-heading h3 { margin:3px 0; color:#2b211c; font:600 25px 'Cormorant Garamond',serif; }
+.inventory-operation-heading small { color:#6b5a4b; }
+.inventory-operation-heading button { border:0; background:transparent; color:#6b5a4b; font-size:27px; cursor:pointer; }
+.inventory-operation-current { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:18px; }
+.inventory-operation-current div { padding:10px; border-radius:6px; background:#faf6f0; }
+.inventory-operation-current span { display:block; color:#8a7350; font-size:10px; }
+.inventory-operation-current strong { display:block; margin-top:3px; font-size:18px; }
+.inventory-operation-modal > label { display:grid; gap:6px; margin-top:12px; color:#4e342e; font-size:12px; font-weight:650; }
+.inventory-operation-modal input,.inventory-operation-modal select,.inventory-operation-modal textarea { width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #d8cec1; border-radius:6px; background:#fff; color:#2b211c; font:inherit; }
+.inventory-operation-modal textarea { min-height:84px; resize:vertical; }
+.inventory-operation-modal label small { color:#8a7350; font-weight:400; }
+.inventory-operation-picker h4,.inventory-operation-preview h4 { margin:4px 0 12px; color:#2b211c; font-size:13px; }
+.inventory-operation-picker > div { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+.inventory-operation-picker button { display:flex; align-items:flex-start; gap:11px; min-height:78px; padding:13px; border:1px solid #ddd3c7; border-radius:8px; background:#fff; color:#2b211c; cursor:pointer; text-align:left; }
+.inventory-operation-picker button:hover { border-color:#8a7350; background:#fcf8f2; }
+.inventory-operation-picker i { width:22px; margin-top:2px; color:#94633d; font-size:17px; text-align:center; }
+.inventory-operation-picker span,.inventory-operation-picker small { display:block; }
+.inventory-operation-picker strong { font-size:13px; }
+.inventory-operation-picker small { margin-top:4px; color:#7b6b5d; font-size:11px; line-height:1.35; }
+.inventory-operation-selected { display:flex; align-items:center; justify-content:space-between; margin:0 0 12px; padding:8px 10px; border-radius:6px; background:#faf6f0; }
+.inventory-operation-selected button { border:0; background:transparent; color:#805a3f; cursor:pointer; font-size:12px; }
+.inventory-operation-fields.two-columns { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.inventory-operation-fields label { display:grid; gap:6px; margin-top:12px; color:#4e342e; font-size:12px; font-weight:650; }
+.inventory-operation-preview { margin-top:16px; padding:13px; border:1px solid #ded4c8; border-radius:7px; background:#fcfaf7; }
+.inventory-operation-preview > div { display:grid; grid-template-columns:minmax(140px,1fr) 70px 70px; gap:12px; padding:6px 3px; border-bottom:1px solid #eee7de; font-size:12px; }
+.inventory-operation-preview > div:last-child { border-bottom:0; }
+.inventory-operation-preview > div:first-of-type { color:#8a7350; font-size:10px; font-weight:700; text-transform:uppercase; }
+.inventory-operation-preview b { color:#2e704c; }
+.inventory-operation-checkbox { display:flex !important; grid-template-columns:none !important; flex-direction:row !important; align-items:flex-start; gap:8px !important; font-weight:500 !important; }
+.inventory-operation-checkbox input { width:auto; margin-top:2px; }
+.inventory-operation-checkbox.confirm { padding:10px 12px; border-radius:6px; background:#f8f3ec; }
+.inventory-operation-actions { display:flex; justify-content:flex-end; gap:9px; margin-top:20px; }
+.inventory-operation-actions button { min-height:40px; padding:0 17px; border:1px solid #d8cec1; border-radius:6px; background:#fff; cursor:pointer; font-weight:700; }
+.inventory-operation-actions button:last-child { border-color:#3d2921; background:#3d2921; color:#fff; }
+
+@media (max-width: 900px) {
+  .inventory-kpi-grid { grid-template-columns:repeat(2,1fr); }
+  .inventory-operation-current { grid-template-columns:repeat(2,1fr); }
+  .inventory-operation-picker > div,.inventory-operation-fields.two-columns { grid-template-columns:1fr; }
+}
 
 .inventory-filters {
   display: grid;

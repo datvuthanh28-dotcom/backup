@@ -40,10 +40,13 @@
     "db:campaigns": "node server/db/apply-promotion-campaign-migration.js",
     "db:seed-promotions": "node server/db/seed-canonical-promotions.js",
     "db:verify-demo": "node scripts/verify-demo-dataset.js",
+    "db:status": "node scripts/database-dataset-status.js",
+    "db:sync": "node scripts/setup-project.js",
     "db:reset-demo": "node scripts/reset-demo-database.js",
     "db:review-replies": "node server/db/apply-review-replies-migration.js",
     "db:revenue-targets": "node server/db/apply-revenue-targets-migration.js",
     "db:cart": "node server/db/apply-cart-migration.js",
+    "db:inventory": "node server/db/apply-inventory-operations-migration.js",
     "db:spec": "node server/db/apply-codex-spec-migration.js",
     "test": "node server/test-rbac-workflow.js"
   },

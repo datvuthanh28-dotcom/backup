@@ -70,6 +70,44 @@ async function getActivePool() {
   return pool;
 }
 
+const COLOR_NAME_PATTERN = /^[\p{L}][\p{L}\p{M}\s-]{0,39}$/u;
+const ALPHA_SIZES = new Set(["XXS", "XS", "S", "SMALL", "M", "MEDIUM", "L", "LARGE", "XL", "X-LARGE", "XXL", "2XL", "3XL", "4XL"]);
+
+function validateCatalogColor(color) {
+  const normalized = String(color || "").trim().replace(/\s+/g, " ");
+  if (!COLOR_NAME_PATTERN.test(normalized)) {
+    throw new Error(`Màu “${normalized || "trống"}” không hợp lệ. Chỉ dùng chữ, khoảng trắng hoặc dấu gạch nối.`);
+  }
+  return normalized;
+}
+
+function validateCatalogSize(size, category) {
+  const normalized = String(size || "").trim().replace(/\s+/g, " ").toUpperCase();
+  if (category === "accessories") {
+    const numericSize = Number(normalized);
+    const isLengthSize = /^\d{2,3}$/.test(normalized) && numericSize >= 50 && numericSize <= 130;
+    if (normalized !== "ONE SIZE" && !ALPHA_SIZES.has(normalized) && !isLengthSize) {
+      throw new Error(`Size phụ kiện “${normalized || "trống"}” không hợp lệ.`);
+    }
+    return normalized;
+  }
+  if (category === "footwear") {
+    const numericSize = Number(normalized);
+    if (!/^\d{2}(?:\.5)?$/.test(normalized) || numericSize < 16 || numericSize > 48) {
+      throw new Error(`Cỡ giày “${normalized || "trống"}” không hợp lệ. Chấp nhận cỡ số từ 16 đến 48, có thể có .5.`);
+    }
+    return normalized;
+  }
+  const numericSize = Number(normalized);
+  const isNumericClothingSize = /^\d{2}$/.test(normalized) && numericSize >= 18 && numericSize <= 54;
+  const ageMatch = normalized.match(/^(\d{1,2})-(\d{1,2})(M|Y)$/);
+  const isAgeSize = Boolean(ageMatch) && Number(ageMatch[1]) < Number(ageMatch[2]) && Number(ageMatch[2]) <= (ageMatch[3] === "M" ? 24 : 16);
+  if (!ALPHA_SIZES.has(normalized) && !isNumericClothingSize && !isAgeSize) {
+    throw new Error(`Size “${normalized || "trống"}” không đúng chuẩn trang phục.`);
+  }
+  return normalized;
+}
+
 // Returned merchandise becomes sellable only after physical inspection passes.
 // The caller owns the SQL transaction, so stock changes roll back with a failed
 // refund or replacement dispatch instead of leaving a partial inventory update.
@@ -222,7 +260,18 @@ export const db = {
     const variantRes = await p.request().query("SELECT * FROM ProductVariants WHERE is_active = 1 ORDER BY product_id, color_name, size_name");
     return res.recordset.map((r) => {
       const catalog = catalogProducts.find((product) => product.id === r.id) || {};
-      const variants = variantRes.recordset.filter((variant) => variant.product_id === r.id).map((variant) => ({ id: variant.id, sku: variant.sku, color: variant.color_name, size: variant.size_name, price: Number(variant.price), costPrice: Number(variant.cost_price || 0), floorPrice: Number(variant.floor_price || 0), stock: variant.stock_quantity, lowStockThreshold: variant.low_stock_threshold, maxStockThreshold: variant.max_stock_threshold }))
+      const variants = variantRes.recordset.filter((variant) => variant.product_id === r.id).map((variant) => ({
+        id: variant.id, sku: variant.sku, color: variant.color_name, size: variant.size_name,
+        price: Number(variant.price), costPrice: Number(variant.cost_price || 0), floorPrice: Number(variant.floor_price || 0),
+        stock: Number(variant.stock_quantity || 0),
+        reservedQuantity: Number(variant.reserved_quantity || 0),
+        quarantineQuantity: Number(variant.quarantine_quantity || 0),
+        incomingQuantity: Number(variant.incoming_quantity || 0),
+        availableQuantity: Math.max(0, Number(variant.stock_quantity || 0) - Number(variant.reserved_quantity || 0) - Number(variant.quarantine_quantity || 0)),
+        reorderPoint: Number(variant.reorder_point ?? variant.low_stock_threshold ?? 0),
+        leadTimeDays: Number(variant.lead_time_days || 7),
+        lowStockThreshold: variant.low_stock_threshold, maxStockThreshold: variant.max_stock_threshold,
+      }))
         .sort((a, b) => (catalog.colors?.indexOf(a.color) ?? 0) - (catalog.colors?.indexOf(b.color) ?? 0) || (catalog.sizes?.indexOf(a.size) ?? 0) - (catalog.sizes?.indexOf(b.size) ?? 0));
       return { ...catalog, ...r, productCode: r.product_code, collection: r.collection_name || catalog.collection, collections: r.collections_json ? JSON.parse(r.collections_json) : catalog.collections, material: r.material || catalog.material, stock: variants.reduce((sum, variant) => sum + variant.stock, 0), variants, images: JSON.parse(r.images_json), colors: JSON.parse(r.colors_json), colorImages: JSON.parse(r.color_images_json) };
     });
@@ -351,13 +400,17 @@ export const db = {
         .input("variant_id", sql.NVarChar, variantId)
         .input("movement_type", sql.NVarChar, delta === 0 ? "threshold_adjustment" : "manual_adjustment")
         .input("quantity_change", sql.Int, delta)
-        .input("resulting_stock", sql.Int, totalStock)
+        .input("resulting_stock", sql.Int, parsedStock)
         .input("reference_id", sql.NVarChar, variant.sku)
         .input("note", sql.NVarChar, `${note} | SKU ${variant.sku} | ${variant.color_name} / ${variant.size_name} | Min ${variant.low_stock_threshold}→${parsedMinStock} | Max ${variant.max_stock_threshold}→${parsedMaxStock}`)
         .input("performed_by", sql.NVarChar, performedBy)
+        .input("quantity_before", sql.Int, Number(variant.stock_quantity))
+        .input("product_stock_after", sql.Int, totalStock)
         .query(`INSERT INTO InventoryMovements
-                (product_id, variant_id, movement_type, quantity_change, resulting_stock, reference_id, note, performed_by, created_at)
-                VALUES (@product_id, @variant_id, @movement_type, @quantity_change, @resulting_stock, @reference_id, @note, @performed_by, GETDATE())`);
+                (product_id, variant_id, movement_type, quantity_change, resulting_stock, reference_id, note, performed_by, created_at,
+                 reason_code,quantity_before,quantity_after,product_stock_after,reference_type)
+                VALUES (@product_id, @variant_id, @movement_type, @quantity_change, @resulting_stock, @reference_id, @note, @performed_by, GETDATE(),
+                 'manual_correction',@quantity_before,@resulting_stock,@product_stock_after,'manual')`);
 
       await transaction.commit();
       return {
@@ -411,6 +464,12 @@ export const db = {
         costPrice: Number(variant.cost_price || 0),
         floorPrice: Number(variant.floor_price || 0),
         stock: variant.stock_quantity,
+        reservedQuantity: Number(variant.reserved_quantity || 0),
+        quarantineQuantity: Number(variant.quarantine_quantity || 0),
+        incomingQuantity: Number(variant.incoming_quantity || 0),
+        availableQuantity: Math.max(0, Number(variant.stock_quantity || 0) - Number(variant.reserved_quantity || 0) - Number(variant.quarantine_quantity || 0)),
+        reorderPoint: Number(variant.reorder_point ?? variant.low_stock_threshold ?? 0),
+        leadTimeDays: Number(variant.lead_time_days || 7),
         lowStockThreshold: variant.low_stock_threshold,
         maxStockThreshold: variant.max_stock_threshold,
         isActive: Boolean(variant.is_active),
@@ -440,6 +499,25 @@ export const db = {
     });
   },
 
+  async getProductCreateMetadata() {
+    const p = await getActivePool();
+    const result = await p.request().query("SELECT product_code FROM Products WITH (READCOMMITTEDLOCK)");
+    const highestNumber = result.recordset.reduce((highest, row) => {
+      const match = String(row.product_code || "").trim().match(/^MR-(\d+)$/i);
+      return match ? Math.max(highest, Number(match[1])) : highest;
+    }, 105);
+    const nextNumber = highestNumber + 1;
+    return {
+      nextProductCode: `MR-${String(nextNumber).padStart(3, "0")}`,
+      sizePresets: {
+        clothing: ["XS", "S", "M", "L", "XL"],
+        footwear: ["36", "37", "38", "39", "40", "41", "42", "43", "44", "45"],
+        accessories: ["ONE SIZE"],
+      },
+      defaultInventoryPolicy: { min: 3, max: 30 },
+    };
+  },
+
   async createProductAdmin(data, actor = "Admin") {
     const p = await getActivePool();
     const {
@@ -458,9 +536,10 @@ export const db = {
       throw new Error("Sản phẩm phải có ít nhất một SKU được khai báo rõ ràng.");
     }
 
+    const normalizedCategory = String(category).trim().toLowerCase();
     const normalizedVariants = variants.map((variant, index) => {
-      const color = String(variant.color || "").trim();
-      const size = String(variant.size || "").trim();
+      const color = validateCatalogColor(variant.color);
+      const size = validateCatalogSize(variant.size, normalizedCategory);
       const sku = String(variant.sku || "").trim().toUpperCase();
       const variantPrice = Number(variant.price);
       const costPrice = Number(variant.costPrice);
@@ -469,8 +548,8 @@ export const db = {
       const minStock = Number(variant.minStock);
       const maxStock = Number(variant.maxStock);
       if (!sku || !color || !size) throw new Error(`SKU dòng ${index + 1} phải có mã SKU, màu sắc và kích cỡ.`);
-      if (!(variantPrice > 0) || costPrice < 0 || floorPrice < costPrice || floorPrice > variantPrice) {
-        throw new Error(`SKU ${sku}: giá phải thỏa mãn 0 ≤ giá vốn ≤ giá sàn ≤ giá bán.`);
+      if (!(variantPrice > 0) || !(costPrice > 0) || floorPrice < costPrice || floorPrice > variantPrice) {
+        throw new Error(`SKU ${sku}: giá vốn phải lớn hơn 0 và cần thỏa mãn giá vốn ≤ giá sàn ≤ giá bán.`);
       }
       if (![stock, minStock, maxStock].every(Number.isInteger) || stock < 0 || minStock < 0 || maxStock <= minStock) {
         throw new Error(`SKU ${sku}: tồn kho phải là số nguyên không âm và mức tối đa phải lớn hơn mức tối thiểu.`);
@@ -480,26 +559,33 @@ export const db = {
     if (new Set(normalizedVariants.map((variant) => variant.sku)).size !== normalizedVariants.length) {
       throw new Error("Danh sách có mã SKU trùng nhau.");
     }
-
-    const checkCode = await p.request().input("code", sql.NVarChar, productCode.trim().toUpperCase()).query("SELECT id FROM Products WHERE product_code = @code");
-    if (checkCode.recordset.length) {
-      throw new Error(`Mã sản phẩm "${productCode.trim().toUpperCase()}" đã tồn tại trên hệ thống.`);
-    }
+    const selections = normalizedVariants.map((variant) => `${variant.color.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase()}|${variant.size}`);
+    if (new Set(selections).size !== selections.length) throw new Error("Danh sách có tổ hợp màu và kích cỡ trùng nhau.");
 
     const transaction = new sql.Transaction(p);
     await transaction.begin();
     try {
-      const nextIdRes = await transaction.request().query("SELECT COALESCE(MAX(id), 100) + 1 AS next_id FROM Products");
+      const lockedCodes = await transaction.request().query("SELECT product_code FROM Products WITH (UPDLOCK, HOLDLOCK)");
+      const highestCodeNumber = lockedCodes.recordset.reduce((highest, row) => {
+        const match = String(row.product_code || "").trim().match(/^MR-(\d+)$/i);
+        return match ? Math.max(highest, Number(match[1])) : highest;
+      }, 105);
+      const expectedCode = `MR-${String(highestCodeNumber + 1).padStart(3, "0")}`;
+      const normalizedProductCode = productCode.trim().toUpperCase();
+      if (normalizedProductCode !== expectedCode) {
+        throw new Error(`Mã sản phẩm đã thay đổi do dữ liệu mới. Vui lòng mở lại biểu mẫu để sử dụng mã ${expectedCode}.`);
+      }
+      const nextIdRes = await transaction.request().query("SELECT COALESCE(MAX(id), 100) + 1 AS next_id FROM Products WITH (UPDLOCK, HOLDLOCK)");
       const nextId = nextIdRes.recordset[0].next_id;
 
       const totalStock = normalizedVariants.reduce((sum, v) => sum + v.stock, 0);
 
       await transaction.request()
         .input("id", sql.Int, nextId)
-        .input("product_code", sql.NVarChar, productCode.trim().toUpperCase())
+        .input("product_code", sql.NVarChar, normalizedProductCode)
         .input("name", sql.NVarChar, name.trim())
         .input("price", sql.Decimal(18, 0), Number(price))
-        .input("category", sql.NVarChar, category.trim())
+        .input("category", sql.NVarChar, normalizedCategory)
         .input("gender", sql.NVarChar, gender.trim())
         .input("description", sql.NVarChar, description || "")
         .input("material", sql.NVarChar, material || "")
@@ -517,11 +603,27 @@ export const db = {
           VALUES (@id, @product_code, @name, @price, @category, @gender, @description, @material, @collection_name, @collections_json, @images_json, @colors_json, @color_images_json, @stock, @min_alert, @is_active, @created_by, GETDATE(), GETDATE())
         `);
 
+      let initialDocumentId = null;
+      const initialDocumentCode = `INIT-${normalizedProductCode}`;
+      if (totalStock > 0) {
+        const documentResult = await transaction.request()
+          .input("document_code", sql.NVarChar, initialDocumentCode)
+          .input("reference_id", sql.NVarChar, normalizedProductCode)
+          .input("note", sql.NVarChar, `Phiếu nhập tồn ban đầu khi tạo sản phẩm ${normalizedProductCode}`)
+          .input("actor", sql.NVarChar, actor)
+          .query(`
+            INSERT INTO InventoryDocuments (document_code,document_type,status,reference_id,note,created_by,approved_by,created_at,completed_at)
+            OUTPUT INSERTED.id
+            VALUES (@document_code,'receipt','completed',@reference_id,@note,@actor,@actor,GETDATE(),GETDATE())
+          `);
+        initialDocumentId = documentResult.recordset[0].id;
+      }
+
       for (let i = 0; i < normalizedVariants.length; i++) {
         const v = normalizedVariants[i];
         const color = v.color;
         const size = v.size;
-        const variantId = v.id || `v-${nextId}-${color.toLowerCase().replace(/[^a-z0-9]/g, "")}-${size.toLowerCase()}`;
+        const variantId = v.id || `v-${nextId}-${color.toLowerCase().replace(/[^a-z0-9]/g, "")}-${size.toLowerCase().replace(/[^a-z0-9]/g, "")}`;
         const sku = v.sku;
         const vStock = v.stock;
         const vMin = v.minStock;
@@ -556,18 +658,28 @@ export const db = {
             .input("movement_type", sql.NVarChar, "initial_stock")
             .input("quantity_change", sql.Int, vStock)
             .input("resulting_stock", sql.Int, vStock)
-            .input("reference_id", sql.NVarChar, sku)
+            .input("reference_id", sql.NVarChar, initialDocumentCode)
             .input("note", sql.NVarChar, `Khởi tạo tồn kho ban đầu cho SKU ${sku}`)
             .input("performed_by", sql.NVarChar, actor)
             .query(`
-              INSERT INTO InventoryMovements (product_id, variant_id, movement_type, quantity_change, resulting_stock, reference_id, note, performed_by, created_at)
-              VALUES (@product_id, @variant_id, @movement_type, @quantity_change, @resulting_stock, @reference_id, @note, @performed_by, GETDATE())
+              INSERT INTO InventoryMovements (product_id,variant_id,movement_type,quantity_change,resulting_stock,reference_id,note,performed_by,created_at,reason_code,quantity_before,quantity_after,product_stock_after,reference_type,approved_by)
+              VALUES (@product_id,@variant_id,@movement_type,@quantity_change,@resulting_stock,@reference_id,@note,@performed_by,GETDATE(),'INITIAL_RECEIPT',0,@resulting_stock,@resulting_stock,'inventory_document',@performed_by)
+            `);
+          await transaction.request()
+            .input("document_id", sql.BigInt, initialDocumentId)
+            .input("product_id", sql.Int, nextId)
+            .input("variant_id", sql.NVarChar, variantId)
+            .input("quantity", sql.Int, vStock)
+            .input("unit_cost", sql.Decimal(18, 0), vCost)
+            .query(`
+              INSERT INTO InventoryDocumentItems (document_id,product_id,variant_id,expected_quantity,actual_quantity,quantity_change,unit_cost,disposition,created_at,sellable_quantity,quarantine_quantity,unit_cost_before,unit_cost_after)
+              VALUES (@document_id,@product_id,@variant_id,@quantity,@quantity,@quantity,@unit_cost,'sellable',GETDATE(),@quantity,0,0,@unit_cost)
             `);
         }
       }
 
       await transaction.commit();
-      return { success: true, id: nextId, productCode: productCode.trim().toUpperCase() };
+      return { success: true, id: nextId, productCode: normalizedProductCode, initialInventoryDocument: initialDocumentId ? initialDocumentCode : null };
     } catch (err) {
       await transaction.rollback();
       throw err;
@@ -594,6 +706,14 @@ export const db = {
     const colorsJson = data.colors !== undefined ? JSON.stringify(data.colors) : r.colors_json;
     const colorImagesJson = data.colorImages !== undefined ? JSON.stringify(data.colorImages) : r.color_images_json;
     const minAlert = data.minAlert !== undefined ? Math.max(0, parseInt(data.minAlert, 10)) : r.min_alert;
+
+    const variantsToValidate = Array.isArray(data.variants) && data.variants.length
+      ? data.variants
+      : (await p.request().input("product_id", sql.Int, numId).query("SELECT color_name color,size_name size FROM ProductVariants WHERE product_id=@product_id AND is_active=1")).recordset;
+    for (const variant of variantsToValidate) {
+      validateCatalogColor(variant.color);
+      validateCatalogSize(variant.size, category);
+    }
 
     await p.request()
       .input("id", sql.Int, numId)
@@ -736,18 +856,21 @@ export const db = {
   async createVariantAdmin(productId, data, actor = "Admin") {
     const p = await getActivePool();
     const numProductId = Number(productId);
-    const prodRes = await p.request().input("id", sql.Int, numProductId).query("SELECT id, product_code, price FROM Products WHERE id = @id");
+    const prodRes = await p.request().input("id", sql.Int, numProductId).query("SELECT id, product_code, price, category FROM Products WHERE id = @id");
     if (!prodRes.recordset.length) throw new Error("Không tìm thấy sản phẩm.");
     const prod = prodRes.recordset[0];
     if (isLegacyProductCode(prod.product_code)) throw new Error("Không thể thêm SKU cho sản phẩm mã cũ đã lưu trữ.");
 
-    const color = String(data.color || "Standard").trim();
-    const size = String(data.size || "M").trim();
+    const color = validateCatalogColor(data.color);
+    const size = validateCatalogSize(data.size, prod.category);
     const variantId = data.id || `v-${numProductId}-${color.toLowerCase().replace(/[^a-z0-9]/g, "")}-${size.toLowerCase()}`;
     const sku = data.sku || `${prod.product_code}-${color.toUpperCase().replace(/[^A-Z0-9]/g, "")}-${size.toUpperCase()}`;
 
     const checkSku = await p.request().input("sku", sql.NVarChar, sku).query("SELECT id FROM ProductVariants WHERE sku = @sku");
     if (checkSku.recordset.length) throw new Error(`SKU "${sku}" đã tồn tại trên hệ thống.`);
+    const checkSelection = await p.request().input("product_id", sql.Int, numProductId).input("color", sql.NVarChar, color).input("size", sql.NVarChar, size)
+      .query("SELECT id FROM ProductVariants WHERE product_id=@product_id AND UPPER(color_name)=UPPER(@color) AND UPPER(size_name)=UPPER(@size)");
+    if (checkSelection.recordset.length) throw new Error(`Tổ hợp ${color} / ${size} đã tồn tại trên sản phẩm.`);
 
     const stock = Math.max(0, parseInt(data.stock || 0, 10));
     const minStock = Math.max(0, parseInt(data.minStock || 3, 10));
@@ -824,17 +947,22 @@ export const db = {
       .input("id", sql.NVarChar, variantId)
       .query("SELECT * FROM ProductVariants WHERE id = @id AND product_id = @product_id");
     if (!existing.recordset.length) throw new Error("Không tìm thấy biến thể SKU.");
-    const product = await p.request().input("id", sql.Int, numProductId).query("SELECT product_code FROM Products WHERE id = @id");
+    const product = await p.request().input("id", sql.Int, numProductId).query("SELECT product_code,category FROM Products WHERE id = @id");
     if (isLegacyProductCode(product.recordset[0]?.product_code)) throw new Error("SKU thuộc sản phẩm mã cũ đã lưu trữ và không thể chỉnh sửa.");
 
     const r = existing.recordset[0];
-    const color = data.color !== undefined ? String(data.color).trim() : r.color_name;
-    const size = data.size !== undefined ? String(data.size).trim() : r.size_name;
+    const color = validateCatalogColor(data.color !== undefined ? data.color : r.color_name);
+    const size = validateCatalogSize(data.size !== undefined ? data.size : r.size_name, product.recordset[0]?.category);
     const price = data.price !== undefined ? Number(data.price) : Number(r.price);
     const costPrice = data.costPrice !== undefined ? (data.costPrice != null ? Number(data.costPrice) : null) : (r.cost_price != null ? Number(r.cost_price) : null);
     const floorPrice = data.floorPrice !== undefined ? (data.floorPrice != null ? Number(data.floorPrice) : null) : (r.floor_price != null ? Number(r.floor_price) : null);
     const minStock = data.minStock !== undefined ? Math.max(0, parseInt(data.minStock, 10)) : r.low_stock_threshold;
     const maxStock = data.maxStock !== undefined ? Math.max(minStock + 1, parseInt(data.maxStock, 10)) : r.max_stock_threshold;
+
+    const duplicateSelection = await p.request().input("product_id", sql.Int, numProductId).input("id", sql.NVarChar, variantId)
+      .input("color", sql.NVarChar, color).input("size", sql.NVarChar, size)
+      .query("SELECT id FROM ProductVariants WHERE product_id=@product_id AND id<>@id AND UPPER(color_name)=UPPER(@color) AND UPPER(size_name)=UPPER(@size)");
+    if (duplicateSelection.recordset.length) throw new Error(`Tổ hợp ${color} / ${size} đã tồn tại trên sản phẩm.`);
 
     if (costPrice != null && floorPrice != null) {
       if (costPrice < 0 || floorPrice < costPrice || floorPrice > price) {
@@ -1235,12 +1363,13 @@ export const db = {
         if (item.variantId) {
           const variantRes = await transaction.request()
             .input("variant_id", sql.NVarChar, item.variantId)
-            .query(`SELECT v.id, v.sku, v.stock_quantity
+            .query(`SELECT v.id, v.sku, v.stock_quantity,v.reserved_quantity,v.quarantine_quantity
               FROM ProductVariants v WITH (UPDLOCK, ROWLOCK)
               JOIN Products p ON p.id=v.product_id
               WHERE v.id=@variant_id AND v.is_active=1 AND ${activeProductSql("p")}`);
           const variant = variantRes.recordset[0];
-          if (!variant || variant.stock_quantity < item.quantity) {
+          const available = variant ? Number(variant.stock_quantity || 0) - Number(variant.reserved_quantity || 0) - Number(variant.quarantine_quantity || 0) : 0;
+          if (!variant || available < item.quantity) {
             throw new Error(`Biến thể ${item.sku || item.variantId} không đủ tồn kho.`);
           }
           continue;
@@ -1274,7 +1403,7 @@ export const db = {
         .input("promotion_code", sql.NVarChar, orderData.promotion_code || null)
         .input("promotion_snapshot_json", sql.NVarChar, orderData.promotion_snapshot_json || null)
         .input("order_status", sql.NVarChar, "pending")
-        .input("stock_deducted", sql.Bit, 1)
+        .input("stock_deducted", sql.Bit, 0)
         .input("notes", sql.NVarChar, orderData.notes || null)
         .query(`
           INSERT INTO Orders (id, customer_id, customer_name, customer_email, customer_phone, shipping_address, shipping_fee, total_amount,original_subtotal,product_discount_total,code_discount_total,shipping_fee_original,shipping_discount_total,promotion_code,promotion_snapshot_json, order_status, stock_deducted, notes, created_at, updated_at)
@@ -1307,39 +1436,24 @@ export const db = {
             VALUES (@order_id, @product_id, @product_name, @selected_color, @selected_size, @variant_id, @variant_sku, @quantity, @unit_price, @total_price, @image_url,@original_unit_price,@unit_cost_snapshot,@automatic_discount_total,@order_discount_allocated,@final_line_total,@promotion_snapshot_json, GETDATE())
           `);
 
+        let skuStock = null;
         if (item.variantId) {
           const varUpdate = await transaction.request().input("variant_id", sql.NVarChar, item.variantId).input("qty", sql.Int, item.quantity)
-            .query("UPDATE ProductVariants SET stock_quantity=stock_quantity-@qty, updated_at=GETDATE() WHERE id=@variant_id; SELECT id, sku, stock_quantity, low_stock_threshold, color_name, size_name FROM ProductVariants WHERE id=@variant_id;");
-          if (varUpdate.recordset && varUpdate.recordset[0]) {
-            const v = varUpdate.recordset[0];
-            if (v.stock_quantity <= v.low_stock_threshold) {
-              lowStockAlerts.push({
-                productName: item.name,
-                sku: v.sku,
-                variantInfo: `${v.color_name || ""} - ${v.size_name || ""}`.trim(),
-                currentStock: v.stock_quantity,
-                minStock: v.low_stock_threshold,
-              });
-            }
-          }
+            .query(`UPDATE ProductVariants SET reserved_quantity=reserved_quantity+@qty,updated_at=GETDATE() WHERE id=@variant_id;
+                    SELECT id,sku,stock_quantity,reserved_quantity,quarantine_quantity,low_stock_threshold,color_name,size_name FROM ProductVariants WHERE id=@variant_id;`);
+          skuStock = Number(varUpdate.recordset?.[0]?.stock_quantity || 0);
         }
-        await transaction.request().input("id", sql.Int, item.id).input("qty", sql.Int, item.quantity)
-          .query("UPDATE Products SET stock = stock - @qty, updated_at = GETDATE() WHERE id = @id");
-
-        const updatedProd = await transaction
-          .request()
-          .input("id", sql.Int, item.id)
-          .query("SELECT stock FROM Products WHERE id = @id");
+        const updatedProd = await transaction.request().input("id", sql.Int, item.id).query("SELECT stock FROM Products WHERE id = @id");
 
         await transaction
           .request()
           .input("product_id", sql.Int, item.id)
           .input("variant_id", sql.NVarChar, item.variantId || null)
-          .input("movement_type", sql.NVarChar, "order_deduction")
-          .input("quantity_change", sql.Int, -item.quantity)
-          .input("resulting_stock", sql.Int, updatedProd.recordset[0].stock)
+          .input("movement_type", sql.NVarChar, "order_reservation")
+          .input("quantity_change", sql.Int, 0)
+          .input("resulting_stock", sql.Int, skuStock ?? updatedProd.recordset[0].stock)
           .input("reference_id", sql.NVarChar, orderData.id)
-          .input("note", sql.NVarChar, `Đơn hàng #${orderData.id}`)
+          .input("note", sql.NVarChar, `Giữ ${item.quantity} sản phẩm cho đơn #${orderData.id}`)
           .input("performed_by", sql.NVarChar, orderData.customer_name)
           .query(`
             INSERT INTO InventoryMovements (product_id, variant_id, movement_type, quantity_change, resulting_stock, reference_id, note, performed_by, created_at)
@@ -1438,40 +1552,94 @@ export const db = {
     try {
       let stockDeducted = currentOrder.stock_deducted;
 
-      // When cancelling an order whose stock was deducted, restore the inventory
+      // A new order reserves sellable units. Physical stock leaves the warehouse
+      // only when staff starts preparing it.
+      if (newStatus === "processing" && !stockDeducted) {
+        for (const item of currentOrder.items) {
+          if (!item.variant_id) throw new Error(`Đơn ${orderId} có sản phẩm chưa gắn SKU nên không thể xuất kho tự động.`);
+          const variantResult = await transaction.request()
+            .input("variant_id", sql.NVarChar, item.variant_id)
+            .query(`SELECT id,sku,stock_quantity,reserved_quantity FROM ProductVariants WITH (UPDLOCK,ROWLOCK) WHERE id=@variant_id AND is_active=1`);
+          const variant = variantResult.recordset[0];
+          if (!variant || Number(variant.stock_quantity) < Number(item.quantity)) throw new Error(`SKU ${item.variant_sku || item.variant_id} không đủ tồn thực tế để xuất.`);
+          if (Number(variant.reserved_quantity) < Number(item.quantity)) throw new Error(`SKU ${item.variant_sku || item.variant_id} không còn đủ số lượng đang giữ cho đơn.`);
+          const skuAfter = Number(variant.stock_quantity) - Number(item.quantity);
+          await transaction.request().input("variant_id", sql.NVarChar, item.variant_id).input("qty", sql.Int, item.quantity)
+            .query("UPDATE ProductVariants SET stock_quantity=stock_quantity-@qty,reserved_quantity=reserved_quantity-@qty,updated_at=GETDATE() WHERE id=@variant_id");
+          const totalResult = await transaction.request().input("product_id", sql.Int, item.product_id)
+            .query("SELECT COALESCE(SUM(stock_quantity),0) total FROM ProductVariants WHERE product_id=@product_id AND is_active=1");
+          const productAfter = Number(totalResult.recordset[0].total);
+          await transaction.request().input("product_id", sql.Int, item.product_id).input("stock", sql.Int, productAfter)
+            .query("UPDATE Products SET stock=@stock,updated_at=GETDATE() WHERE id=@product_id");
+          await transaction.request()
+            .input("product_id", sql.Int, item.product_id).input("variant_id", sql.NVarChar, item.variant_id)
+            .input("movement_type", sql.NVarChar, "order_deduction").input("change", sql.Int, -Number(item.quantity))
+            .input("resulting", sql.Int, skuAfter).input("reference", sql.NVarChar, orderId)
+            .input("note", sql.NVarChar, `Xuất SKU cho đơn #${orderId}`).input("actor", sql.NVarChar, updatedBy)
+            .input("before", sql.Int, Number(variant.stock_quantity)).input("after", sql.Int, skuAfter).input("product_after", sql.Int, productAfter)
+            .query(`INSERT INTO InventoryMovements(product_id,variant_id,movement_type,quantity_change,resulting_stock,reference_id,note,performed_by,created_at,
+                      reason_code,quantity_before,quantity_after,product_stock_after,reference_type)
+                    VALUES(@product_id,@variant_id,@movement_type,@change,@resulting,@reference,@note,@actor,GETDATE(),
+                      'order_fulfillment',@before,@after,@product_after,'order')`);
+        }
+        stockDeducted = true;
+      }
+
+      // After warehouse picking, cancellation must not make merchandise sellable
+      // again. The physical return workflow receives and inspects it separately.
       if (newStatus === "cancelled" && stockDeducted) {
         for (const item of currentOrder.items) {
-          if (item.variant_id) {
-            await transaction.request().input("variant_id", sql.NVarChar, item.variant_id).input("qty", sql.Int, item.quantity)
-              .query("UPDATE ProductVariants SET stock_quantity=stock_quantity+@qty, updated_at=GETDATE() WHERE id=@variant_id");
-          }
-          await transaction
-            .request()
-            .input("id", sql.Int, item.product_id)
-            .input("qty", sql.Int, item.quantity)
-            .query("UPDATE Products SET stock = stock + @qty, updated_at = GETDATE() WHERE id = @id");
-
-          const updatedProd = await transaction
-            .request()
-            .input("id", sql.Int, item.product_id)
-            .query("SELECT stock FROM Products WHERE id = @id");
-
+          const currentVariant = item.variant_id
+            ? await transaction.request().input("variant_id", sql.NVarChar, item.variant_id)
+                .query("SELECT stock_quantity,reserved_quantity,quarantine_quantity FROM ProductVariants WHERE id=@variant_id")
+            : { recordset: [] };
+          const state = currentVariant.recordset[0];
+          const physical = Number(state?.stock_quantity || 0);
+          const reserved = Number(state?.reserved_quantity || 0);
+          const quarantine = Number(state?.quarantine_quantity || 0);
+          const available = Math.max(0, physical - reserved - quarantine);
           await transaction
             .request()
             .input("product_id", sql.Int, item.product_id)
             .input("variant_id", sql.NVarChar, item.variant_id || null)
-            .input("movement_type", sql.NVarChar, "order_cancellation_restore")
-            .input("quantity_change", sql.Int, item.quantity)
-            .input("resulting_stock", sql.Int, updatedProd.recordset[0].stock)
+            .input("movement_type", sql.NVarChar, "order_cancelled_awaiting_return")
+            .input("quantity_change", sql.Int, 0)
+            .input("resulting_stock", sql.Int, physical)
             .input("reference_id", sql.NVarChar, orderId)
-            .input("note", sql.NVarChar, `Hoàn tồn kho do hủy đơn #${orderId}`)
+            .input("note", sql.NVarChar, `Đơn #${orderId} bị hủy sau khi xuất kho; chờ quy trình nhận hàng trả lại và kiểm tra.`)
             .input("performed_by", sql.NVarChar, updatedBy)
+            .input("available", sql.Int, available)
+            .input("reserved", sql.Int, reserved)
+            .input("quarantine", sql.Int, quarantine)
             .query(`
-              INSERT INTO InventoryMovements (product_id, variant_id, movement_type, quantity_change, resulting_stock, reference_id, note, performed_by, created_at)
-              VALUES (@product_id, @variant_id, @movement_type, @quantity_change, @resulting_stock, @reference_id, @note, @performed_by, GETDATE())
+              INSERT INTO InventoryMovements (product_id,variant_id,movement_type,quantity_change,resulting_stock,reference_id,note,performed_by,created_at,
+                reason_code,quantity_before,quantity_after,reference_type,available_before,available_after,reserved_before,reserved_after,quarantine_before,quarantine_after)
+              VALUES (@product_id,@variant_id,@movement_type,@quantity_change,@resulting_stock,@reference_id,@note,@performed_by,GETDATE(),
+                'cancelled_after_fulfillment',@resulting_stock,@resulting_stock,'order',@available,@available,@reserved,@reserved,@quarantine,@quarantine)
             `);
         }
-        stockDeducted = false;
+      }
+
+      // Before warehouse picking, cancellation only releases the reservation;
+      // physical stock has never left the warehouse.
+      if (newStatus === "cancelled" && !stockDeducted) {
+        for (const item of currentOrder.items) {
+          if (!item.variant_id) continue;
+          const reservedResult = await transaction.request().input("variant_id", sql.NVarChar, item.variant_id)
+            .query("SELECT stock_quantity,reserved_quantity FROM ProductVariants WITH (UPDLOCK,ROWLOCK) WHERE id=@variant_id");
+          const reserved = Number(reservedResult.recordset[0]?.reserved_quantity || 0);
+          const release = Math.min(reserved, Number(item.quantity));
+          if (release <= 0) continue;
+          const skuStock = Number(reservedResult.recordset[0].stock_quantity || 0);
+          await transaction.request().input("variant_id", sql.NVarChar, item.variant_id).input("qty", sql.Int, release)
+            .query("UPDATE ProductVariants SET reserved_quantity=reserved_quantity-@qty,updated_at=GETDATE() WHERE id=@variant_id");
+          await transaction.request().input("product_id", sql.Int, item.product_id).input("variant_id", sql.NVarChar, item.variant_id)
+            .input("movement_type", sql.NVarChar, "reservation_release").input("resulting", sql.Int, skuStock)
+            .input("reference", sql.NVarChar, orderId).input("note", sql.NVarChar, `Giải phóng ${release} sản phẩm do hủy đơn #${orderId}`)
+            .input("actor", sql.NVarChar, updatedBy)
+            .query(`INSERT INTO InventoryMovements(product_id,variant_id,movement_type,quantity_change,resulting_stock,reference_id,note,performed_by,created_at,reason_code,quantity_before,quantity_after,reference_type)
+                    VALUES(@product_id,@variant_id,@movement_type,0,@resulting,@reference,@note,@actor,GETDATE(),'order_cancelled',@resulting,@resulting,'order')`);
+        }
       }
 
       if (newStatus === "cancelled") {
@@ -1732,6 +1900,264 @@ export const db = {
     }
     const res = await p.request().query(q + " ORDER BY created_at DESC");
     return res.recordset;
+  },
+
+  async getInventoryDocuments(limit = 100) {
+    const p = await getActivePool();
+    const safeLimit = Math.max(1, Math.min(250, Number(limit) || 100));
+    const result = await p.request().input("limit", sql.Int, safeLimit).query(`
+      SELECT TOP (@limit) d.*,
+        (SELECT COUNT(*) FROM InventoryDocumentItems i WHERE i.document_id=d.id) AS item_count,
+        (SELECT COALESCE(SUM(ABS(i.quantity_change)),0) FROM InventoryDocumentItems i WHERE i.document_id=d.id) AS total_quantity
+      FROM InventoryDocuments d
+      ORDER BY d.created_at DESC, d.id DESC
+    `);
+    return result.recordset;
+  },
+
+  async createInventoryDocument(data, actor = "Staff") {
+    const p = await getActivePool();
+    const type = String(data.documentType || "").trim();
+    const allowedTypes = new Set(["receipt", "stocktake", "quarantine", "release", "special_adjustment"]);
+    if (!allowedTypes.has(type)) throw new Error("Loại nghiệp vụ kho không hợp lệ.");
+    const items = Array.isArray(data.items) ? data.items : [];
+    if (!items.length) throw new Error("Phiếu kho phải có ít nhất một SKU.");
+    if (String(data.note || "").trim().length < 5) throw new Error("Vui lòng nhập lý do hoặc ghi chú tối thiểu 5 ký tự.");
+
+    if (type === "receipt" && String(data.supplierName || "").trim().length < 2) {
+      throw new Error("Phiếu nhập hàng cần có tên nhà cung cấp.");
+    }
+    const transaction = new sql.Transaction(p);
+    await transaction.begin();
+    try {
+      const documentCode = `INV-${new Date().toISOString().slice(0,10).replaceAll("-","")}-${Date.now().toString().slice(-7)}`;
+      const documentResult = await transaction.request()
+        .input("document_code", sql.NVarChar, documentCode)
+        .input("document_type", sql.NVarChar, type)
+        .input("reference_id", sql.NVarChar, data.referenceId || data.referenceNumber || data.externalReference || null)
+        .input("external_reference", sql.NVarChar, data.externalReference || data.referenceNumber || data.referenceId || null)
+        .input("supplier_name", sql.NVarChar, data.supplierName || null)
+        .input("note", sql.NVarChar, String(data.note).trim())
+        .input("created_by", sql.NVarChar, actor)
+        .query(`INSERT INTO InventoryDocuments(document_code,document_type,status,reference_id,external_reference,supplier_name,note,created_by,approved_by,completed_at)
+                OUTPUT inserted.id,inserted.document_code
+                VALUES(@document_code,@document_type,'completed',@reference_id,@external_reference,@supplier_name,@note,@created_by,@created_by,GETDATE())`);
+      const document = documentResult.recordset[0];
+
+      for (const input of items) {
+        const productId = Number(input.productId);
+        const variantId = String(input.variantId || "");
+        const quantity = Number.parseInt(input.actualQuantity ?? input.quantity, 10);
+        if (!productId || !variantId || !Number.isInteger(quantity) || quantity < 0) throw new Error("SKU hoặc số lượng trên phiếu không hợp lệ.");
+        const variantResult = await transaction.request()
+          .input("product_id", sql.Int, productId)
+          .input("variant_id", sql.NVarChar, variantId)
+          .query(`SELECT id,sku,stock_quantity,reserved_quantity,quarantine_quantity,incoming_quantity,cost_price
+                  FROM ProductVariants WITH (UPDLOCK,ROWLOCK)
+                  WHERE id=@variant_id AND product_id=@product_id AND is_active=1`);
+        const variant = variantResult.recordset[0];
+        if (!variant) throw new Error(`Không tìm thấy SKU ${variantId} đang hoạt động.`);
+
+        const before = Number(variant.stock_quantity || 0);
+        const reservedBefore = Number(variant.reserved_quantity || 0);
+        const quarantineBefore = Number(variant.quarantine_quantity || 0);
+        const incomingBefore = Number(variant.incoming_quantity || 0);
+        const availableBefore = Math.max(0, before - reservedBefore - quarantineBefore);
+        let after = before;
+        let quarantineAfter = quarantineBefore;
+        let incomingAfter = incomingBefore;
+        let change = 0;
+        let movementType = type;
+        const expected = input.expectedQuantity == null ? before : Number.parseInt(input.expectedQuantity, 10);
+        const unitCost = input.unitCost == null || input.unitCost === "" ? null : Number(input.unitCost);
+        let costAfter = Number(variant.cost_price || 0);
+        let sellableQuantity = null;
+        let receivedQuarantineQuantity = null;
+
+        if (type === "receipt") {
+          if (!Number.isFinite(unitCost) || unitCost <= 0) throw new Error(`SKU ${variant.sku} cần có giá nhập hợp lệ.`);
+          sellableQuantity = Number.parseInt(input.sellableQuantity ?? quantity, 10);
+          receivedQuarantineQuantity = Number.parseInt(input.quarantineQuantity ?? (quantity - sellableQuantity), 10);
+          if (!Number.isInteger(sellableQuantity) || !Number.isInteger(receivedQuarantineQuantity) || sellableQuantity < 0 || receivedQuarantineQuantity < 0 || sellableQuantity + receivedQuarantineQuantity !== quantity) {
+            throw new Error(`SKU ${variant.sku}: số đạt chất lượng và chờ kiểm tra phải bằng tổng số nhận.`);
+          }
+          change = quantity;
+          after = before + quantity;
+          quarantineAfter += receivedQuarantineQuantity;
+          incomingAfter = Math.max(0, incomingBefore - quantity);
+          movementType = "receipt";
+          if (data.updateCostPrice) costAfter = Math.round(((before * Number(variant.cost_price || 0)) + (quantity * unitCost)) / Math.max(1, after));
+        }
+        else if (type === "stocktake") {
+          after = quantity;
+          if (after < reservedBefore + quarantineBefore) throw new Error(`SKU ${variant.sku}: số kiểm kê không thể thấp hơn tổng hàng đang giữ và chờ kiểm tra.`);
+          change = after - before;
+          movementType = "stocktake_adjustment";
+        }
+        else if (type === "special_adjustment") {
+          after = quantity;
+          if (after < reservedBefore + quarantineBefore) throw new Error(`SKU ${variant.sku}: tồn mới không thể thấp hơn tổng hàng đang giữ và chờ kiểm tra.`);
+          change = after - before;
+          movementType = "special_adjustment";
+        }
+        else if (type === "quarantine") {
+          const available = before - Number(variant.reserved_quantity || 0) - quarantineBefore;
+          if (quantity > available) throw new Error(`SKU ${variant.sku} không đủ hàng có thể bán để chuyển chờ kiểm tra.`);
+          quarantineAfter += quantity;
+          movementType = "quarantine_hold";
+        } else if (type === "release") {
+          if (quantity > quarantineBefore) throw new Error(`SKU ${variant.sku} chỉ có ${quarantineBefore} sản phẩm chờ kiểm tra.`);
+          quarantineAfter -= quantity;
+          movementType = "quarantine_release";
+        }
+
+        const availableAfter = Math.max(0, after - reservedBefore - quarantineAfter);
+
+        await transaction.request()
+          .input("variant_id", sql.NVarChar, variantId)
+          .input("stock", sql.Int, after)
+          .input("quarantine", sql.Int, quarantineAfter)
+          .input("incoming", sql.Int, incomingAfter)
+          .input("cost", sql.Decimal(18,0), costAfter)
+          .query("UPDATE ProductVariants SET stock_quantity=@stock,quarantine_quantity=@quarantine,incoming_quantity=@incoming,cost_price=@cost,updated_at=GETDATE() WHERE id=@variant_id");
+        const totalResult = await transaction.request().input("product_id", sql.Int, productId)
+          .query("SELECT COALESCE(SUM(stock_quantity),0) total FROM ProductVariants WHERE product_id=@product_id AND is_active=1");
+        const productStockAfter = Number(totalResult.recordset[0].total);
+        await transaction.request().input("product_id", sql.Int, productId).input("stock", sql.Int, productStockAfter)
+          .query("UPDATE Products SET stock=@stock,updated_at=GETDATE() WHERE id=@product_id");
+
+        await transaction.request()
+          .input("document_id", sql.BigInt, document.id).input("product_id", sql.Int, productId).input("variant_id", sql.NVarChar, variantId)
+          .input("expected", sql.Int, Number.isInteger(expected) ? expected : null).input("actual", sql.Int, quantity).input("change", sql.Int, change)
+          .input("cost", sql.Decimal(18,0), unitCost).input("disposition", sql.NVarChar, input.disposition || null)
+          .input("sellable", sql.Int, sellableQuantity).input("quarantine_received", sql.Int, receivedQuarantineQuantity)
+          .input("cost_before", sql.Decimal(18,0), Number(variant.cost_price || 0)).input("cost_after", sql.Decimal(18,0), costAfter)
+          .query(`INSERT INTO InventoryDocumentItems(document_id,product_id,variant_id,expected_quantity,actual_quantity,quantity_change,unit_cost,disposition,
+                    sellable_quantity,quarantine_quantity,unit_cost_before,unit_cost_after)
+                  VALUES(@document_id,@product_id,@variant_id,@expected,@actual,@change,@cost,@disposition,@sellable,@quarantine_received,@cost_before,@cost_after)`);
+        await transaction.request()
+          .input("product_id", sql.Int, productId).input("variant_id", sql.NVarChar, variantId).input("movement_type", sql.NVarChar, movementType)
+          .input("change", sql.Int, change).input("resulting", sql.Int, after).input("reference", sql.NVarChar, documentCode)
+          .input("note", sql.NVarChar, String(data.note).trim()).input("actor", sql.NVarChar, actor)
+          .input("before", sql.Int, before).input("after", sql.Int, after).input("product_after", sql.Int, productStockAfter)
+          .input("reason", sql.NVarChar, data.reasonCode || type).input("reference_type", sql.NVarChar, "inventory_document")
+          .input("available_before", sql.Int, availableBefore).input("available_after", sql.Int, availableAfter)
+          .input("reserved_before", sql.Int, reservedBefore).input("reserved_after", sql.Int, reservedBefore)
+          .input("quarantine_before", sql.Int, quarantineBefore).input("quarantine_after", sql.Int, quarantineAfter)
+          .query(`INSERT INTO InventoryMovements(product_id,variant_id,movement_type,quantity_change,resulting_stock,reference_id,note,performed_by,created_at,
+                    reason_code,quantity_before,quantity_after,product_stock_after,reference_type,approved_by,
+                    available_before,available_after,reserved_before,reserved_after,quarantine_before,quarantine_after)
+                  VALUES(@product_id,@variant_id,@movement_type,@change,@resulting,@reference,@note,@actor,GETDATE(),
+                    @reason,@before,@after,@product_after,@reference_type,@actor,
+                    @available_before,@available_after,@reserved_before,@reserved_after,@quarantine_before,@quarantine_after)`);
+      }
+      await transaction.commit();
+      return { id: document.id, documentCode: document.document_code };
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  },
+
+  async reverseInventoryDocument(documentId, reason, actor = "Admin") {
+    const p = await getActivePool();
+    const cleanReason = String(reason || "").trim();
+    if (cleanReason.length < 10) throw new Error("Lý do đảo phiếu phải có ít nhất 10 ký tự.");
+    const transaction = new sql.Transaction(p);
+    await transaction.begin();
+    try {
+      const documentResult = await transaction.request().input("id", sql.BigInt, Number(documentId)).query(`
+        SELECT * FROM InventoryDocuments WITH (UPDLOCK,ROWLOCK) WHERE id=@id
+      `);
+      const original = documentResult.recordset[0];
+      if (!original) throw new Error("Không tìm thấy phiếu kho cần đảo.");
+      if (original.status !== "completed" || original.document_type === "reversal") throw new Error("Chỉ có thể đảo phiếu kho đã hoàn tất và chưa bị đảo.");
+      const itemsResult = await transaction.request().input("document_id", sql.BigInt, original.id).query(`
+        SELECT * FROM InventoryDocumentItems WHERE document_id=@document_id ORDER BY id
+      `);
+      if (!itemsResult.recordset.length) throw new Error("Phiếu kho không có dòng SKU để đảo.");
+
+      for (const item of itemsResult.recordset) {
+        const later = await transaction.request()
+          .input("variant_id", sql.NVarChar, item.variant_id)
+          .input("completed_at", sql.DateTime2, original.completed_at || original.created_at)
+          .input("reference", sql.NVarChar, original.document_code)
+          .query(`SELECT TOP 1 id FROM InventoryMovements
+                  WHERE variant_id=@variant_id AND created_at>@completed_at AND ISNULL(reference_id,'')<>@reference`);
+        if (later.recordset.length) throw new Error(`SKU ${item.variant_id} đã có biến động sau phiếu này. Hãy đảo các phiếu mới hơn trước.`);
+      }
+
+      const reversalCode = `REV-${new Date().toISOString().slice(0,10).replaceAll("-","")}-${Date.now().toString().slice(-7)}`;
+      const reversalResult = await transaction.request()
+        .input("code", sql.NVarChar, reversalCode).input("original_code", sql.NVarChar, original.document_code)
+        .input("original_id", sql.BigInt, original.id).input("note", sql.NVarChar, cleanReason).input("actor", sql.NVarChar, actor)
+        .query(`INSERT INTO InventoryDocuments(document_code,document_type,status,reference_id,note,created_by,approved_by,completed_at,reversed_document_id)
+                OUTPUT inserted.id,inserted.document_code
+                VALUES(@code,'reversal','completed',@original_code,@note,@actor,@actor,GETDATE(),@original_id)`);
+      const reversal = reversalResult.recordset[0];
+
+      for (const item of itemsResult.recordset) {
+        const variantResult = await transaction.request().input("variant_id", sql.NVarChar, item.variant_id).query(`
+          SELECT id,sku,stock_quantity,reserved_quantity,quarantine_quantity,incoming_quantity,cost_price
+          FROM ProductVariants WITH (UPDLOCK,ROWLOCK) WHERE id=@variant_id
+        `);
+        const variant = variantResult.recordset[0];
+        if (!variant) throw new Error(`Không tìm thấy SKU ${item.variant_id}.`);
+        const before = Number(variant.stock_quantity || 0);
+        const reserved = Number(variant.reserved_quantity || 0);
+        const quarantineBefore = Number(variant.quarantine_quantity || 0);
+        let after = before;
+        let quarantineAfter = quarantineBefore;
+        let incomingAfter = Number(variant.incoming_quantity || 0);
+        if (original.document_type === "receipt") {
+          after -= Number(item.actual_quantity || 0);
+          quarantineAfter -= Number(item.quarantine_quantity || 0);
+          incomingAfter += Number(item.actual_quantity || 0);
+        } else if (["stocktake", "special_adjustment"].includes(original.document_type)) {
+          after = Number(item.expected_quantity || 0);
+        } else if (original.document_type === "quarantine") {
+          quarantineAfter -= Number(item.actual_quantity || 0);
+        } else if (original.document_type === "release") {
+          quarantineAfter += Number(item.actual_quantity || 0);
+        }
+        if (after < 0 || quarantineAfter < 0 || after < reserved + quarantineAfter) {
+          throw new Error(`Không thể đảo phiếu vì tồn hiện tại của SKU ${variant.sku} không còn đáp ứng điều kiện an toàn.`);
+        }
+        const availableBefore = Math.max(0, before - reserved - quarantineBefore);
+        const availableAfter = Math.max(0, after - reserved - quarantineAfter);
+        const change = after - before;
+        const costAfter = item.unit_cost_before == null ? Number(variant.cost_price || 0) : Number(item.unit_cost_before);
+        await transaction.request().input("variant_id", sql.NVarChar, item.variant_id)
+          .input("stock", sql.Int, after).input("quarantine", sql.Int, quarantineAfter).input("incoming", sql.Int, incomingAfter)
+          .input("cost", sql.Decimal(18,0), costAfter)
+          .query(`UPDATE ProductVariants SET stock_quantity=@stock,quarantine_quantity=@quarantine,incoming_quantity=@incoming,cost_price=@cost,updated_at=GETDATE() WHERE id=@variant_id`);
+        const totalResult = await transaction.request().input("product_id", sql.Int, item.product_id)
+          .query("SELECT COALESCE(SUM(stock_quantity),0) total FROM ProductVariants WHERE product_id=@product_id AND is_active=1");
+        const productStockAfter = Number(totalResult.recordset[0].total);
+        await transaction.request().input("product_id", sql.Int, item.product_id).input("stock", sql.Int, productStockAfter)
+          .query("UPDATE Products SET stock=@stock,updated_at=GETDATE() WHERE id=@product_id");
+        await transaction.request().input("document_id", sql.BigInt, reversal.id).input("product_id", sql.Int, item.product_id)
+          .input("variant_id", sql.NVarChar, item.variant_id).input("expected", sql.Int, before).input("actual", sql.Int, after)
+          .input("change", sql.Int, change).input("cost_before", sql.Decimal(18,0), Number(variant.cost_price || 0)).input("cost_after", sql.Decimal(18,0), costAfter)
+          .query(`INSERT INTO InventoryDocumentItems(document_id,product_id,variant_id,expected_quantity,actual_quantity,quantity_change,unit_cost_before,unit_cost_after)
+                  VALUES(@document_id,@product_id,@variant_id,@expected,@actual,@change,@cost_before,@cost_after)`);
+        await transaction.request().input("product_id", sql.Int, item.product_id).input("variant_id", sql.NVarChar, item.variant_id)
+          .input("change", sql.Int, change).input("after", sql.Int, after).input("reference", sql.NVarChar, reversalCode)
+          .input("note", sql.NVarChar, cleanReason).input("actor", sql.NVarChar, actor).input("before", sql.Int, before)
+          .input("product_after", sql.Int, productStockAfter).input("available_before", sql.Int, availableBefore).input("available_after", sql.Int, availableAfter)
+          .input("reserved", sql.Int, reserved).input("quarantine_before", sql.Int, quarantineBefore).input("quarantine_after", sql.Int, quarantineAfter)
+          .query(`INSERT INTO InventoryMovements(product_id,variant_id,movement_type,quantity_change,resulting_stock,reference_id,note,performed_by,created_at,
+                    reason_code,quantity_before,quantity_after,product_stock_after,reference_type,approved_by,available_before,available_after,reserved_before,reserved_after,quarantine_before,quarantine_after)
+                  VALUES(@product_id,@variant_id,'document_reversal',@change,@after,@reference,@note,@actor,GETDATE(),'document_reversal',@before,@after,@product_after,'inventory_document',@actor,@available_before,@available_after,@reserved,@reserved,@quarantine_before,@quarantine_after)`);
+      }
+      await transaction.request().input("id", sql.BigInt, original.id).input("reason", sql.NVarChar, cleanReason)
+        .query("UPDATE InventoryDocuments SET status='reversed',reversed_at=GETDATE(),reversal_reason=@reason WHERE id=@id");
+      await transaction.commit();
+      return { id: reversal.id, documentCode: reversal.document_code };
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
   },
 
   // Revenue uses four independent dates: order creation, payment verification,
