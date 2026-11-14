@@ -30,12 +30,19 @@ function sanitizeForViewer(product, isStaffOrAdmin) {
   if (isStaffOrAdmin || !product) return product;
   const sanitizedVariants = product.variants?.map((v) => {
     const sanitized = { ...v };
+    const available = Math.max(0, Number(v.availableQuantity ?? (Number(v.stock || 0) - Number(v.reservedQuantity || 0) - Number(v.quarantineQuantity || 0))));
+    sanitized.stock = available;
+    sanitized.availableQuantity = available;
     delete sanitized.costPrice;
     delete sanitized.cost_price;
+    delete sanitized.reservedQuantity;
+    delete sanitized.quarantineQuantity;
+    delete sanitized.incomingQuantity;
     return sanitized;
   });
   return {
     ...product,
+    stock: (sanitizedVariants || []).reduce((sum, variant) => sum + Number(variant.stock || 0), 0),
     variants: sanitizedVariants,
   };
 }
@@ -156,6 +163,44 @@ export async function getInventoryMovements(req, res) {
   }
 }
 
+export async function getInventoryDocuments(req, res) {
+  try {
+    const documents = await db.getInventoryDocuments(req.query.limit);
+    return res.json({ success: true, documents });
+  } catch (err) {
+    console.error("[Inventory Documents] Error:", err);
+    return res.status(500).json({ success: false, error: "Không thể tải danh sách phiếu kho." });
+  }
+}
+
+export async function createInventoryDocument(req, res) {
+  try {
+    if (req.body?.documentType === "special_adjustment" && req.user.role !== "admin") {
+      return res.status(403).json({ success: false, error: "Chỉ quản trị viên được thực hiện điều chỉnh đặc biệt." });
+    }
+    if (req.body?.updateCostPrice && req.user.role !== "admin") {
+      return res.status(403).json({ success: false, error: "Chỉ quản trị viên được cập nhật giá vốn khi nhập hàng." });
+    }
+    const actor = `${req.user.name} (${req.user.role.toUpperCase()})`;
+    const document = await db.createInventoryDocument(req.body, actor);
+    return res.status(201).json({ success: true, message: "Đã ghi nhận nghiệp vụ kho.", document });
+  } catch (err) {
+    console.error("[Create Inventory Document] Error:", err);
+    return res.status(400).json({ success: false, error: err.message || "Không thể tạo phiếu kho." });
+  }
+}
+
+export async function reverseInventoryDocument(req, res) {
+  try {
+    const actor = `${req.user.name} (ADMIN)`;
+    const document = await db.reverseInventoryDocument(req.params.id, req.body?.reason, actor);
+    return res.json({ success: true, message: "Đã tạo phiếu đảo và khôi phục tồn kho.", document });
+  } catch (err) {
+    console.error("[Reverse Inventory Document] Error:", err);
+    return res.status(400).json({ success: false, error: err.message || "Không thể đảo phiếu kho." });
+  }
+}
+
 // ====================================================
 // ADMIN PRODUCT & SKU MANAGEMENT HANDLERS
 // ====================================================
@@ -168,6 +213,16 @@ export async function getAllProductsAdmin(req, res) {
   } catch (err) {
     console.error("[Admin Products] Error:", err);
     return res.status(500).json({ success: false, error: err.message || "Lỗi khi lấy danh sách sản phẩm quản trị." });
+  }
+}
+
+export async function getProductCreateMetadata(req, res) {
+  try {
+    const metadata = await db.getProductCreateMetadata();
+    return res.json({ success: true, ...metadata });
+  } catch (err) {
+    console.error("[Admin Product Metadata] Error:", err);
+    return res.status(500).json({ success: false, error: err.message || "Không thể chuẩn bị dữ liệu tạo sản phẩm." });
   }
 }
 

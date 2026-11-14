@@ -274,6 +274,10 @@ export default function AdminPromotions() {
 
   const totalDiscount = report.reduce((sum, row) => sum + Number(row.discount_total) + Number(row.shipping_discount_total), 0);
   const eligibleSuggestions = suggestions.filter((row) => row.eligible);
+  const excludedSuggestions = suggestions.filter((row) => !row.eligible);
+  const activeCampaignSkuCount = excludedSuggestions.filter((row) => row.exclusionReasons?.includes("Đang nằm trong chương trình khuyến mãi khác")).length;
+  const protectedSkuCount = excludedSuggestions.filter((row) => row.exclusionReasons?.some((reason) => ["Sản phẩm thuộc dòng Classic", "Sản phẩm đang bán chạy", "Sản phẩm mới ra mắt trong 60 ngày"].includes(reason))).length;
+  const lowPrioritySkuCount = excludedSuggestions.filter((row) => row.exclusionReasons?.includes("Mức ưu tiên chưa đủ cao để mở khuyến mãi")).length;
   const suggestionPages = Math.max(1, Math.ceil(eligibleSuggestions.length / suggestionsPerPage));
   const pagedSuggestions = eligibleSuggestions.slice((suggestionPage - 1) * suggestionsPerPage, suggestionPage * suggestionsPerPage);
   const codeRows = rows.filter((row) => row.codes);
@@ -300,7 +304,7 @@ export default function AdminPromotions() {
 
     <div className="promotion-metrics">
       <article><span>Đang chạy</span><strong>{rows.filter((row) => row.effective_status === "active").length}</strong></article>
-      <article><span>Đề xuất nên xem</span><strong>{eligibleSuggestions.length}</strong></article>
+      <article><span>Đề xuất mới</span><strong>{eligibleSuggestions.length}</strong></article>
       <article><span>Doanh thu từ ưu đãi</span><strong>{money(report.reduce((sum, row) => sum + Number(row.attributed_net_revenue || 0), 0))}</strong></article>
       <article><span>Chi phí ưu đãi thực tế</span><strong>{money(totalDiscount)}</strong></article>
     </div>
@@ -354,8 +358,16 @@ export default function AdminPromotions() {
         })}
       </div>
       <div className="promotion-pagination"><button disabled={suggestionPage <= 1} onClick={() => setSuggestionPage((page) => page - 1)}>← Trước</button><span>Trang {suggestionPage}/{suggestionPages} · {eligibleSuggestions.length} SKU</span><button disabled={suggestionPage >= suggestionPages} onClick={() => setSuggestionPage((page) => page + 1)}>Sau →</button></div>
-      {eligibleSuggestions.length === 0 && <p className="promotion-empty">Hiện chưa có SKU đủ điều kiện khuyến mãi theo tồn kho, giá sàn và lịch sử bán.</p>}
-      <details className="promotion-exclusions"><summary>{suggestions.filter((row) => !row.eligible).length} SKU chưa nên khuyến mãi</summary>{suggestions.filter((row) => !row.eligible).slice(0, 20).map((row) => <p key={row.variant_id}><strong>{row.sku}</strong>: {(row.exclusionReasons.length ? row.exclusionReasons : ["Chưa có tín hiệu kinh doanh đủ mạnh"]).join(" · ")}</p>)}</details>
+      {eligibleSuggestions.length === 0 && <div className="promotion-empty-state">
+        <i className="fas fa-circle-check" aria-hidden="true" />
+        <div><strong>Hiện không có đề xuất khuyến mãi mới</strong><p>{activeCampaignSkuCount > 0 ? `${activeCampaignSkuCount} SKU đang nằm trong chương trình khuyến mãi đang chạy nên không được đề xuất lần nữa.` : "Hệ thống đã phân tích toàn bộ SKU nhưng chưa có sản phẩm đạt đủ điều kiện để mở ưu đãi mới."}</p></div>
+        <div className="promotion-empty-breakdown">
+          {activeCampaignSkuCount > 0 && <span><b>{activeCampaignSkuCount}</b> đang được khuyến mãi</span>}
+          {protectedSkuCount > 0 && <span><b>{protectedSkuCount}</b> thuộc nhóm được bảo vệ</span>}
+          {lowPrioritySkuCount > 0 && <span><b>{lowPrioritySkuCount}</b> chưa đủ ưu tiên</span>}
+        </div>
+      </div>}
+      <details className="promotion-exclusions"><summary>{excludedSuggestions.length} SKU chưa nên khuyến mãi</summary>{excludedSuggestions.slice(0, 20).map((row) => <p key={row.variant_id}><strong>{row.sku}</strong>: {(row.exclusionReasons.length ? row.exclusionReasons : ["Chưa có tín hiệu kinh doanh đủ mạnh"]).join(" · ")}</p>)}</details>
     </section>}
 
     {activeView === "programs" && <ProgramTable rows={rows} beginEdit={beginEdit} act={act} openNew={openNew} />}

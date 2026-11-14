@@ -129,6 +129,7 @@ export const productsAPI = {
   getAll: () => request("/products"),
   getById: (id) => request(`/products/${id}`),
   getAllAdmin: (scope = "current") => request(`/products/admin/all?scope=${encodeURIComponent(scope)}`),
+  getCreateMetadata: () => request("/products/admin/create-metadata"),
   createProductAdmin: (payload) => request("/products/admin", { method: "POST", body: JSON.stringify(payload) }),
   updateProductAdmin: (id, payload) => request(`/products/admin/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
   uploadImage: async (file, productCode = "product") => {
@@ -163,6 +164,9 @@ export const productsAPI = {
   updateVariantPricing: (id, variantId, costPrice, floorPrice) => request(`/products/${id}/variants/${encodeURIComponent(variantId)}/pricing`, { method: "PATCH", body: JSON.stringify({ costPrice, floorPrice }) }),
   getMovements: (productId) =>
     request(`/products/inventory/movements${productId ? `?productId=${productId}` : ""}`),
+  getInventoryDocuments: (limit = 100) => request(`/products/inventory/documents?limit=${encodeURIComponent(limit)}`),
+  createInventoryDocument: (payload) => request("/products/inventory/documents", { method: "POST", body: JSON.stringify(payload) }),
+  reverseInventoryDocument: (id, reason) => request(`/products/inventory/documents/${id}/reverse`, { method: "POST", body: JSON.stringify({ reason }) }),
 };
 
 export const ordersAPI = {
