@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import process from "node:process";
 import { connectDB, getPool } from "../server/config/db.js";
 
 function fingerprint(rows) {

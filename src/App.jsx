@@ -20,6 +20,7 @@ const ProductListPage = lazy(() => import("./pages/ProductListPage"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const Cart = lazy(() => import("./pages/Cart"));
 const Checkout = lazy(() => import("./pages/Checkout"));
+const PaymentResult = lazy(() => import("./pages/PaymentResult"));
 const Login = lazy(() => import("./pages/Login"));
 const CustomerOrders = lazy(() => import("./pages/customer/CustomerOrders"));
 const CustomerAccount = lazy(() => import("./pages/customer/CustomerAccount"));
@@ -85,6 +86,7 @@ function App() {
                 <Route path="/search" element={<SearchResultsPage />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/checkout" element={<Checkout />} />
+                <Route path="/payment/result" element={<PaymentResult />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/access-denied" element={<AccessDenied />} />
 
