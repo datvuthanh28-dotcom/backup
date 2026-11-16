@@ -58,24 +58,28 @@ const DEMO_RETURN_REQUESTS = [
     productName: "Cashmere Button Cardigan", color: "Beige", size: "S", price: 4890000,
     type: "refund", reason: "changed_mind", detail: null, amount: 4890000,
     status: "manual_review", decision: "Cần kiểm tra tình trạng sản phẩm trước khi duyệt hoàn tiền.",
+    bankCode: "BIDV", bankName: "BIDV", accountNumber: "123456", accountHolder: "NGUYEN VAN A",
   },
   {
     id: "RET-1793990861514-34SNC", orderId: "MR-2026-24663", productId: 107,
     productName: "Baby Cashmere Crewneck Sweater", color: "Brown", size: "S", price: 4890000,
     type: "refund", reason: "wrong_size_sent", detail: null, amount: 4890000,
     status: "return_authorized", decision: "Sản phẩm đủ điều kiện tiếp nhận để kiểm tra.",
+    bankCode: "VCB", bankName: "Vietcombank", accountNumber: "0123456789", accountHolder: "NGUYEN VAN A",
   },
   {
     id: "RET-1793989608164-HBI0B", orderId: "MR-TEST-DEL-002", productId: 113,
     productName: "Linen Classic Long-Sleeve Shirt", color: "White", size: "L", price: 2390000,
     type: "refund", reason: "other", detail: "bi hu khoá", amount: 2390000,
     status: "inspection_passed", decision: "Đã kiểm tra và xác nhận sản phẩm đủ điều kiện hoàn tiền.",
+    bankCode: "TCB", bankName: "Techcombank", accountNumber: "9876543210", accountHolder: "NGUYEN VAN A",
   },
   {
     id: "RET-1793989568118-GYYGO", orderId: "MR-TEST-DEL-003", productId: 127,
     productName: "Suede Penny Loafers", color: "Dark Brown", size: "42", price: 2390000,
     type: "refund", reason: "other", detail: "bị bạc màu", amount: 2390000,
     status: "auto_declined", decision: "Yêu cầu không đáp ứng điều kiện hoàn tiền tự động.",
+    bankCode: "ACB", bankName: "ACB", accountNumber: "2468135790", accountHolder: "NGUYEN VAN A",
   },
   {
     id: "RET-1793989273993-H9HMF", orderId: "MR-2026-24663", productId: 107,
@@ -89,7 +93,14 @@ async function seedDemoReturnRequests(pool) {
   console.log("[Seed] Checking demo return and refund requests...");
   for (const record of DEMO_RETURN_REQUESTS) {
     const existing = await pool.request().input("id", record.id).query("SELECT id FROM ReturnRequests WHERE id=@id");
-    if (existing.recordset.length) continue;
+    if (existing.recordset.length) {
+      if (record.type === "refund" && record.bankCode) {
+        await pool.request().input("id", record.id).input("bank_code", record.bankCode).input("bank_name", record.bankName)
+          .input("account_number", record.accountNumber).input("account_holder", record.accountHolder)
+          .query(`UPDATE ReturnRequests SET refund_bank_code=COALESCE(refund_bank_code,@bank_code), refund_bank_name=COALESCE(refund_bank_name,@bank_name), refund_account_number=COALESCE(refund_account_number,@account_number), refund_account_holder=COALESCE(refund_account_holder,@account_holder), updated_at=GETDATE() WHERE id=@id`);
+      }
+      continue;
+    }
 
     const existingOrder = await pool.request().input("id", record.orderId).query("SELECT id FROM Orders WHERE id=@id");
     if (!existingOrder.recordset.length) {
@@ -118,8 +129,9 @@ async function seedDemoReturnRequests(pool) {
       .input("id", record.id).input("order_id", record.orderId).input("item_id", orderItemId).input("customer_id", "usr_cust_01")
       .input("email", "vudat9532@gmail.com").input("type", record.type).input("reason", record.reason).input("detail", record.detail)
       .input("amount", record.amount).input("status", record.status).input("decision", record.decision)
-      .query(`INSERT INTO ReturnRequests(id,order_id,order_item_id,customer_id,customer_email,request_type,reason_code,reason_detail,requested_quantity,exchange_size,exchange_color,requested_amount,status,decision_reason,return_deadline,created_at,updated_at)
-        VALUES(@id,@order_id,@item_id,@customer_id,@email,@type,@reason,@detail,1,NULL,NULL,@amount,@status,@decision,DATEADD(day,14,GETDATE()),GETDATE(),GETDATE())`);
+      .input("bank_code", record.bankCode || null).input("bank_name", record.bankName || null).input("account_number", record.accountNumber || null).input("account_holder", record.accountHolder || null)
+      .query(`INSERT INTO ReturnRequests(id,order_id,order_item_id,customer_id,customer_email,request_type,reason_code,reason_detail,requested_quantity,exchange_size,exchange_color,refund_bank_code,refund_bank_name,refund_account_number,refund_account_holder,requested_amount,status,decision_reason,return_deadline,created_at,updated_at)
+        VALUES(@id,@order_id,@item_id,@customer_id,@email,@type,@reason,@detail,1,NULL,NULL,@bank_code,@bank_name,@account_number,@account_holder,@amount,@status,@decision,DATEADD(day,14,GETDATE()),GETDATE(),GETDATE())`);
     console.log(`[Seed] Created return request: ${record.id}`);
   }
 }
@@ -365,6 +377,19 @@ export async function runSeed() {
     console.log("[Seed] Initial orders and audit logs created successfully.");
   } else {
     console.log(`[Seed] Orders already exist in database (${existingOrders.length} orders).`);
+  }
+
+  // Keep the shared demo order available for testing the customer return form.
+  // This is intentionally limited to the named demo order and does not alter real orders.
+  const refundFormTestOrder = await db.getOrderById("MR-2024-00102");
+  if (refundFormTestOrder && refundFormTestOrder.order_status !== "delivered") {
+    await db.updateOrderStatusWithValidation({
+      orderId: "MR-2024-00102",
+      newStatus: "delivered",
+      note: "Demo order kept delivered for return/refund form testing.",
+      updatedBy: "Demo seed",
+    });
+    console.log("[Seed] Marked MR-2024-00102 as delivered for return-form testing.");
   }
 
   await seedDemoReturnRequests(pool);
