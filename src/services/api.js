@@ -199,21 +199,6 @@ export const ordersAPI = {
     }),
 };
 
-export const paymentAPI = {
-  createVNPayUrl: (orderId, bankCode = "") =>
-    request("/payments/vnpay/create-url", {
-      method: "POST",
-      body: JSON.stringify({ orderId, bankCode }),
-    }),
-  verifyVNPayReturn: (params) =>
-    request("/payments/vnpay/verify", {
-      method: "POST",
-      body: JSON.stringify(params),
-    }),
-  checkVNPayStatus: (orderId) =>
-    request(`/payments/vnpay/order-status/${encodeURIComponent(orderId)}`),
-};
-
 export const returnsAPI = {
   getAll: () => request("/returns"),
   getExchangeOptions: (orderId, orderItemId) => request(`/returns/orders/${encodeURIComponent(orderId)}/items/${encodeURIComponent(orderItemId)}/exchange-options`),

@@ -4,7 +4,7 @@ import { useCart } from "../hooks/useCart";
 import { useStore } from "../hooks/useStore";
 import { useAuth } from "../context/AuthContext";
 import useDocumentTitle from "../hooks/useDocumentTitle";
-import { customerAPI, promotionAPI, paymentAPI } from "../services/api";
+import { customerAPI, promotionAPI } from "../services/api";
 
 function formatPrice(v) {
   return v.toLocaleString("vi-VN") + "đ";
@@ -27,8 +27,6 @@ export default function Checkout() {
     paymentMethod: "cod",
     notes: "",
   });
-
-  const [vnpayBankCode, setVnpayBankCode] = useState("VNPAYQR");
 
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -248,24 +246,6 @@ export default function Checkout() {
     // Clear this customer's persisted cart only after order creation succeeds.
     removeCartItems(checkoutItems.map((item) => item.cartItemId));
 
-    if (formData.paymentMethod === "vnpay") {
-      try {
-        const vnpRes = await paymentAPI.createVNPayUrl(result.order.id, vnpayBankCode);
-        if (vnpRes.success && vnpRes.paymentUrl) {
-          window.location.href = vnpRes.paymentUrl;
-          return;
-        } else {
-          setErrors({ form: vnpRes.error || "Không thể khởi tạo cổng thanh toán VNPay." });
-          setSubmitting(false);
-          return;
-        }
-      } catch (vnpErr) {
-        setErrors({ form: vnpErr.message || "Lỗi kết nối cổng thanh toán VNPay." });
-        setSubmitting(false);
-        return;
-      }
-    }
-
     setOrderSuccess(result.order);
     setSubmitting(false);
   };
@@ -351,12 +331,7 @@ export default function Checkout() {
               <strong>Delivery address:</strong> {orderSuccess.shipping_address || orderSuccess.shippingAddress}
             </div>
             <div style={{ marginBottom: "8px" }}>
-              <strong>Payment method:</strong>{" "}
-              {(orderSuccess.payment_method || orderSuccess.paymentMethod) === "cod"
-                ? "Cash on delivery (COD)"
-                : (orderSuccess.payment_method || orderSuccess.paymentMethod) === "vnpay"
-                ? "VNPay Online Payment (QR Code / Bank)"
-                : "Bank transfer"}
+              <strong>Payment method:</strong> Cash on delivery (COD)
             </div>
             <div>
               <strong>Total paid:</strong>{" "}
@@ -616,10 +591,10 @@ export default function Checkout() {
                   alignItems: "center",
                   gap: "12px",
                   padding: "14px 18px",
-                  border: formData.paymentMethod === "cod" ? "2px solid #2B211C" : "1px solid #D8CEC1",
+                  border: "2px solid #2B211C",
                   borderRadius: "6px",
                   cursor: "pointer",
-                  backgroundColor: formData.paymentMethod === "cod" ? "#FAF6F0" : "#FFF",
+                  backgroundColor: "#FAF6F0",
                 }}
               >
                 <input
@@ -632,174 +607,6 @@ export default function Checkout() {
                 <div>
                   <strong style={{ display: "block", color: "#2B211C" }}>Cash on delivery (COD)</strong>
                   <span style={{ fontSize: "12.5px", color: "#6B5A4B" }}>Pay in cash upon delivery</span>
-                </div>
-              </label>
-
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  padding: "14px 18px",
-                  border: formData.paymentMethod === "bank_transfer" ? "2px solid #2B211C" : "1px solid #D8CEC1",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  backgroundColor: formData.paymentMethod === "bank_transfer" ? "#FAF6F0" : "#FFF",
-                }}
-              >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="bank_transfer"
-                  checked={formData.paymentMethod === "bank_transfer"}
-                  onChange={handleChange}
-                />
-                <div>
-                  <strong style={{ display: "block", color: "#2B211C" }}>Direct bank transfer</strong>
-                  <span style={{ fontSize: "12.5px", color: "#6B5A4B" }}>Vietcombank - Maison Rue Luxury - 0071000888999</span>
-                </div>
-              </label>
-
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: "12px",
-                  padding: "14px 18px",
-                  border: formData.paymentMethod === "vnpay" ? "2px solid #2B211C" : "1px solid #D8CEC1",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  backgroundColor: formData.paymentMethod === "vnpay" ? "#FAF6F0" : "#FFF",
-                }}
-              >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="vnpay"
-                  checked={formData.paymentMethod === "vnpay"}
-                  onChange={handleChange}
-                  style={{ marginTop: "4px" }}
-                />
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                    <strong style={{ color: "#2B211C" }}>VNPay (QR Code / Bank Transfer / Card)</strong>
-                    <span
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: "700",
-                        backgroundColor: "#005BAA",
-                        color: "#FFF",
-                        padding: "2px 7px",
-                        borderRadius: "3px",
-                        letterSpacing: "0.5px",
-                      }}
-                    >
-                      VNPAY-QR
-                    </span>
-                    <span
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: "600",
-                        backgroundColor: "#E8F0FE",
-                        color: "#1967D2",
-                        padding: "2px 7px",
-                        borderRadius: "3px",
-                      }}
-                    >
-                      Quét mã QR chuyển khoản tức thì
-                    </span>
-                  </div>
-                  <span style={{ fontSize: "12.5px", color: "#6B5A4B", display: "block", marginTop: "3px" }}>
-                    Quét mã QR bằng App Ngân hàng (VCB, VietinBank, BIDV, MB, Techcombank...), ví VNPAY hoặc thẻ ATM / Visa / Mastercard.
-                  </span>
-
-                  {formData.paymentMethod === "vnpay" && (
-                    <div
-                      style={{
-                        marginTop: "12px",
-                        paddingTop: "12px",
-                        borderTop: "1px dashed #D8CEC1",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "8px",
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <label style={{ fontSize: "12px", fontWeight: "600", color: "#2B211C" }}>
-                        Hình thức VNPay:
-                      </label>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                        <button
-                          type="button"
-                          onClick={() => setVnpayBankCode("VNPAYQR")}
-                          style={{
-                            padding: "8px 10px",
-                            fontSize: "12px",
-                            textAlign: "left",
-                            borderRadius: "4px",
-                            border: vnpayBankCode === "VNPAYQR" ? "1.5px solid #005BAA" : "1px solid #D8CEC1",
-                            backgroundColor: vnpayBankCode === "VNPAYQR" ? "#F0F7FF" : "#FFF",
-                            color: vnpayBankCode === "VNPAYQR" ? "#005BAA" : "#2B211C",
-                            fontWeight: vnpayBankCode === "VNPAYQR" ? "700" : "500",
-                            cursor: "pointer",
-                          }}
-                        >
-                          📱 Quét mã VNPAY-QR
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setVnpayBankCode("VNBANK")}
-                          style={{
-                            padding: "8px 10px",
-                            fontSize: "12px",
-                            textAlign: "left",
-                            borderRadius: "4px",
-                            border: vnpayBankCode === "VNBANK" ? "1.5px solid #005BAA" : "1px solid #D8CEC1",
-                            backgroundColor: vnpayBankCode === "VNBANK" ? "#F0F7FF" : "#FFF",
-                            color: vnpayBankCode === "VNBANK" ? "#005BAA" : "#2B211C",
-                            fontWeight: vnpayBankCode === "VNBANK" ? "700" : "500",
-                            cursor: "pointer",
-                          }}
-                        >
-                          🏦 Thẻ ATM nội địa
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setVnpayBankCode("INTCARD")}
-                          style={{
-                            padding: "8px 10px",
-                            fontSize: "12px",
-                            textAlign: "left",
-                            borderRadius: "4px",
-                            border: vnpayBankCode === "INTCARD" ? "1.5px solid #005BAA" : "1px solid #D8CEC1",
-                            backgroundColor: vnpayBankCode === "INTCARD" ? "#F0F7FF" : "#FFF",
-                            color: vnpayBankCode === "INTCARD" ? "#005BAA" : "#2B211C",
-                            fontWeight: vnpayBankCode === "INTCARD" ? "700" : "500",
-                            cursor: "pointer",
-                          }}
-                        >
-                          💳 Thẻ quốc tế Visa/Master
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setVnpayBankCode("")}
-                          style={{
-                            padding: "8px 10px",
-                            fontSize: "12px",
-                            textAlign: "left",
-                            borderRadius: "4px",
-                            border: vnpayBankCode === "" ? "1.5px solid #005BAA" : "1px solid #D8CEC1",
-                            backgroundColor: vnpayBankCode === "" ? "#F0F7FF" : "#FFF",
-                            color: vnpayBankCode === "" ? "#005BAA" : "#2B211C",
-                            fontWeight: vnpayBankCode === "" ? "700" : "500",
-                            cursor: "pointer",
-                          }}
-                        >
-                          🌐 Cổng tổng hợp VNPay
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </label>
             </div>
@@ -893,13 +700,7 @@ export default function Checkout() {
                 className="btn-primary btn-large"
                 style={{ marginTop: "20px" }}
               >
-                {submitting
-                  ? formData.paymentMethod === "vnpay"
-                    ? "Redirecting to VNPay..."
-                    : "Processing order..."
-                  : formData.paymentMethod === "vnpay"
-                  ? "TIẾP TỤC THANH TOÁN VNPAY"
-                  : "PLACE ORDER"}
+                {submitting ? "Processing order..." : "PLACE ORDER"}
               </button>
 
               <p

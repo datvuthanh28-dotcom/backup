@@ -19,7 +19,6 @@ import customerRoutes from "./routes/customerRoutes.js";
 import promotionRoutes from "./routes/promotionRoutes.js";
 import returnRoutes from "./routes/returnRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
-import paymentRoutes from "./routes/paymentRoutes.js";
 import { initReviewAuditScheduler } from "./services/reviewAuditService.js";
 
 dotenv.config();
@@ -113,7 +112,6 @@ app.use("/api/customer", customerRoutes);
 app.use("/api/promotions", promotionRoutes);
 app.use("/api/returns", returnRoutes);
 app.use("/api/chat", chatRoutes);
-app.use("/api/payments", paymentRoutes);
 
 // Phục vụ frontend static build (SPA) khi deploy production
 const distPath = path.resolve(__dirname, "..", "dist");
